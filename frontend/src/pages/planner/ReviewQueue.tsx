@@ -20,7 +20,7 @@ import type { FieldUpdate } from '../../types';
 
 export const ReviewQueue: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { updates, loading: updatesLoading, refetch, updateStatusAndAudit } = useFieldUpdates();
+  const { updates, loading: updatesLoading, refetch, updateStatusAndAudit, requeueForRematching } = useFieldUpdates();
   const { activities, activitiesMap, disciplines, loading: scheduleLoading } = useScheduleData();
 
   const [plannerName, setPlannerName] = useState('Lead Project Planner');
@@ -120,6 +120,19 @@ export const ReviewQueue: React.FC = () => {
     });
     if (res.success) {
       showToast(`Update ${update.update_id} successfully remapped to [${newActivityId}].`);
+    }
+  };
+
+  const handleRequeue = async (update: FieldUpdate, remarks?: string) => {
+    const res = await requeueForRematching({
+      updateUuid: update.id,
+      plannerName,
+      remarks,
+    });
+    if (res.success) {
+      showToast(`Report ${update.update_id} re-queued for AI matching worker.`);
+    } else {
+      showToast(res.error || 'Failed to re-queue update');
     }
   };
 
@@ -312,6 +325,7 @@ export const ReviewQueue: React.FC = () => {
                     onAccept={handleAccept}
                     onReject={handleReject}
                     onOpenRemap={(u) => setRemapTarget(u)}
+                    onRequeue={handleRequeue}
                   />
                 );
               })}

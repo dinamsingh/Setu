@@ -68,7 +68,12 @@ def import_domain_aliases(client, json_path: Path = settings.DOMAIN_ALIASES_PATH
         payload.append({
             "field_term": item["field_term"],
             "standard_term": item["standard_term"],
-            "discipline": item.get("discipline")
+            "discipline": item.get("discipline"),
+            "status": item.get("status", "verified"),
+            "origin": item.get("origin", "seed"),
+            "source_update_id": item.get("source_update_id"),
+            "proposed_by": item.get("proposed_by"),
+            "reviewed_by": item.get("reviewed_by", "System Seed"),
         })
 
     upserted_count = upsert_domain_aliases(client, payload)

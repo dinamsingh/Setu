@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { X, Search, Check } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { X, Search, Check, Sparkles, ShieldCheck } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { extractCandidateTerms } from '../../lib/aliasProposer';
 import type { FieldUpdate, ScheduleActivity } from '../../types';
 
 interface RemapModalProps {
@@ -30,6 +32,36 @@ export const RemapModal: React.FC<RemapModalProps> = ({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Institutional Memory State
+  const [proposeAlias, setProposeAlias] = useState(false);
+  const [proposedFieldTerm, setProposedFieldTerm] = useState('');
+  const [proposedStandardTerm, setProposedStandardTerm] = useState('');
+  const [proposedDiscipline, setProposedDiscipline] = useState('');
+
+  const selectedActivity = useMemo(() => {
+    return activities.find((a) => a.activity_id === selectedActId) || null;
+  }, [activities, selectedActId]);
+
+  const candidateProposals = useMemo(() => {
+    if (!update?.field_text || !selectedActivity?.activity_name) return [];
+    return extractCandidateTerms(
+      update.field_text,
+      selectedActivity.activity_name,
+      selectedActivity.discipline
+    );
+  }, [update?.field_text, selectedActivity]);
+
+  useEffect(() => {
+    if (proposeAlias && candidateProposals.length > 0 && !proposedFieldTerm) {
+      setProposedFieldTerm(candidateProposals[0].field_term);
+      setProposedStandardTerm(candidateProposals[0].standard_term);
+      setProposedDiscipline(candidateProposals[0].discipline);
+    } else if (selectedActivity && !proposedStandardTerm) {
+      setProposedStandardTerm(selectedActivity.activity_name);
+      setProposedDiscipline(selectedActivity.discipline || 'General');
+    }
+  }, [proposeAlias, candidateProposals, selectedActivity]);
+
   const filteredActivities = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return activities.slice(0, 50); // initial 50
@@ -48,8 +80,23 @@ export const RemapModal: React.FC<RemapModalProps> = ({
     if (!selectedActId) return;
     setIsSubmitting(true);
     try {
+      if (proposeAlias && proposedFieldTerm.trim()) {
+        await supabase.from('domain_aliases').insert([
+          {
+            field_term: proposedFieldTerm.trim().toLowerCase(),
+            standard_term: (proposedStandardTerm || selectedActivity?.activity_name || '').trim(),
+            discipline: proposedDiscipline || selectedActivity?.discipline || 'General',
+            status: 'proposed',
+            origin: 'planner_correction',
+            source_update_id: update.update_id,
+            proposed_by: plannerName || 'Lead Project Planner',
+          },
+        ]);
+      }
       await onConfirmRemap(update, selectedActId, remarks);
       onClose();
+    } catch (err: any) {
+      console.error('Error confirming remap or proposing alias:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -169,6 +216,95 @@ export const RemapModal: React.FC<RemapModalProps> = ({
                 })
               )}
             </div>
+          </div>
+
+          {/* Institutional Memory: Propose Domain Alias */}
+          <div className="p-3.5 rounded-xl border border-purple-200 bg-purple-50/40 space-y-3">
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={proposeAlias}
+                onChange={(e) => setProposeAlias(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-setu-slate-300 text-purple-600 focus:ring-purple-500"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                  <span className="text-xs font-bold text-setu-slate-900">
+                    Propose New Domain Alias (Institutional Memory)
+                  </span>
+                </div>
+                <span className="text-[11px] text-setu-slate-500 block mt-0.5">
+                  Teach the engine this site jargon so future matching links to this activity automatically.
+                </span>
+              </div>
+            </label>
+
+            {proposeAlias && (
+              <div className="space-y-3 pt-2.5 border-t border-purple-100 animate-fadeIn">
+                {candidateProposals.length > 0 && (
+                  <div>
+                    <span className="text-[10px] font-bold text-setu-slate-500 uppercase tracking-wider block mb-1.5">
+                      Suggested Candidate Jargon from Field Report:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {candidateProposals.map((cand, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setProposedFieldTerm(cand.field_term);
+                            setProposedStandardTerm(cand.standard_term);
+                            setProposedDiscipline(cand.discipline);
+                          }}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
+                            proposedFieldTerm === cand.field_term
+                              ? 'bg-purple-600 text-white border-purple-600 font-semibold shadow-xs'
+                              : 'bg-white text-setu-slate-700 border-setu-slate-200 hover:border-purple-300'
+                          }`}
+                        >
+                          "{cand.field_term}"
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[11px] font-semibold text-setu-slate-700 block mb-1">
+                      Field Term / Slang:
+                    </label>
+                    <input
+                      type="text"
+                      value={proposedFieldTerm}
+                      onChange={(e) => setProposedFieldTerm(e.target.value)}
+                      placeholder="e.g. box-up"
+                      className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-setu-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-purple-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-setu-slate-700 block mb-1">
+                      Target Standard Term:
+                    </label>
+                    <input
+                      type="text"
+                      value={proposedStandardTerm}
+                      onChange={(e) => setProposedStandardTerm(e.target.value)}
+                      placeholder="Standard P6 activity term"
+                      className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-setu-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-purple-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/80 flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-amber-800 leading-tight">
+                    <strong>Human Review Quarantine:</strong> Proposed aliases are stored as <em>'proposed'</em> and <strong>never affect matching</strong> until explicitly approved by a planner in the Domain Dictionary.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Remarks input */}

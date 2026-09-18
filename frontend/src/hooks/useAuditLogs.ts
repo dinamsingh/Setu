@@ -40,5 +40,45 @@ export function useAuditLogs() {
     fetchLogs();
   }, [fetchLogs]);
 
-  return { logs, aliases, loading, error, refetch: fetchLogs };
+  const approveAlias = async (id: number, plannerName: string = 'Lead Project Planner') => {
+    try {
+      const { error: updateErr } = await supabase
+        .from('domain_aliases')
+        .update({
+          status: 'verified',
+          reviewed_by: plannerName,
+          reviewed_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (updateErr) throw updateErr;
+      await fetchLogs();
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error approving alias:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  const rejectAlias = async (id: number, plannerName: string = 'Lead Project Planner') => {
+    try {
+      const { error: updateErr } = await supabase
+        .from('domain_aliases')
+        .update({
+          status: 'rejected',
+          reviewed_by: plannerName,
+          reviewed_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (updateErr) throw updateErr;
+      await fetchLogs();
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error rejecting alias:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  return { logs, aliases, loading, error, refetch: fetchLogs, approveAlias, rejectAlias };
 }

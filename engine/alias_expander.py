@@ -7,7 +7,7 @@ into standard Primavera P6 engineering terminology.
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from config import settings
 
@@ -15,9 +15,23 @@ from config import settings
 class DomainAliasExpander:
     """Expands field terms using domain dictionary."""
 
-    def __init__(self, alias_file: Optional[Path] = None):
-        self.alias_file = alias_file or settings.DOMAIN_ALIASES_PATH
-        self.aliases: List[Dict[str, str]] = self._load_aliases()
+    def __init__(
+        self,
+        aliases: Optional[List[Dict[str, Any]]] = None,
+        alias_file: Optional[Path] = None
+    ):
+        if aliases is not None:
+            self.alias_file = alias_file
+            # Only verified aliases participate in expansion
+            self.aliases: List[Dict[str, Any]] = [
+                a for a in aliases if a.get("status", "verified") == "verified"
+            ]
+        else:
+            self.alias_file = alias_file or settings.DOMAIN_ALIASES_PATH
+            raw = self._load_aliases()
+            self.aliases: List[Dict[str, Any]] = [
+                a for a in raw if a.get("status", "verified") == "verified"
+            ]
         # Sort terms by length descending to match multi-word phrases first (e.g. "tie-in" before "tie")
         self.sorted_terms = sorted(self.aliases, key=lambda x: len(x["field_term"]), reverse=True)
 

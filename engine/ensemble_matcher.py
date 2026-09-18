@@ -32,6 +32,13 @@ class EnsembleMatcher:
         # Precompute & index embeddings for all schedule activities
         self.activity_embeddings = self.embedding_matcher.precompute_schedule_embeddings(self.activities)
 
+    def reload_aliases(self, aliases: List[Dict]) -> None:
+        """
+        Hot-reloads domain aliases in-memory without recomputing schedule activity embeddings.
+        Leaves self.activity_embeddings completely untouched.
+        """
+        self.alias_expander = DomainAliasExpander(aliases=aliases)
+
     def match_single_report(self, report: Dict, top_k: int = 3) -> Dict:
         """
         Executes hybrid matching for a single field report.

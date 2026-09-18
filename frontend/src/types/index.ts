@@ -23,6 +23,13 @@ export interface DomainAlias {
   field_term: string;
   standard_term: string;
   discipline?: string | null;
+  status: 'verified' | 'proposed' | 'rejected';
+  origin: 'seed' | 'planner_correction';
+  source_update_id?: string | null;
+  proposed_by?: string | null;
+  reviewed_by?: string | null;
+  created_at?: string;
+  reviewed_at?: string | null;
 }
 
 export interface CandidateMatch {
@@ -62,7 +69,7 @@ export interface FieldUpdate {
 export interface PlannerAuditLog {
   id: string;
   field_update_id: string;
-  action: 'accept' | 'reject' | 'remap';
+  action: 'accept' | 'reject' | 'remap' | 'requeue';
   previous_activity_id: string | null;
   new_activity_id: string | null;
   planner_name: string;

@@ -41,11 +41,34 @@ create table if not exists domain_aliases (
     id serial primary key,
     field_term text unique not null,                 -- e.g. 'spool', 'stringing', 'hydrotest'
     standard_term text not null,                     -- e.g. 'prefabricated piping spool / line erection'
-    discipline text                                  -- e.g. 'Piping', 'Pipeline', 'Civil'
+    discipline text,                                 -- e.g. 'Piping', 'Pipeline', 'Civil'
+    status text default 'verified',                  -- 'verified', 'proposed', 'rejected'
+    origin text default 'seed',                      -- 'seed', 'planner_correction'
+    source_update_id text,                           -- Originating field report identifier
+    proposed_by text,                                -- Proposing planner name
+    reviewed_by text,                                -- Approving planner name
+    created_at timestamptz default now(),
+    reviewed_at timestamptz
 );
 
 create index if not exists idx_domain_aliases_term 
 on domain_aliases (field_term);
+
+create index if not exists idx_domain_aliases_status 
+on domain_aliases (status);
+
+-- Idempotent column migrations for existing instances
+alter table domain_aliases add column if not exists status text default 'verified';
+alter table domain_aliases add column if not exists origin text default 'seed';
+alter table domain_aliases add column if not exists source_update_id text;
+alter table domain_aliases add column if not exists proposed_by text;
+alter table domain_aliases add column if not exists reviewed_by text;
+alter table domain_aliases add column if not exists created_at timestamptz default now();
+alter table domain_aliases add column if not exists reviewed_at timestamptz;
+
+-- Ensure seed aliases default to verified and seed origin
+update domain_aliases set status = 'verified' where status is null;
+update domain_aliases set origin = 'seed' where origin is null;
 
 
 -- 3. Field Updates Table (Ingested site logs & matching results)

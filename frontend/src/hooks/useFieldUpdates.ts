@@ -166,6 +166,62 @@ export function useFieldUpdates() {
     }
   };
 
+  const requeueForRematching = async ({
+    updateUuid,
+    plannerName,
+    remarks,
+  }: {
+    updateUuid: string;
+    plannerName: string;
+    remarks?: string;
+  }) => {
+    try {
+      const row = updates.find((u) => u.id === updateUuid || u.update_id === updateUuid);
+      if (!row) throw new Error(`Field update ${updateUuid} not found.`);
+
+      const currStatus = (row.status || '').toLowerCase();
+      if (['approved', 'rejected', 'remapped'].includes(currStatus)) {
+        throw new Error(
+          `Cannot re-queue update '${row.update_id}': Row is already reviewed with status '${currStatus}'. Re-queue is strictly limited to unreviewed rows.`
+        );
+      }
+
+      // 1. Reset confidence to Pending
+      const { error: updError } = await supabase
+        .from('field_updates')
+        .update({
+          confidence_level: 'Pending',
+          confidence_score: 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', row.id);
+
+      if (updError) throw updError;
+
+      // 2. Insert into planner_audit_logs
+      const { error: auditError } = await supabase
+        .from('planner_audit_logs')
+        .insert([
+          {
+            field_update_id: row.id,
+            action: 'requeue',
+            previous_activity_id: row.matched_activity_id,
+            new_activity_id: null,
+            planner_name: plannerName || 'Lead Project Planner',
+            remarks: remarks || 'Re-queued for re-matching with updated domain dictionary.',
+          },
+        ]);
+
+      if (auditError) throw auditError;
+
+      await fetchUpdates();
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error re-queuing update for rematching:', err);
+      return { success: false, error: err.message || 'Failed to re-queue update' };
+    }
+  };
+
   return {
     updates,
     kpis,
@@ -174,5 +230,6 @@ export function useFieldUpdates() {
     refetch: fetchUpdates,
     submitFieldUpdate,
     updateStatusAndAudit,
+    requeueForRematching,
   };
 }

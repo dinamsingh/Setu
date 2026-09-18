@@ -22,8 +22,10 @@ from database.supabase_client import (
     get_database_mode,
     fetch_schedule_activities,
     fetch_field_updates,
+    fetch_verified_domain_aliases,
     update_field_update_match,
 )
+from engine.alias_expander import DomainAliasExpander
 from engine.ensemble_matcher import EnsembleMatcher
 
 
@@ -79,7 +81,7 @@ def run_worker(
     db_client = client or get_supabase_client()
     print(f"Database Mode: {get_database_mode()}")
 
-    # Preload schedule activities and construct EnsembleMatcher ONCE at startup
+    # Preload schedule activities and verified domain aliases, construct EnsembleMatcher ONCE at startup
     print("Loading schedule activities and initializing EnsembleMatcher (one-time setup)...")
     activities = fetch_schedule_activities(db_client)
     if not activities:
@@ -87,7 +89,17 @@ def run_worker(
             "No schedule activities found in database! Please run database/import_data.py first."
         )
     print(f"Loaded {len(activities)} schedule activities.")
-    matcher = EnsembleMatcher(activities=activities)
+
+    active_aliases = fetch_verified_domain_aliases(db_client)
+    print(f"Loaded {len(active_aliases)} verified domain aliases.")
+    active_fingerprint = (
+        len(active_aliases),
+        tuple(sorted((str(a.get("id")), str(a.get("field_term")), str(a.get("standard_term"))) for a in active_aliases))
+    )
+    matcher = EnsembleMatcher(
+        activities=activities,
+        alias_expander=DomainAliasExpander(aliases=active_aliases)
+    )
     print("EnsembleMatcher successfully initialized and ready.\n")
 
     if once:
@@ -97,6 +109,17 @@ def run_worker(
 
     try:
         while True:
+            # Hot-reload check: cheaply verify if verified aliases set has changed
+            current_aliases = fetch_verified_domain_aliases(db_client)
+            current_fingerprint = (
+                len(current_aliases),
+                tuple(sorted((str(a.get("id")), str(a.get("field_term")), str(a.get("standard_term"))) for a in current_aliases))
+            )
+            if current_fingerprint != active_fingerprint:
+                matcher.reload_aliases(current_aliases)
+                print(f"[WORKER] Hot-reloaded domain aliases ({len(current_aliases)} active verified aliases).")
+                active_fingerprint = current_fingerprint
+
             # Query updates
             all_updates = fetch_field_updates(db_client)
             unmatched_rows = [r for r in all_updates if is_unmatched_row(r)]

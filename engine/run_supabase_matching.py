@@ -19,9 +19,11 @@ from database.supabase_client import (
     get_supabase_client,
     fetch_schedule_activities,
     fetch_field_updates,
+    fetch_verified_domain_aliases,
     update_field_update_match,
     get_table_counts
 )
+from engine.alias_expander import DomainAliasExpander
 from engine.ensemble_matcher import EnsembleMatcher
 
 
@@ -95,9 +97,12 @@ def run_supabase_matching(
         print("Use --force-rematch-all to recompute scores for all records while preserving review status.")
         return
 
-    # 3. Initialize Existing EnsembleMatcher (Zero code duplication)
-    print("Initializing EnsembleMatcher with database activities...")
-    matcher = EnsembleMatcher(activities=activities)
+    # 3. Initialize Existing EnsembleMatcher with verified database aliases
+    verified_aliases = fetch_verified_domain_aliases(db_client)
+    print(f"Loaded {len(verified_aliases)} verified domain aliases from database.")
+    alias_expander = DomainAliasExpander(aliases=verified_aliases)
+    print("Initializing EnsembleMatcher with database activities and verified aliases...")
+    matcher = EnsembleMatcher(activities=activities, alias_expander=alias_expander)
 
     # 4. Execute Matching & Write Back to Supabase
     print("\nExecuting hybrid matching and updating database records...")

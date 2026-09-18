@@ -81,7 +81,14 @@ class LocalMockQueryBuilder:
             return LocalMockResponse(filtered)
 
         elif self._action == "insert":
+            import uuid
             for item in self._payload:
+                if "id" not in item:
+                    int_ids = [r.get("id") for r in rows if isinstance(r.get("id"), int)]
+                    if int_ids or self.table_name == "domain_aliases":
+                        item["id"] = max(int_ids or [0]) + 1
+                    else:
+                        item["id"] = str(uuid.uuid4())
                 rows.append(item)
             self.db.save()
             return LocalMockResponse(self._payload)
@@ -159,6 +166,11 @@ class LocalMockDatabase:
             try:
                 with open(self.storage_file, "r", encoding="utf-8") as f:
                     self.tables = json.load(f)
+                # Ensure backward-compatible defaults for domain_aliases
+                for idx, al in enumerate(self.tables.get("domain_aliases", [])):
+                    al.setdefault("id", idx + 1)
+                    al.setdefault("status", "verified")
+                    al.setdefault("origin", "seed")
             except Exception:
                 pass
 
@@ -250,10 +262,90 @@ def upsert_schedule_activities(client: Any, activities: List[Dict], batch_size: 
     return total_upserted
 
 
-def fetch_domain_aliases(client: Any) -> List[Dict]:
-    """Fetches all domain aliases."""
-    res = client.table("domain_aliases").select("*").execute()
+def fetch_domain_aliases(client: Any, status: Optional[str] = None) -> List[Dict]:
+    """Fetches domain aliases, optionally filtered by status (e.g. 'verified', 'proposed')."""
+    query = client.table("domain_aliases").select("*")
+    if status:
+        query = query.eq("status", status)
+    res = query.execute()
     return res.data or []
+
+
+def fetch_verified_domain_aliases(client: Any) -> List[Dict]:
+    """Fetches only verified domain aliases for use in matching engine expansion."""
+    return fetch_domain_aliases(client, status="verified")
+
+
+def propose_domain_alias(client: Any, alias_data: Dict) -> Dict:
+    """Inserts a proposed domain alias awaiting planner review."""
+    payload = {
+        "field_term": alias_data["field_term"].strip().lower(),
+        "standard_term": alias_data["standard_term"].strip(),
+        "discipline": alias_data.get("discipline"),
+        "status": "proposed",
+        "origin": alias_data.get("origin", "planner_correction"),
+        "source_update_id": alias_data.get("source_update_id"),
+        "proposed_by": alias_data.get("proposed_by", "Lead Project Planner"),
+    }
+    res = client.table("domain_aliases").insert(payload).execute()
+    return res.data[0] if res.data else payload
+
+
+def review_domain_alias(
+    client: Any,
+    alias_id: Any,
+    status: str,
+    reviewed_by: str = "Lead Project Planner"
+) -> None:
+    """Updates the status of an alias to 'verified' or 'rejected' with reviewer timestamp."""
+    from datetime import datetime, timezone
+    if status not in ("verified", "rejected"):
+        raise ValueError(f"Invalid review status '{status}'. Must be 'verified' or 'rejected'.")
+    payload = {
+        "status": status,
+        "reviewed_by": reviewed_by,
+        "reviewed_at": datetime.now(timezone.utc).isoformat()
+    }
+    client.table("domain_aliases").update(payload).eq("id", alias_id).execute()
+
+
+def requeue_field_update_for_rematch(
+    client: Any,
+    update_id: str,
+    planner_name: str = "Lead Project Planner",
+    remarks: str = "Re-queued for re-matching with updated domain dictionary"
+) -> None:
+    """
+    Re-queues a field update row for matching by resetting confidence_level to 'Pending'.
+    Strictly refuses to touch already-reviewed rows (status in 'approved', 'rejected', 'remapped').
+    Enforced in data access layer.
+    """
+    res = client.table("field_updates").select("*").eq("update_id", update_id).execute()
+    if not res.data:
+        raise ValueError(f"Field update '{update_id}' not found.")
+    row = res.data[0]
+    curr_status = (row.get("status") or "").lower()
+    if curr_status in ("approved", "rejected", "remapped"):
+        raise ValueError(
+            f"Cannot re-queue update '{update_id}': Row is already reviewed with status '{curr_status}'. "
+            "Re-queue is strictly limited to unreviewed rows."
+        )
+
+    update_payload = {
+        "confidence_level": "Pending",
+        "confidence_score": None,
+    }
+    client.table("field_updates").update(update_payload).eq("update_id", update_id).execute()
+
+    audit_record = {
+        "field_update_id": row.get("id"),
+        "action": "requeue",
+        "previous_activity_id": row.get("matched_activity_id"),
+        "new_activity_id": None,
+        "planner_name": planner_name,
+        "remarks": remarks,
+    }
+    create_planner_audit_log(client, audit_record)
 
 
 def upsert_domain_aliases(client: Any, aliases: List[Dict]) -> int:

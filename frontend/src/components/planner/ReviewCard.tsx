@@ -9,7 +9,8 @@ import {
   Calendar, 
   User, 
   FileText, 
-  Sparkles
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 import type { FieldUpdate, ScheduleActivity } from '../../types';
 import { ConfidenceBadge } from '../common/ConfidenceBadge';
@@ -22,6 +23,7 @@ interface ReviewCardProps {
   onAccept: (update: FieldUpdate, remarks: string) => Promise<void>;
   onReject: (update: FieldUpdate, remarks: string) => Promise<void>;
   onOpenRemap: (update: FieldUpdate) => void;
+  onRequeue?: (update: FieldUpdate, remarks?: string) => Promise<void>;
 }
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({
@@ -31,6 +33,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   onAccept,
   onReject,
   onOpenRemap,
+  onRequeue,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [remarks, setRemarks] = useState(update.planner_remarks || '');
@@ -61,6 +64,18 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     setIsSubmitting(true);
     try {
       await onReject(update, remarks || `Rejected by ${plannerName}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isReviewed = ['approved', 'rejected', 'remapped'].includes((update.status || '').toLowerCase());
+
+  const handleRequeue = async () => {
+    if (!onRequeue) return;
+    setIsSubmitting(true);
+    try {
+      await onRequeue(update, remarks || `Re-queued for re-matching with updated domain dictionary by ${plannerName}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -278,6 +293,25 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               <XCircle className="w-3.5 h-3.5" />
               <span>Reject</span>
             </button>
+
+            {onRequeue && (
+              <button
+                type="button"
+                disabled={isSubmitting || isReviewed || isAwaiting}
+                onClick={handleRequeue}
+                title={
+                  isReviewed
+                    ? 'Already reviewed — cannot re-queue'
+                    : isAwaiting
+                    ? 'Matching in progress'
+                    : 'Re-queue for AI matching worker'
+                }
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Re-queue</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
