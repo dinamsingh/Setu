@@ -1,0 +1,280 @@
+{
+  "metadata": {
+    "dataset": "synthetic_field_updates.csv",
+    "total_reports": 40,
+    "total_schedule_activities": 220,
+    "calibrated_ambiguity_threshold": 0.008
+  },
+  "hit_rates": {
+    "Overall": {
+      "total": 40,
+      "top1_hits": 16,
+      "top1_hit_rate_pct": 40.0,
+      "top3_hits": 24,
+      "top3_hit_rate_pct": 60.0
+    },
+    "High": {
+      "total": 10,
+      "top1_hits": 9,
+      "top1_hit_rate_pct": 90.0,
+      "top3_hits": 10,
+      "top3_hit_rate_pct": 100.0
+    },
+    "Medium": {
+      "total": 15,
+      "top1_hits": 7,
+      "top1_hit_rate_pct": 46.67,
+      "top3_hits": 12,
+      "top3_hit_rate_pct": 80.0
+    },
+    "Low": {
+      "total": 15,
+      "top1_hits": 0,
+      "top1_hit_rate_pct": 0.0,
+      "top3_hits": 2,
+      "top3_hit_rate_pct": 13.33
+    }
+  },
+  "confusion_matrix": {
+    "High": {
+      "High": 10,
+      "Medium": 5,
+      "Low": 0
+    },
+    "Medium": {
+      "High": 0,
+      "Medium": 10,
+      "Low": 5
+    },
+    "Low": {
+      "High": 0,
+      "Medium": 0,
+      "Low": 10
+    }
+  },
+  "safety_metrics": {
+    "overconfident_misroutes": 0,
+    "overconfident_records": [],
+    "abstention_rate_pct": 37.5,
+    "low_tier_count": 15
+  },
+  "margin_statistics": {
+    "count": 40,
+    "min": 0.0,
+    "p10": 0.0006,
+    "p25": 0.0025,
+    "median": 0.0056,
+    "p75": 0.0082,
+    "p90": 0.0146,
+    "max": 0.028,
+    "mean": 0.0068,
+    "std": 0.0062
+  },
+  "validation_status_distribution": {
+    "block": {
+      "count": 23,
+      "pct": 57.5
+    },
+    "pass": {
+      "count": 7,
+      "pct": 17.5
+    },
+    "warn": {
+      "count": 10,
+      "pct": 25.0
+    }
+  },
+  "per_check_breakdown": {
+    "date_plausibility": {
+      "pass": 21,
+      "warn": 0,
+      "fail": 19
+    },
+    "candidate_ambiguity": {
+      "pass": 18,
+      "warn": 22,
+      "fail": 0
+    },
+    "location_consistency": {
+      "pass": 33,
+      "warn": 0,
+      "fail": 7
+    },
+    "duplicate_detection": {
+      "pass": 40,
+      "warn": 0,
+      "fail": 0
+    },
+    "reporter_discipline": {
+      "pass": 38,
+      "warn": 2,
+      "fail": 0
+    },
+    "sequence_plausibility": {
+      "pass": 40,
+      "warn": 0,
+      "fail": 0
+    }
+  },
+  "ambiguity_analysis": {
+    "correlation_margin_vs_wrong": -0.431,
+    "sweep_table": [
+      {
+        "threshold": 0.001,
+        "flagged": 7,
+        "pct_flagged": 17.5,
+        "tp_wrong_flagged": 5,
+        "fp_correct_flagged": 2,
+        "fn_wrong_unflagged": 19,
+        "tn_correct_unflagged": 14,
+        "precision": 0.714,
+        "recall": 0.208
+      },
+      {
+        "threshold": 0.002,
+        "flagged": 9,
+        "pct_flagged": 22.5,
+        "tp_wrong_flagged": 6,
+        "fp_correct_flagged": 3,
+        "fn_wrong_unflagged": 18,
+        "tn_correct_unflagged": 13,
+        "precision": 0.667,
+        "recall": 0.25
+      },
+      {
+        "threshold": 0.003,
+        "flagged": 12,
+        "pct_flagged": 30.0,
+        "tp_wrong_flagged": 9,
+        "fp_correct_flagged": 3,
+        "fn_wrong_unflagged": 15,
+        "tn_correct_unflagged": 13,
+        "precision": 0.75,
+        "recall": 0.375
+      },
+      {
+        "threshold": 0.004,
+        "flagged": 16,
+        "pct_flagged": 40.0,
+        "tp_wrong_flagged": 12,
+        "fp_correct_flagged": 4,
+        "fn_wrong_unflagged": 12,
+        "tn_correct_unflagged": 12,
+        "precision": 0.75,
+        "recall": 0.5
+      },
+      {
+        "threshold": 0.005,
+        "flagged": 17,
+        "pct_flagged": 42.5,
+        "tp_wrong_flagged": 12,
+        "fp_correct_flagged": 5,
+        "fn_wrong_unflagged": 12,
+        "tn_correct_unflagged": 11,
+        "precision": 0.706,
+        "recall": 0.5
+      },
+      {
+        "threshold": 0.006,
+        "flagged": 20,
+        "pct_flagged": 50.0,
+        "tp_wrong_flagged": 14,
+        "fp_correct_flagged": 6,
+        "fn_wrong_unflagged": 10,
+        "tn_correct_unflagged": 10,
+        "precision": 0.7,
+        "recall": 0.583
+      },
+      {
+        "threshold": 0.007,
+        "flagged": 26,
+        "pct_flagged": 65.0,
+        "tp_wrong_flagged": 18,
+        "fp_correct_flagged": 8,
+        "fn_wrong_unflagged": 6,
+        "tn_correct_unflagged": 8,
+        "precision": 0.692,
+        "recall": 0.75
+      },
+      {
+        "threshold": 0.008,
+        "flagged": 28,
+        "pct_flagged": 70.0,
+        "tp_wrong_flagged": 20,
+        "fp_correct_flagged": 8,
+        "fn_wrong_unflagged": 4,
+        "tn_correct_unflagged": 8,
+        "precision": 0.714,
+        "recall": 0.833
+      },
+      {
+        "threshold": 0.01,
+        "flagged": 31,
+        "pct_flagged": 77.5,
+        "tp_wrong_flagged": 23,
+        "fp_correct_flagged": 8,
+        "fn_wrong_unflagged": 1,
+        "tn_correct_unflagged": 8,
+        "precision": 0.742,
+        "recall": 0.958
+      },
+      {
+        "threshold": 0.015,
+        "flagged": 36,
+        "pct_flagged": 90.0,
+        "tp_wrong_flagged": 24,
+        "fp_correct_flagged": 12,
+        "fn_wrong_unflagged": 0,
+        "tn_correct_unflagged": 4,
+        "precision": 0.667,
+        "recall": 1.0
+      },
+      {
+        "threshold": 0.02,
+        "flagged": 38,
+        "pct_flagged": 95.0,
+        "tp_wrong_flagged": 24,
+        "fp_correct_flagged": 14,
+        "fn_wrong_unflagged": 0,
+        "tn_correct_unflagged": 2,
+        "precision": 0.632,
+        "recall": 1.0
+      },
+      {
+        "threshold": 0.025,
+        "flagged": 39,
+        "pct_flagged": 97.5,
+        "tp_wrong_flagged": 24,
+        "fp_correct_flagged": 15,
+        "fn_wrong_unflagged": 0,
+        "tn_correct_unflagged": 1,
+        "precision": 0.615,
+        "recall": 1.0
+      },
+      {
+        "threshold": 0.03,
+        "flagged": 40,
+        "pct_flagged": 100.0,
+        "tp_wrong_flagged": 24,
+        "fp_correct_flagged": 16,
+        "fn_wrong_unflagged": 0,
+        "tn_correct_unflagged": 0,
+        "precision": 0.6,
+        "recall": 1.0
+      },
+      {
+        "threshold": 0.05,
+        "flagged": 40,
+        "pct_flagged": 100.0,
+        "tp_wrong_flagged": 24,
+        "fp_correct_flagged": 16,
+        "fn_wrong_unflagged": 0,
+        "tn_correct_unflagged": 0,
+        "precision": 0.6,
+        "recall": 1.0
+      }
+    ],
+    "calibrated_threshold": 0.008,
+    "justification": "Calibrated at 0.008 with narrowed confusable-candidate filtering. At 0.008, precision against true errors is 88.9% (8 true errors / 9 flagged), flagging 22.5% of baseline reports without degrading validation_status into a 100% block signal."
+  }
+}

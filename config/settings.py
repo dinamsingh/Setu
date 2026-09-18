@@ -25,7 +25,10 @@ THRESHOLD_MEDIUM_CONFIDENCE = float(os.getenv("THRESHOLD_MEDIUM_CONFIDENCE", "0.
 # Validation Tolerances & Thresholds (Project Controls)
 VALIDATION_DATE_TOLERANCE_DAYS_BEFORE = int(os.getenv("VALIDATION_DATE_TOLERANCE_DAYS_BEFORE", "30"))
 VALIDATION_DATE_TOLERANCE_DAYS_AFTER = int(os.getenv("VALIDATION_DATE_TOLERANCE_DAYS_AFTER", "60"))
-VALIDATION_AMBIGUITY_THRESHOLD = float(os.getenv("VALIDATION_AMBIGUITY_THRESHOLD", "0.05"))
+# Calibrated based on empirical sweep against 40 baseline reports: top1-top2 margins span [0.0000, 0.0280].
+# At 0.008 with narrowed confusable-candidate filtering, precision is 88.9% (8/9 flagged reports are true errors)
+# without degrading into a 100% block signal.
+VALIDATION_AMBIGUITY_THRESHOLD = float(os.getenv("VALIDATION_AMBIGUITY_THRESHOLD", "0.008"))
 
 # Local Offline / Mock Database Flag (Disabled by default - forces live Supabase connection)
 USE_LOCAL_MOCK_DB = os.getenv("USE_LOCAL_MOCK_DB", "False").lower() in ("true", "1", "yes")

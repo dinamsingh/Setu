@@ -86,17 +86,17 @@ def test_validate_date_plausibility():
 
 
 def test_validate_candidate_ambiguity():
-    """Test candidate ambiguity margin separation."""
-    # Fail: top candidate 0.84, runner-up 0.825 -> margin 0.015 < 0.05
+    """Test candidate ambiguity margin separation and warn outcome."""
+    # Warn: top candidate 0.840, runner-up 0.835 -> margin 0.005 < 0.008
     candidates_close = [
         {"activity_id": "ACT-1", "activity_name": "Activity One", "score": 0.840},
-        {"activity_id": "ACT-2", "activity_name": "Activity Two", "score": 0.825},
+        {"activity_id": "ACT-2", "activity_name": "Activity Two", "score": 0.835},
     ]
     res_close = validate_candidate_ambiguity({}, None, candidates=candidates_close)
-    assert res_close["outcome"] == "fail"
-    assert res_close["evidence"]["margin"] == pytest.approx(0.015, abs=1e-4)
+    assert res_close["outcome"] == "warn"
+    assert res_close["evidence"]["margin"] == pytest.approx(0.005, abs=1e-4)
 
-    # Pass: margin 0.15 >= 0.05
+    # Pass: margin 0.15 >= 0.008
     candidates_distinct = [
         {"activity_id": "ACT-1", "activity_name": "Activity One", "score": 0.85},
         {"activity_id": "ACT-2", "activity_name": "Activity Two", "score": 0.70},
@@ -110,7 +110,7 @@ def test_validate_candidate_ambiguity():
 
 
 def test_validate_candidate_ambiguity_real_sibling_manifold(mock_db):
-    """Verifies that real sibling manifolds produce an ambiguity fail with margin < 0.05."""
+    """Verifies that real sibling manifold candidates produce an ambiguity warn with margin < 0.008."""
     activities = fetch_schedule_activities(mock_db)
     matcher = EnsembleMatcher(activities=activities)
     match_result = matcher.match_single_report({"field_text": "Box-up work completed at Manifold B"}, top_k=3)
@@ -122,11 +122,50 @@ def test_validate_candidate_ambiguity_real_sibling_manifold(mock_db):
     score2 = top2.get("combined_score") or top2.get("final_score") or top2.get("score") or 0.0
     margin = score1 - score2
 
-    # Assert exact sibling manifold ambiguity detected
-    assert margin < 0.05
+    # Assert exact candidate ambiguity warning detected
+    assert margin < 0.008
     res = validate_candidate_ambiguity({}, None, candidates=results)
-    assert res["outcome"] == "fail"
-    assert "Candidate Ambiguity" in res["message"]
+    assert res["outcome"] == "warn"
+    assert "Ambiguity Warning" in res["message"]
+
+
+def test_validate_candidate_ambiguity_resolved_by_report():
+    """Verifies that location differences are resolved when report text explicitly confirms top candidate."""
+    candidates_diff_loc = [
+        {"activity_id": "OIL-PIP-202-A", "activity_name": "Piping Spool Erection - Manifold A", "wbs_code": "1.2.1.1", "final_score": 0.8806},
+        {"activity_id": "OIL-PIP-202-D", "activity_name": "Piping Spool Erection - Manifold D", "wbs_code": "1.2.1.4", "final_score": 0.8800},
+    ]
+    # Unresolved: report has no location -> warn
+    res_unresolved = validate_candidate_ambiguity({"field_text": "Spool erection finished today"}, None, candidates=candidates_diff_loc)
+    assert res_unresolved["outcome"] == "warn"
+    assert "Location Ambiguity Warning" in res_unresolved["message"]
+
+    # Resolved: report explicitly mentions Manifold A -> pass
+    res_resolved = validate_candidate_ambiguity({"field_text": "Spool erection finished at Manifold A"}, None, candidates=candidates_diff_loc)
+    assert res_resolved["outcome"] == "pass"
+    assert "resolved by report context" in res_resolved["message"].lower()
+
+
+def test_candidate_distinction_no_duplicate_location_message():
+    """Verifies that identical location tokens fall through to wording distinction."""
+    from engine.validators import _find_candidate_distinction
+
+    # Identical location token 'Manifold B' in both names
+    dist_same_loc = _find_candidate_distinction(
+        "Piping spool erection at Manifold B",
+        "Golden tie-in welding at Manifold B"
+    )
+    assert "Manifold B vs Manifold B" not in dist_same_loc
+    assert "Wording distinction:" in dist_same_loc
+
+    # Differing location tokens 'Manifold A' vs 'Manifold D'
+    dist_diff_loc = _find_candidate_distinction(
+        "Piping spool erection at Manifold A",
+        "Piping spool erection at Manifold D"
+    )
+    assert "Location differences:" in dist_diff_loc
+    assert "Manifold A" in dist_diff_loc and "Manifold D" in dist_diff_loc
+
 
 
 def test_validate_location_consistency():
