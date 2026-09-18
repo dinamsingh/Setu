@@ -1,0 +1,33 @@
+# Python environment & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Secrets & Environment variables
+.env
+.env.local
+*.pem
+*.key
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Streamlit local state
+.streamlit/
+
+# Output directories & scratch
+graphify-out/
+scratch/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db

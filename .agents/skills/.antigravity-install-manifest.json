@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-14T11:57:02.854Z",
+  "entries": [
+    "backend-dev-guidelines",
+    "backend-security-coder",
+    "brainstorming",
+    "clean-code",
+    "data-engineering-data-pipeline",
+    "data-quality-frameworks",
+    "database-design",
+    "debugging-strategies",
+    "embedding-strategies",
+    "frontend-design",
+    "git-advanced-workflows"
+  ]
+}

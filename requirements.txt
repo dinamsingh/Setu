@@ -1,0 +1,15 @@
+# Database & Cloud
+supabase>=2.4.0
+python-dotenv>=1.0.1
+pydantic>=2.7.0
+
+# Data Engineering & Manipulation
+pandas>=2.2.0
+openpyxl>=3.1.2
+
+# NLP, Fuzzy & Semantic Search
+rapidfuzz>=3.8.0
+sentence-transformers>=2.7.0
+
+# Testing & Quality Assurance
+pytest>=8.1.0

@@ -1,0 +1,221 @@
+activity_id,activity_name,discipline,wbs_code,wbs_name,planned_start_date,planned_finish_date,planned_progress_pct,unit_of_measure,planned_qty
+OIL-PLN-101-A,Topographical Survey and Centerline Staking - Section A,Pipeline,1.1.1.1,Pipeline Execution Section A,2026-04-04,2026-04-26,13.0,MTR,5000
+OIL-PLN-101-B,Topographical Survey and Centerline Staking - Section B,Pipeline,1.1.1.2,Pipeline Execution Section B,2026-04-07,2026-05-06,26.0,MTR,5000
+OIL-PLN-101-C,Topographical Survey and Centerline Staking - Section C,Pipeline,1.1.1.3,Pipeline Execution Section C,2026-04-10,2026-05-16,39.0,MTR,5000
+OIL-PLN-101-D,Topographical Survey and Centerline Staking - Section D,Pipeline,1.1.1.4,Pipeline Execution Section D,2026-04-13,2026-05-26,52.0,MTR,5000
+OIL-PLN-102-A,"Right of Way (ROW) Clearing, Grubbing & Grading - Section A",Pipeline,1.1.2.1,Pipeline Execution Section A,2026-04-16,2026-05-01,65.0,MTR,5000
+OIL-PLN-102-B,"Right of Way (ROW) Clearing, Grubbing & Grading - Section B",Pipeline,1.1.2.2,Pipeline Execution Section B,2026-04-19,2026-05-11,78.0,MTR,5000
+OIL-PLN-102-C,"Right of Way (ROW) Clearing, Grubbing & Grading - Section C",Pipeline,1.1.2.3,Pipeline Execution Section C,2026-04-22,2026-05-21,91.0,MTR,5000
+OIL-PLN-102-D,"Right of Way (ROW) Clearing, Grubbing & Grading - Section D",Pipeline,1.1.2.4,Pipeline Execution Section D,2026-04-25,2026-05-31,4.0,MTR,5000
+OIL-PLN-103-A,"Line Pipe Hauling, Offloading and Stringing along ROW - KP 1-16",Pipeline,1.1.3.1,Pipeline Execution Section A,2026-04-28,2026-06-10,17.0,MTR,3000
+OIL-PLN-103-B,"Line Pipe Hauling, Offloading and Stringing along ROW - KP 16-31",Pipeline,1.1.3.2,Pipeline Execution Section B,2026-05-01,2026-05-16,30.0,MTR,3000
+OIL-PLN-103-C,"Line Pipe Hauling, Offloading and Stringing along ROW - KP 31-46",Pipeline,1.1.3.3,Pipeline Execution Section C,2026-05-04,2026-05-26,43.0,MTR,3000
+OIL-PLN-103-D,"Line Pipe Hauling, Offloading and Stringing along ROW - KP 46-61",Pipeline,1.1.3.4,Pipeline Execution Section D,2026-05-07,2026-06-05,56.0,MTR,3000
+OIL-PLN-104-A,Trench Excavation in Normal and Hard Soil Strata - KP 1-16,Pipeline,1.1.4.1,Pipeline Execution Section A,2026-05-10,2026-06-15,69.0,MTR,3000
+OIL-PLN-104-B,Trench Excavation in Normal and Hard Soil Strata - KP 16-31,Pipeline,1.1.4.2,Pipeline Execution Section B,2026-05-13,2026-06-25,82.0,MTR,3000
+OIL-PLN-104-C,Trench Excavation in Normal and Hard Soil Strata - KP 31-46,Pipeline,1.1.4.3,Pipeline Execution Section C,2026-05-16,2026-05-31,95.0,MTR,3000
+OIL-PLN-104-D,Trench Excavation in Normal and Hard Soil Strata - KP 46-61,Pipeline,1.1.4.4,Pipeline Execution Section D,2026-05-19,2026-06-10,8.0,MTR,3000
+OIL-PLN-105-A,Pipeline Cold Field Bending and Joint Fit-Up - KP 1-16,Pipeline,1.1.5.1,Pipeline Execution Section A,2026-05-22,2026-06-20,21.0,JOINTS,120
+OIL-PLN-105-B,Pipeline Cold Field Bending and Joint Fit-Up - KP 16-31,Pipeline,1.1.5.2,Pipeline Execution Section B,2026-05-25,2026-06-30,34.0,JOINTS,120
+OIL-PLN-105-C,Pipeline Cold Field Bending and Joint Fit-Up - KP 31-46,Pipeline,1.1.5.3,Pipeline Execution Section C,2026-05-28,2026-07-10,47.0,JOINTS,120
+OIL-PLN-105-D,Pipeline Cold Field Bending and Joint Fit-Up - KP 46-61,Pipeline,1.1.5.4,Pipeline Execution Section D,2026-05-31,2026-06-15,60.0,JOINTS,120
+OIL-PLN-106-A,Mainline Pipe Welding by Semi-Automatic GMAW - KP 1-16,Pipeline,1.1.6.1,Pipeline Execution Section A,2026-06-03,2026-06-25,73.0,JOINTS,120
+OIL-PLN-106-B,Mainline Pipe Welding by Semi-Automatic GMAW - KP 16-31,Pipeline,1.1.6.2,Pipeline Execution Section B,2026-06-06,2026-07-05,86.0,JOINTS,120
+OIL-PLN-106-C,Mainline Pipe Welding by Semi-Automatic GMAW - KP 31-46,Pipeline,1.1.6.3,Pipeline Execution Section C,2026-06-09,2026-07-15,99.0,JOINTS,120
+OIL-PLN-106-D,Mainline Pipe Welding by Semi-Automatic GMAW - KP 46-61,Pipeline,1.1.6.4,Pipeline Execution Section D,2026-06-12,2026-07-25,12.0,JOINTS,120
+OIL-PLN-107-A,Non-Destructive Testing (NDT) 100% Radiography of Welds - KP 1-16,Pipeline,1.1.7.1,Pipeline Execution Section A,2026-06-15,2026-06-30,25.0,JOINTS,120
+OIL-PLN-107-B,Non-Destructive Testing (NDT) 100% Radiography of Welds - KP 16-31,Pipeline,1.1.7.2,Pipeline Execution Section B,2026-06-18,2026-07-10,38.0,JOINTS,120
+OIL-PLN-107-C,Non-Destructive Testing (NDT) 100% Radiography of Welds - KP 31-46,Pipeline,1.1.7.3,Pipeline Execution Section C,2026-06-21,2026-07-20,51.0,JOINTS,120
+OIL-PLN-107-D,Non-Destructive Testing (NDT) 100% Radiography of Welds - KP 46-61,Pipeline,1.1.7.4,Pipeline Execution Section D,2026-06-24,2026-07-30,64.0,JOINTS,120
+OIL-PLN-108-A,Field Joint Coating and Holiday Detection Testing - KP 1-16,Pipeline,1.1.8.1,Pipeline Execution Section A,2026-06-27,2026-08-09,77.0,JOINTS,120
+OIL-PLN-108-B,Field Joint Coating and Holiday Detection Testing - KP 16-31,Pipeline,1.1.8.2,Pipeline Execution Section B,2026-06-30,2026-07-15,90.0,JOINTS,120
+OIL-PLN-108-C,Field Joint Coating and Holiday Detection Testing - KP 31-46,Pipeline,1.1.8.3,Pipeline Execution Section C,2026-07-03,2026-07-25,3.0,JOINTS,120
+OIL-PLN-108-D,Field Joint Coating and Holiday Detection Testing - KP 46-61,Pipeline,1.1.8.4,Pipeline Execution Section D,2026-07-06,2026-08-04,16.0,JOINTS,120
+OIL-PLN-109-A,Lowering of Coated Pipeline Section into Trench - KP 1-16,Pipeline,1.1.9.1,Pipeline Execution Section A,2026-07-09,2026-08-14,29.0,MTR,3000
+OIL-PLN-109-B,Lowering of Coated Pipeline Section into Trench - KP 16-31,Pipeline,1.1.9.2,Pipeline Execution Section B,2026-07-12,2026-08-24,42.0,MTR,3000
+OIL-PLN-109-C,Lowering of Coated Pipeline Section into Trench - KP 31-46,Pipeline,1.1.9.3,Pipeline Execution Section C,2026-07-15,2026-07-30,55.0,MTR,3000
+OIL-PLN-109-D,Lowering of Coated Pipeline Section into Trench - KP 46-61,Pipeline,1.1.9.4,Pipeline Execution Section D,2026-07-18,2026-08-09,68.0,MTR,3000
+OIL-PLN-110-A,"Trench Padding, Backfilling and Soil Compaction - KP 1-16",Pipeline,1.1.10.1,Pipeline Execution Section A,2026-07-21,2026-08-19,81.0,MTR,3000
+OIL-PLN-110-B,"Trench Padding, Backfilling and Soil Compaction - KP 16-31",Pipeline,1.1.10.2,Pipeline Execution Section B,2026-07-24,2026-08-29,94.0,MTR,3000
+OIL-PLN-110-C,"Trench Padding, Backfilling and Soil Compaction - KP 31-46",Pipeline,1.1.10.3,Pipeline Execution Section C,2026-07-27,2026-09-08,7.0,MTR,3000
+OIL-PLN-110-D,"Trench Padding, Backfilling and Soil Compaction - KP 46-61",Pipeline,1.1.10.4,Pipeline Execution Section D,2026-04-01,2026-04-16,20.0,MTR,3000
+OIL-PLN-111-A,Horizontal Directional Drilling (HDD) River Crossing - Crossing A,Pipeline,1.1.11.1,Pipeline Execution Section A,2026-04-04,2026-04-26,33.0,MTR,850
+OIL-PLN-111-B,Horizontal Directional Drilling (HDD) River Crossing - Crossing B,Pipeline,1.1.11.2,Pipeline Execution Section B,2026-04-07,2026-05-06,46.0,MTR,850
+OIL-PLN-111-C,Horizontal Directional Drilling (HDD) River Crossing - Crossing C,Pipeline,1.1.11.3,Pipeline Execution Section C,2026-04-10,2026-05-16,59.0,MTR,850
+OIL-PLN-111-D,Horizontal Directional Drilling (HDD) River Crossing - Crossing D,Pipeline,1.1.11.4,Pipeline Execution Section D,2026-04-13,2026-05-26,72.0,MTR,850
+OIL-PLN-112-A,Caliper and Gauging Pigging Run of Completed Section - Section A,Pipeline,1.1.12.1,Pipeline Execution Section A,2026-04-16,2026-05-01,85.0,SECT,1
+OIL-PLN-112-B,Caliper and Gauging Pigging Run of Completed Section - Section B,Pipeline,1.1.12.2,Pipeline Execution Section B,2026-04-19,2026-05-11,98.0,SECT,1
+OIL-PLN-112-C,Caliper and Gauging Pigging Run of Completed Section - Section C,Pipeline,1.1.12.3,Pipeline Execution Section C,2026-04-22,2026-05-21,11.0,SECT,1
+OIL-PLN-112-D,Caliper and Gauging Pigging Run of Completed Section - Section D,Pipeline,1.1.12.4,Pipeline Execution Section D,2026-04-25,2026-05-31,24.0,SECT,1
+OIL-PLN-113-A,Hydrostatic Pressure Testing of Mainline Pipe - KP 1-16,Pipeline,1.1.13.1,Pipeline Execution Section A,2026-04-28,2026-06-10,37.0,KM,10
+OIL-PLN-113-B,Hydrostatic Pressure Testing of Mainline Pipe - KP 16-31,Pipeline,1.1.13.2,Pipeline Execution Section B,2026-05-01,2026-05-16,50.0,KM,10
+OIL-PLN-113-C,Hydrostatic Pressure Testing of Mainline Pipe - KP 31-46,Pipeline,1.1.13.3,Pipeline Execution Section C,2026-05-04,2026-05-26,63.0,KM,10
+OIL-PLN-113-D,Hydrostatic Pressure Testing of Mainline Pipe - KP 46-61,Pipeline,1.1.13.4,Pipeline Execution Section D,2026-05-07,2026-06-05,76.0,KM,10
+OIL-PIP-201-A,Piping Spool Prefabrication at Field Workshop - Manifold A,Piping,1.2.1.1,Piping Execution Section A,2026-05-10,2026-06-15,89.0,IN-DIA,450
+OIL-PIP-201-B,Piping Spool Prefabrication at Field Workshop - Manifold B,Piping,1.2.1.2,Piping Execution Section B,2026-05-13,2026-06-25,2.0,IN-DIA,450
+OIL-PIP-201-C,Piping Spool Prefabrication at Field Workshop - Manifold C,Piping,1.2.1.3,Piping Execution Section C,2026-05-16,2026-05-31,15.0,IN-DIA,450
+OIL-PIP-201-D,Piping Spool Prefabrication at Field Workshop - Manifold D,Piping,1.2.1.4,Piping Execution Section D,2026-05-19,2026-06-10,28.0,IN-DIA,450
+OIL-PIP-202-A,Piping Spool Erection and Field Fit-up - Manifold A,Piping,1.2.2.1,Piping Execution Section A,2026-05-22,2026-06-20,41.0,MTR,250
+OIL-PIP-202-B,Piping Spool Erection and Field Fit-up - Manifold B,Piping,1.2.2.2,Piping Execution Section B,2026-05-25,2026-06-30,54.0,MTR,250
+OIL-PIP-202-C,Piping Spool Erection and Field Fit-up - Manifold C,Piping,1.2.2.3,Piping Execution Section C,2026-05-28,2026-07-10,67.0,MTR,250
+OIL-PIP-202-D,Piping Spool Erection and Field Fit-up - Manifold D,Piping,1.2.2.4,Piping Execution Section D,2026-05-31,2026-06-15,80.0,MTR,250
+OIL-PIP-203-A,Golden Tie-In Welding at Existing Header Connection - Manifold A,Piping,1.2.3.1,Piping Execution Section A,2026-06-03,2026-06-25,93.0,JOINTS,8
+OIL-PIP-203-B,Golden Tie-In Welding at Existing Header Connection - Manifold B,Piping,1.2.3.2,Piping Execution Section B,2026-06-06,2026-07-05,6.0,JOINTS,8
+OIL-PIP-203-C,Golden Tie-In Welding at Existing Header Connection - Manifold C,Piping,1.2.3.3,Piping Execution Section C,2026-06-09,2026-07-15,19.0,JOINTS,8
+OIL-PIP-203-D,Golden Tie-In Welding at Existing Header Connection - Manifold D,Piping,1.2.3.4,Piping Execution Section D,2026-06-12,2026-07-25,32.0,JOINTS,8
+OIL-PIP-204-A,Non-Destructive Testing (NDT) Radiography of Piping Welds - Line A,Piping,1.2.4.1,Piping Execution Section A,2026-06-15,2026-06-30,45.0,JOINTS,45
+OIL-PIP-204-B,Non-Destructive Testing (NDT) Radiography of Piping Welds - Line B,Piping,1.2.4.2,Piping Execution Section B,2026-06-18,2026-07-10,58.0,JOINTS,45
+OIL-PIP-204-C,Non-Destructive Testing (NDT) Radiography of Piping Welds - Line C,Piping,1.2.4.3,Piping Execution Section C,2026-06-21,2026-07-20,71.0,JOINTS,45
+OIL-PIP-204-D,Non-Destructive Testing (NDT) Radiography of Piping Welds - Line D,Piping,1.2.4.4,Piping Execution Section D,2026-06-24,2026-07-30,84.0,JOINTS,45
+OIL-PIP-205-A,Hydrostatic Testing of Process Piping Manifold - Section A,Piping,1.2.5.1,Piping Execution Section A,2026-06-27,2026-08-09,97.0,LOOPS,2
+OIL-PIP-205-B,Hydrostatic Testing of Process Piping Manifold - Section B,Piping,1.2.5.2,Piping Execution Section B,2026-06-30,2026-07-15,10.0,LOOPS,2
+OIL-PIP-205-C,Hydrostatic Testing of Process Piping Manifold - Section C,Piping,1.2.5.3,Piping Execution Section C,2026-07-03,2026-07-25,23.0,LOOPS,2
+OIL-PIP-205-D,Hydrostatic Testing of Process Piping Manifold - Section D,Piping,1.2.5.4,Piping Execution Section D,2026-07-06,2026-08-04,36.0,LOOPS,2
+OIL-PIP-206-A,Piping Flange Bolt Torquing and Tensioning Inspection - Skid A,Piping,1.2.6.1,Piping Execution Section A,2026-07-09,2026-08-14,49.0,JOINTS,32
+OIL-PIP-206-B,Piping Flange Bolt Torquing and Tensioning Inspection - Skid B,Piping,1.2.6.2,Piping Execution Section B,2026-07-12,2026-08-24,62.0,JOINTS,32
+OIL-PIP-206-C,Piping Flange Bolt Torquing and Tensioning Inspection - Skid C,Piping,1.2.6.3,Piping Execution Section C,2026-07-15,2026-07-30,75.0,JOINTS,32
+OIL-PIP-206-D,Piping Flange Bolt Torquing and Tensioning Inspection - Skid D,Piping,1.2.6.4,Piping Execution Section D,2026-07-18,2026-08-09,88.0,JOINTS,32
+OIL-PIP-207-A,"Installation of Manual Gate, Globe and Check Valves - Section A",Piping,1.2.7.1,Piping Execution Section A,2026-07-21,2026-08-19,1.0,NOS,16
+OIL-PIP-207-B,"Installation of Manual Gate, Globe and Check Valves - Section B",Piping,1.2.7.2,Piping Execution Section B,2026-07-24,2026-08-29,14.0,NOS,16
+OIL-PIP-207-C,"Installation of Manual Gate, Globe and Check Valves - Section C",Piping,1.2.7.3,Piping Execution Section C,2026-07-27,2026-09-08,27.0,NOS,16
+OIL-PIP-207-D,"Installation of Manual Gate, Globe and Check Valves - Section D",Piping,1.2.7.4,Piping Execution Section D,2026-04-01,2026-04-16,40.0,NOS,16
+OIL-PIP-208-A,"Pipe Support Erection, Clamping and Spring Hanger Setup - Area A",Piping,1.2.8.1,Piping Execution Section A,2026-04-04,2026-04-26,53.0,MT,12
+OIL-PIP-208-B,"Pipe Support Erection, Clamping and Spring Hanger Setup - Area B",Piping,1.2.8.2,Piping Execution Section B,2026-04-07,2026-05-06,66.0,MT,12
+OIL-PIP-208-C,"Pipe Support Erection, Clamping and Spring Hanger Setup - Area C",Piping,1.2.8.3,Piping Execution Section C,2026-04-10,2026-05-16,79.0,MT,12
+OIL-PIP-208-D,"Pipe Support Erection, Clamping and Spring Hanger Setup - Area D",Piping,1.2.8.4,Piping Execution Section D,2026-04-13,2026-05-26,92.0,MT,12
+OIL-PIP-209-A,"Piping Line Cleaning, Flushing and Chemical Dewatering - Area A",Piping,1.2.9.1,Piping Execution Section A,2026-04-16,2026-05-01,5.0,MTR,600
+OIL-PIP-209-B,"Piping Line Cleaning, Flushing and Chemical Dewatering - Area B",Piping,1.2.9.2,Piping Execution Section B,2026-04-19,2026-05-11,18.0,MTR,600
+OIL-PIP-209-C,"Piping Line Cleaning, Flushing and Chemical Dewatering - Area C",Piping,1.2.9.3,Piping Execution Section C,2026-04-22,2026-05-21,31.0,MTR,600
+OIL-PIP-209-D,"Piping Line Cleaning, Flushing and Chemical Dewatering - Area D",Piping,1.2.9.4,Piping Execution Section D,2026-04-25,2026-05-31,44.0,MTR,600
+OIL-PIP-210-A,Piping Line Insulation and Cladding Application - Header A,Piping,1.2.10.1,Piping Execution Section A,2026-04-28,2026-06-10,57.0,MTR,300
+OIL-PIP-210-B,Piping Line Insulation and Cladding Application - Header B,Piping,1.2.10.2,Piping Execution Section B,2026-05-01,2026-05-16,70.0,MTR,300
+OIL-PIP-210-C,Piping Line Insulation and Cladding Application - Header C,Piping,1.2.10.3,Piping Execution Section C,2026-05-04,2026-05-26,83.0,MTR,300
+OIL-PIP-210-D,Piping Line Insulation and Cladding Application - Header D,Piping,1.2.10.4,Piping Execution Section D,2026-05-07,2026-06-05,96.0,MTR,300
+OIL-CIV-301-A,"Site Grading, Leveling and Boundary Fencing - Location A",Civil,1.3.1.1,Civil Execution Section A,2026-05-10,2026-06-15,9.0,SQM,4000
+OIL-CIV-301-B,"Site Grading, Leveling and Boundary Fencing - Location B",Civil,1.3.1.2,Civil Execution Section B,2026-05-13,2026-06-25,22.0,SQM,4000
+OIL-CIV-301-C,"Site Grading, Leveling and Boundary Fencing - Location C",Civil,1.3.1.3,Civil Execution Section C,2026-05-16,2026-05-31,35.0,SQM,4000
+OIL-CIV-301-D,"Site Grading, Leveling and Boundary Fencing - Location D",Civil,1.3.1.4,Civil Execution Section D,2026-05-19,2026-06-10,48.0,SQM,4000
+OIL-CIV-302-A,Bulk Earth Excavation for Compressor Foundation - Area A,Civil,1.3.2.1,Civil Execution Section A,2026-05-22,2026-06-20,61.0,CUM,800
+OIL-CIV-302-B,Bulk Earth Excavation for Compressor Foundation - Area B,Civil,1.3.2.2,Civil Execution Section B,2026-05-25,2026-06-30,74.0,CUM,800
+OIL-CIV-302-C,Bulk Earth Excavation for Compressor Foundation - Area C,Civil,1.3.2.3,Civil Execution Section C,2026-05-28,2026-07-10,87.0,CUM,800
+OIL-CIV-302-D,Bulk Earth Excavation for Compressor Foundation - Area D,Civil,1.3.2.4,Civil Execution Section D,2026-05-31,2026-06-15,0.0,CUM,800
+OIL-CIV-303-A,Plain Cement Concrete (PCC) Blinding Layer 1:4:8 - Foundation A,Civil,1.3.3.1,Civil Execution Section A,2026-06-03,2026-06-25,13.0,CUM,120
+OIL-CIV-303-B,Plain Cement Concrete (PCC) Blinding Layer 1:4:8 - Foundation B,Civil,1.3.3.2,Civil Execution Section B,2026-06-06,2026-07-05,26.0,CUM,120
+OIL-CIV-303-C,Plain Cement Concrete (PCC) Blinding Layer 1:4:8 - Foundation C,Civil,1.3.3.3,Civil Execution Section C,2026-06-09,2026-07-15,39.0,CUM,120
+OIL-CIV-303-D,Plain Cement Concrete (PCC) Blinding Layer 1:4:8 - Foundation D,Civil,1.3.3.4,Civil Execution Section D,2026-06-12,2026-07-25,52.0,CUM,120
+OIL-CIV-304-A,"Reinforcement Steel Bar (Rebar) Cutting, Bending & Fixing - Foundation A",Civil,1.3.4.1,Civil Execution Section A,2026-06-15,2026-06-30,65.0,MT,45
+OIL-CIV-304-B,"Reinforcement Steel Bar (Rebar) Cutting, Bending & Fixing - Foundation B",Civil,1.3.4.2,Civil Execution Section B,2026-06-18,2026-07-10,78.0,MT,45
+OIL-CIV-304-C,"Reinforcement Steel Bar (Rebar) Cutting, Bending & Fixing - Foundation C",Civil,1.3.4.3,Civil Execution Section C,2026-06-21,2026-07-20,91.0,MT,45
+OIL-CIV-304-D,"Reinforcement Steel Bar (Rebar) Cutting, Bending & Fixing - Foundation D",Civil,1.3.4.4,Civil Execution Section D,2026-06-24,2026-07-30,4.0,MT,45
+OIL-CIV-305-A,Reinforced Cement Concrete (RCC) M30 Casting - Foundation A,Civil,1.3.5.1,Civil Execution Section A,2026-06-27,2026-08-09,17.0,CUM,350
+OIL-CIV-305-B,Reinforced Cement Concrete (RCC) M30 Casting - Foundation B,Civil,1.3.5.2,Civil Execution Section B,2026-06-30,2026-07-15,30.0,CUM,350
+OIL-CIV-305-C,Reinforced Cement Concrete (RCC) M30 Casting - Foundation C,Civil,1.3.5.3,Civil Execution Section C,2026-07-03,2026-07-25,43.0,CUM,350
+OIL-CIV-305-D,Reinforced Cement Concrete (RCC) M30 Casting - Foundation D,Civil,1.3.5.4,Civil Execution Section D,2026-07-06,2026-08-04,56.0,CUM,350
+OIL-CIV-306-A,Water Curing and Formwork Striking of Concrete - Block A,Civil,1.3.6.1,Civil Execution Section A,2026-07-09,2026-08-14,69.0,DAYS,14
+OIL-CIV-306-B,Water Curing and Formwork Striking of Concrete - Block B,Civil,1.3.6.2,Civil Execution Section B,2026-07-12,2026-08-24,82.0,DAYS,14
+OIL-CIV-306-C,Water Curing and Formwork Striking of Concrete - Block C,Civil,1.3.6.3,Civil Execution Section C,2026-07-15,2026-07-30,95.0,DAYS,14
+OIL-CIV-306-D,Water Curing and Formwork Striking of Concrete - Block D,Civil,1.3.6.4,Civil Execution Section D,2026-07-18,2026-08-09,8.0,DAYS,14
+OIL-CIV-307-A,Dyke Bund Wall Civil Construction around Crude Storage - Tank A,Civil,1.3.7.1,Civil Execution Section A,2026-07-21,2026-08-19,21.0,MTR,220
+OIL-CIV-307-B,Dyke Bund Wall Civil Construction around Crude Storage - Tank B,Civil,1.3.7.2,Civil Execution Section B,2026-07-24,2026-08-29,34.0,MTR,220
+OIL-CIV-307-C,Dyke Bund Wall Civil Construction around Crude Storage - Tank C,Civil,1.3.7.3,Civil Execution Section C,2026-07-27,2026-09-08,47.0,MTR,220
+OIL-CIV-307-D,Dyke Bund Wall Civil Construction around Crude Storage - Tank D,Civil,1.3.7.4,Civil Execution Section D,2026-04-01,2026-04-16,60.0,MTR,220
+OIL-CIV-308-A,Construction of Concrete Valve Pit and Sump Pit - Station A,Civil,1.3.8.1,Civil Execution Section A,2026-04-04,2026-04-26,73.0,NOS,4
+OIL-CIV-308-B,Construction of Concrete Valve Pit and Sump Pit - Station B,Civil,1.3.8.2,Civil Execution Section B,2026-04-07,2026-05-06,86.0,NOS,4
+OIL-CIV-308-C,Construction of Concrete Valve Pit and Sump Pit - Station C,Civil,1.3.8.3,Civil Execution Section C,2026-04-10,2026-05-16,99.0,NOS,4
+OIL-CIV-308-D,Construction of Concrete Valve Pit and Sump Pit - Station D,Civil,1.3.8.4,Civil Execution Section D,2026-04-13,2026-05-26,12.0,NOS,4
+OIL-CIV-309-A,Pipe Rack Structural Pedestal Concrete Casting - Area A,Civil,1.3.9.1,Civil Execution Section A,2026-04-16,2026-05-01,25.0,NOS,24
+OIL-CIV-309-B,Pipe Rack Structural Pedestal Concrete Casting - Area B,Civil,1.3.9.2,Civil Execution Section B,2026-04-19,2026-05-11,38.0,NOS,24
+OIL-CIV-309-C,Pipe Rack Structural Pedestal Concrete Casting - Area C,Civil,1.3.9.3,Civil Execution Section C,2026-04-22,2026-05-21,51.0,NOS,24
+OIL-CIV-309-D,Pipe Rack Structural Pedestal Concrete Casting - Area D,Civil,1.3.9.4,Civil Execution Section D,2026-04-25,2026-05-31,64.0,NOS,24
+OIL-ELE-401-A,Installation of 33kV/415V Main Oil Field Stepdown Transformer - Substation A,Electrical,1.4.1.1,Electrical Execution Section A,2026-04-28,2026-06-10,77.0,NOS,2
+OIL-ELE-401-B,Installation of 33kV/415V Main Oil Field Stepdown Transformer - Substation B,Electrical,1.4.1.2,Electrical Execution Section B,2026-05-01,2026-05-16,90.0,NOS,2
+OIL-ELE-401-C,Installation of 33kV/415V Main Oil Field Stepdown Transformer - Substation C,Electrical,1.4.1.3,Electrical Execution Section C,2026-05-04,2026-05-26,3.0,NOS,2
+OIL-ELE-401-D,Installation of 33kV/415V Main Oil Field Stepdown Transformer - Substation D,Electrical,1.4.1.4,Electrical Execution Section D,2026-05-07,2026-06-05,16.0,NOS,2
+OIL-ELE-402-A,Cable Tray Support Erection and Overhead Tray Laying - Rack A,Electrical,1.4.2.1,Electrical Execution Section A,2026-05-10,2026-06-15,29.0,MTR,450
+OIL-ELE-402-B,Cable Tray Support Erection and Overhead Tray Laying - Rack B,Electrical,1.4.2.2,Electrical Execution Section B,2026-05-13,2026-06-25,42.0,MTR,450
+OIL-ELE-402-C,Cable Tray Support Erection and Overhead Tray Laying - Rack C,Electrical,1.4.2.3,Electrical Execution Section C,2026-05-16,2026-05-31,55.0,MTR,450
+OIL-ELE-402-D,Cable Tray Support Erection and Overhead Tray Laying - Rack D,Electrical,1.4.2.4,Electrical Execution Section D,2026-05-19,2026-06-10,68.0,MTR,450
+OIL-ELE-403-A,High Tension (HT) Cable Pulling and Routing - Feeder A,Electrical,1.4.3.1,Electrical Execution Section A,2026-05-22,2026-06-20,81.0,MTR,1200
+OIL-ELE-403-B,High Tension (HT) Cable Pulling and Routing - Feeder B,Electrical,1.4.3.2,Electrical Execution Section B,2026-05-25,2026-06-30,94.0,MTR,1200
+OIL-ELE-403-C,High Tension (HT) Cable Pulling and Routing - Feeder C,Electrical,1.4.3.3,Electrical Execution Section C,2026-05-28,2026-07-10,7.0,MTR,1200
+OIL-ELE-403-D,High Tension (HT) Cable Pulling and Routing - Feeder D,Electrical,1.4.3.4,Electrical Execution Section D,2026-05-31,2026-06-15,20.0,MTR,1200
+OIL-ELE-404-A,Low Tension (LT) Power & Control Cable Laying - MCC A,Electrical,1.4.4.1,Electrical Execution Section A,2026-06-03,2026-06-25,33.0,MTR,1800
+OIL-ELE-404-B,Low Tension (LT) Power & Control Cable Laying - MCC B,Electrical,1.4.4.2,Electrical Execution Section B,2026-06-06,2026-07-05,46.0,MTR,1800
+OIL-ELE-404-C,Low Tension (LT) Power & Control Cable Laying - MCC C,Electrical,1.4.4.3,Electrical Execution Section C,2026-06-09,2026-07-15,59.0,MTR,1800
+OIL-ELE-404-D,Low Tension (LT) Power & Control Cable Laying - MCC D,Electrical,1.4.4.4,Electrical Execution Section D,2026-06-12,2026-07-25,72.0,MTR,1800
+OIL-ELE-405-A,"Cable Glanding, Crimping and Terminal Lugging at Switchgear - Panel A",Electrical,1.4.5.1,Electrical Execution Section A,2026-06-15,2026-06-30,85.0,NOS,64
+OIL-ELE-405-B,"Cable Glanding, Crimping and Terminal Lugging at Switchgear - Panel B",Electrical,1.4.5.2,Electrical Execution Section B,2026-06-18,2026-07-10,98.0,NOS,64
+OIL-ELE-405-C,"Cable Glanding, Crimping and Terminal Lugging at Switchgear - Panel C",Electrical,1.4.5.3,Electrical Execution Section C,2026-06-21,2026-07-20,11.0,NOS,64
+OIL-ELE-405-D,"Cable Glanding, Crimping and Terminal Lugging at Switchgear - Panel D",Electrical,1.4.5.4,Electrical Execution Section D,2026-06-24,2026-07-30,24.0,NOS,64
+OIL-ELE-406-A,Chemical Earth Pit Drilling and Copper Earthing Grid Laying - Station A,Electrical,1.4.6.1,Electrical Execution Section A,2026-06-27,2026-08-09,37.0,PITS,12
+OIL-ELE-406-B,Chemical Earth Pit Drilling and Copper Earthing Grid Laying - Station B,Electrical,1.4.6.2,Electrical Execution Section B,2026-06-30,2026-07-15,50.0,PITS,12
+OIL-ELE-406-C,Chemical Earth Pit Drilling and Copper Earthing Grid Laying - Station C,Electrical,1.4.6.3,Electrical Execution Section C,2026-07-03,2026-07-25,63.0,PITS,12
+OIL-ELE-406-D,Chemical Earth Pit Drilling and Copper Earthing Grid Laying - Station D,Electrical,1.4.6.4,Electrical Execution Section D,2026-07-06,2026-08-04,76.0,PITS,12
+OIL-ELE-407-A,Motor Control Center (MCC) Panel Alignment & Busbar Torquing - Room A,Electrical,1.4.7.1,Electrical Execution Section A,2026-07-09,2026-08-14,89.0,PANELS,8
+OIL-ELE-407-B,Motor Control Center (MCC) Panel Alignment & Busbar Torquing - Room B,Electrical,1.4.7.2,Electrical Execution Section B,2026-07-12,2026-08-24,2.0,PANELS,8
+OIL-ELE-407-C,Motor Control Center (MCC) Panel Alignment & Busbar Torquing - Room C,Electrical,1.4.7.3,Electrical Execution Section C,2026-07-15,2026-07-30,15.0,PANELS,8
+OIL-ELE-407-D,Motor Control Center (MCC) Panel Alignment & Busbar Torquing - Room D,Electrical,1.4.7.4,Electrical Execution Section D,2026-07-18,2026-08-09,28.0,PANELS,8
+OIL-ELE-408-A,Insulation Resistance (IR) Megger Testing of Feeder Cables - Feeder A,Electrical,1.4.8.1,Electrical Execution Section A,2026-07-21,2026-08-19,41.0,CIRCUITS,18
+OIL-ELE-408-B,Insulation Resistance (IR) Megger Testing of Feeder Cables - Feeder B,Electrical,1.4.8.2,Electrical Execution Section B,2026-07-24,2026-08-29,54.0,CIRCUITS,18
+OIL-ELE-408-C,Insulation Resistance (IR) Megger Testing of Feeder Cables - Feeder C,Electrical,1.4.8.3,Electrical Execution Section C,2026-07-27,2026-09-08,67.0,CIRCUITS,18
+OIL-ELE-408-D,Insulation Resistance (IR) Megger Testing of Feeder Cables - Feeder D,Electrical,1.4.8.4,Electrical Execution Section D,2026-04-01,2026-04-16,80.0,CIRCUITS,18
+OIL-INS-501-A,Installation of Remote Terminal Unit (RTU) & DCS PLC Control Panels - Control Room A,Instrumentation,1.5.1.1,Instrumentation Execution Section A,2026-04-04,2026-04-26,93.0,PANELS,4
+OIL-INS-501-B,Installation of Remote Terminal Unit (RTU) & DCS PLC Control Panels - Control Room B,Instrumentation,1.5.1.2,Instrumentation Execution Section B,2026-04-07,2026-05-06,6.0,PANELS,4
+OIL-INS-501-C,Installation of Remote Terminal Unit (RTU) & DCS PLC Control Panels - Control Room C,Instrumentation,1.5.1.3,Instrumentation Execution Section C,2026-04-10,2026-05-16,19.0,PANELS,4
+OIL-INS-501-D,Installation of Remote Terminal Unit (RTU) & DCS PLC Control Panels - Control Room D,Instrumentation,1.5.1.4,Instrumentation Execution Section D,2026-04-13,2026-05-26,32.0,PANELS,4
+OIL-INS-502-A,Instrument Multi-Pair Armored Signal Cable Laying - Loop A,Instrumentation,1.5.2.1,Instrumentation Execution Section A,2026-04-16,2026-05-01,45.0,MTR,2200
+OIL-INS-502-B,Instrument Multi-Pair Armored Signal Cable Laying - Loop B,Instrumentation,1.5.2.2,Instrumentation Execution Section B,2026-04-19,2026-05-11,58.0,MTR,2200
+OIL-INS-502-C,Instrument Multi-Pair Armored Signal Cable Laying - Loop C,Instrumentation,1.5.2.3,Instrumentation Execution Section C,2026-04-22,2026-05-21,71.0,MTR,2200
+OIL-INS-502-D,Instrument Multi-Pair Armored Signal Cable Laying - Loop D,Instrumentation,1.5.2.4,Instrumentation Execution Section D,2026-04-25,2026-05-31,84.0,MTR,2200
+OIL-INS-503-A,Instrument Junction Box (JB) Termination and Glanding - Area A,Instrumentation,1.5.3.1,Instrumentation Execution Section A,2026-04-28,2026-06-10,97.0,NOS,16
+OIL-INS-503-B,Instrument Junction Box (JB) Termination and Glanding - Area B,Instrumentation,1.5.3.2,Instrumentation Execution Section B,2026-05-01,2026-05-16,10.0,NOS,16
+OIL-INS-503-C,Instrument Junction Box (JB) Termination and Glanding - Area C,Instrumentation,1.5.3.3,Instrumentation Execution Section C,2026-05-04,2026-05-26,23.0,NOS,16
+OIL-INS-503-D,Instrument Junction Box (JB) Termination and Glanding - Area D,Instrumentation,1.5.3.4,Instrumentation Execution Section D,2026-05-07,2026-06-05,36.0,NOS,16
+OIL-INS-504-A,Bench Calibration of Pressure and Temperature Transmitters - Batch A,Instrumentation,1.5.4.1,Instrumentation Execution Section A,2026-05-10,2026-06-15,49.0,NOS,35
+OIL-INS-504-B,Bench Calibration of Pressure and Temperature Transmitters - Batch B,Instrumentation,1.5.4.2,Instrumentation Execution Section B,2026-05-13,2026-06-25,62.0,NOS,35
+OIL-INS-504-C,Bench Calibration of Pressure and Temperature Transmitters - Batch C,Instrumentation,1.5.4.3,Instrumentation Execution Section C,2026-05-16,2026-05-31,75.0,NOS,35
+OIL-INS-504-D,Bench Calibration of Pressure and Temperature Transmitters - Batch D,Instrumentation,1.5.4.4,Instrumentation Execution Section D,2026-05-19,2026-06-10,88.0,NOS,35
+OIL-INS-505-A,Field Installation of Coriolis Flow Meters on Trunkline - Manifold A,Instrumentation,1.5.5.1,Instrumentation Execution Section A,2026-05-22,2026-06-20,1.0,NOS,6
+OIL-INS-505-B,Field Installation of Coriolis Flow Meters on Trunkline - Manifold B,Instrumentation,1.5.5.2,Instrumentation Execution Section B,2026-05-25,2026-06-30,14.0,NOS,6
+OIL-INS-505-C,Field Installation of Coriolis Flow Meters on Trunkline - Manifold C,Instrumentation,1.5.5.3,Instrumentation Execution Section C,2026-05-28,2026-07-10,27.0,NOS,6
+OIL-INS-505-D,Field Installation of Coriolis Flow Meters on Trunkline - Manifold D,Instrumentation,1.5.5.4,Instrumentation Execution Section D,2026-05-31,2026-06-15,40.0,NOS,6
+OIL-INS-506-A,Instrument Impulse Line SS Tubing and Pressure Testing - Manifold A,Instrumentation,1.5.6.1,Instrumentation Execution Section A,2026-06-03,2026-06-25,53.0,MTR,320
+OIL-INS-506-B,Instrument Impulse Line SS Tubing and Pressure Testing - Manifold B,Instrumentation,1.5.6.2,Instrumentation Execution Section B,2026-06-06,2026-07-05,66.0,MTR,320
+OIL-INS-506-C,Instrument Impulse Line SS Tubing and Pressure Testing - Manifold C,Instrumentation,1.5.6.3,Instrumentation Execution Section C,2026-06-09,2026-07-15,79.0,MTR,320
+OIL-INS-506-D,Instrument Impulse Line SS Tubing and Pressure Testing - Manifold D,Instrumentation,1.5.6.4,Instrumentation Execution Section D,2026-06-12,2026-07-25,92.0,MTR,320
+OIL-INS-507-A,Emergency Shutdown Valve (ESDV) Stroke Testing and Calibration - Station A,Instrumentation,1.5.7.1,Instrumentation Execution Section A,2026-06-15,2026-06-30,5.0,NOS,8
+OIL-INS-507-B,Emergency Shutdown Valve (ESDV) Stroke Testing and Calibration - Station B,Instrumentation,1.5.7.2,Instrumentation Execution Section B,2026-06-18,2026-07-10,18.0,NOS,8
+OIL-INS-507-C,Emergency Shutdown Valve (ESDV) Stroke Testing and Calibration - Station C,Instrumentation,1.5.7.3,Instrumentation Execution Section C,2026-06-21,2026-07-20,31.0,NOS,8
+OIL-INS-507-D,Emergency Shutdown Valve (ESDV) Stroke Testing and Calibration - Station D,Instrumentation,1.5.7.4,Instrumentation Execution Section D,2026-06-24,2026-07-30,44.0,NOS,8
+OIL-INS-508-A,End-to-End DCS Loop Checking and Signal Verification - Loop A,Instrumentation,1.5.8.1,Instrumentation Execution Section A,2026-06-27,2026-08-09,57.0,LOOPS,45
+OIL-INS-508-B,End-to-End DCS Loop Checking and Signal Verification - Loop B,Instrumentation,1.5.8.2,Instrumentation Execution Section B,2026-06-30,2026-07-15,70.0,LOOPS,45
+OIL-INS-508-C,End-to-End DCS Loop Checking and Signal Verification - Loop C,Instrumentation,1.5.8.3,Instrumentation Execution Section C,2026-07-03,2026-07-25,83.0,LOOPS,45
+OIL-INS-508-D,End-to-End DCS Loop Checking and Signal Verification - Loop D,Instrumentation,1.5.8.4,Instrumentation Execution Section D,2026-07-06,2026-08-04,96.0,LOOPS,45
+OIL-MEC-601-A,Rigging and Erection of 3-Phase Test Separator Vessel - Area A,Mechanical,1.6.1.1,Mechanical Execution Section A,2026-07-09,2026-08-14,9.0,NOS,1
+OIL-MEC-601-B,Rigging and Erection of 3-Phase Test Separator Vessel - Area B,Mechanical,1.6.1.2,Mechanical Execution Section B,2026-07-12,2026-08-24,22.0,NOS,1
+OIL-MEC-601-C,Rigging and Erection of 3-Phase Test Separator Vessel - Area C,Mechanical,1.6.1.3,Mechanical Execution Section C,2026-07-15,2026-07-30,35.0,NOS,1
+OIL-MEC-601-D,Rigging and Erection of 3-Phase Test Separator Vessel - Area D,Mechanical,1.6.1.4,Mechanical Execution Section D,2026-07-18,2026-08-09,48.0,NOS,1
+OIL-MEC-602-A,Flare Knockout Drum (KOD) Skidded Vessel Erection - Area A,Mechanical,1.6.2.1,Mechanical Execution Section A,2026-07-21,2026-08-19,61.0,NOS,1
+OIL-MEC-602-B,Flare Knockout Drum (KOD) Skidded Vessel Erection - Area B,Mechanical,1.6.2.2,Mechanical Execution Section B,2026-07-24,2026-08-29,74.0,NOS,1
+OIL-MEC-602-C,Flare Knockout Drum (KOD) Skidded Vessel Erection - Area C,Mechanical,1.6.2.3,Mechanical Execution Section C,2026-07-27,2026-09-08,87.0,NOS,1
+OIL-MEC-602-D,Flare Knockout Drum (KOD) Skidded Vessel Erection - Area D,Mechanical,1.6.2.4,Mechanical Execution Section D,2026-04-01,2026-04-16,0.0,NOS,1
+OIL-MEC-603-A,Reciprocating Gas Compressor Skid Positioning and Rough Leveling - Shed A,Mechanical,1.6.3.1,Mechanical Execution Section A,2026-04-04,2026-04-26,13.0,SKIDS,2
+OIL-MEC-603-B,Reciprocating Gas Compressor Skid Positioning and Rough Leveling - Shed B,Mechanical,1.6.3.2,Mechanical Execution Section B,2026-04-07,2026-05-06,26.0,SKIDS,2
+OIL-MEC-603-C,Reciprocating Gas Compressor Skid Positioning and Rough Leveling - Shed C,Mechanical,1.6.3.3,Mechanical Execution Section C,2026-04-10,2026-05-16,39.0,SKIDS,2
+OIL-MEC-603-D,Reciprocating Gas Compressor Skid Positioning and Rough Leveling - Shed D,Mechanical,1.6.3.4,Mechanical Execution Section D,2026-04-13,2026-05-26,52.0,SKIDS,2
+OIL-MEC-604-A,Dial Gauge Cold and Hot Alignment of Compressor Motor Shaft - Shed A,Mechanical,1.6.4.1,Mechanical Execution Section A,2026-04-16,2026-05-01,65.0,UNITS,2
+OIL-MEC-604-B,Dial Gauge Cold and Hot Alignment of Compressor Motor Shaft - Shed B,Mechanical,1.6.4.2,Mechanical Execution Section B,2026-04-19,2026-05-11,78.0,UNITS,2
+OIL-MEC-604-C,Dial Gauge Cold and Hot Alignment of Compressor Motor Shaft - Shed C,Mechanical,1.6.4.3,Mechanical Execution Section C,2026-04-22,2026-05-21,91.0,UNITS,2
+OIL-MEC-604-D,Dial Gauge Cold and Hot Alignment of Compressor Motor Shaft - Shed D,Mechanical,1.6.4.4,Mechanical Execution Section D,2026-04-25,2026-05-31,4.0,UNITS,2
+OIL-MEC-605-A,Non-Shrink Epoxy Grouting under Rotary Equipment Baseplates - Skid A,Mechanical,1.6.5.1,Mechanical Execution Section A,2026-04-28,2026-06-10,17.0,CUM,8
+OIL-MEC-605-B,Non-Shrink Epoxy Grouting under Rotary Equipment Baseplates - Skid B,Mechanical,1.6.5.2,Mechanical Execution Section B,2026-05-01,2026-05-16,30.0,CUM,8
+OIL-MEC-605-C,Non-Shrink Epoxy Grouting under Rotary Equipment Baseplates - Skid C,Mechanical,1.6.5.3,Mechanical Execution Section C,2026-05-04,2026-05-26,43.0,CUM,8
+OIL-MEC-605-D,Non-Shrink Epoxy Grouting under Rotary Equipment Baseplates - Skid D,Mechanical,1.6.5.4,Mechanical Execution Section D,2026-05-07,2026-06-05,56.0,CUM,8
+OIL-MEC-606-A,Centrifugal Crude Oil Dispatch Pump Skid Erection & Alignment - Station A,Mechanical,1.6.6.1,Mechanical Execution Section A,2026-05-10,2026-06-15,69.0,SKIDS,3
+OIL-MEC-606-B,Centrifugal Crude Oil Dispatch Pump Skid Erection & Alignment - Station B,Mechanical,1.6.6.2,Mechanical Execution Section B,2026-05-13,2026-06-25,82.0,SKIDS,3
+OIL-MEC-606-C,Centrifugal Crude Oil Dispatch Pump Skid Erection & Alignment - Station C,Mechanical,1.6.6.3,Mechanical Execution Section C,2026-05-16,2026-05-31,95.0,SKIDS,3
+OIL-MEC-606-D,Centrifugal Crude Oil Dispatch Pump Skid Erection & Alignment - Station D,Mechanical,1.6.6.4,Mechanical Execution Section D,2026-05-19,2026-06-10,8.0,SKIDS,3
+OIL-MEC-607-A,Air Fin Cooler Bundle Lifting and Structural Mounting - Rack A,Mechanical,1.6.7.1,Mechanical Execution Section A,2026-05-22,2026-06-20,21.0,BUNDLES,4
+OIL-MEC-607-B,Air Fin Cooler Bundle Lifting and Structural Mounting - Rack B,Mechanical,1.6.7.2,Mechanical Execution Section B,2026-05-25,2026-06-30,34.0,BUNDLES,4
+OIL-MEC-607-C,Air Fin Cooler Bundle Lifting and Structural Mounting - Rack C,Mechanical,1.6.7.3,Mechanical Execution Section C,2026-05-28,2026-07-10,47.0,BUNDLES,4
+OIL-MEC-607-D,Air Fin Cooler Bundle Lifting and Structural Mounting - Rack D,Mechanical,1.6.7.4,Mechanical Execution Section D,2026-05-31,2026-06-15,60.0,BUNDLES,4

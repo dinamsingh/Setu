@@ -1,0 +1,147 @@
+[
+  {
+    "field_term": "spool",
+    "standard_term": "prefabricated piping spool erection and line assembly",
+    "discipline": "Piping"
+  },
+  {
+    "field_term": "spooling",
+    "standard_term": "prefabricated piping spool erection and line assembly",
+    "discipline": "Piping"
+  },
+  {
+    "field_term": "tie-in",
+    "standard_term": "piping golden tie-in weld and line connection",
+    "discipline": "Piping"
+  },
+  {
+    "field_term": "tie in",
+    "standard_term": "piping golden tie-in weld and line connection",
+    "discipline": "Piping"
+  },
+  {
+    "field_term": "hydrotest",
+    "standard_term": "hydrostatic pressure testing and line dewatering",
+    "discipline": "Piping"
+  },
+  {
+    "field_term": "hydro test",
+    "standard_term": "hydrostatic pressure testing and line dewatering",
+    "discipline": "Piping"
+  },
+  {
+    "field_term": "radiography",
+    "standard_term": "non-destructive testing NDT radiography of pipe weld joints",
+    "discipline": "Piping"
+  },
+  {
+    "field_term": "rt",
+    "standard_term": "non-destructive testing NDT radiography of pipe weld joints",
+    "discipline": "Piping"
+  },
+  {
+    "field_term": "holiday test",
+    "standard_term": "pipeline anti-corrosion coating holiday leak detection",
+    "discipline": "Pipeline"
+  },
+  {
+    "field_term": "stringing",
+    "standard_term": "line pipe hauling stringing along right of way",
+    "discipline": "Pipeline"
+  },
+  {
+    "field_term": "row clearing",
+    "standard_term": "right of way ROW clearing grading and route preparation",
+    "discipline": "Pipeline"
+  },
+  {
+    "field_term": "row",
+    "standard_term": "right of way ROW clearing grading and route preparation",
+    "discipline": "Pipeline"
+  },
+  {
+    "field_term": "lowering",
+    "standard_term": "pipe section lowering into excavated trench",
+    "discipline": "Pipeline"
+  },
+  {
+    "field_term": "backfilling",
+    "standard_term": "pipeline trench backfilling padding and soil compaction",
+    "discipline": "Pipeline"
+  },
+  {
+    "field_term": "hdd",
+    "standard_term": "horizontal directional drilling HDD for river and road crossing",
+    "discipline": "Pipeline"
+  },
+  {
+    "field_term": "pigging",
+    "standard_term": "pipeline internal cleaning gauging and caliper pigging run",
+    "discipline": "Pipeline"
+  },
+  {
+    "field_term": "rebar",
+    "standard_term": "reinforcement steel bar rebar cutting bending and fixing",
+    "discipline": "Civil"
+  },
+  {
+    "field_term": "pcc",
+    "standard_term": "plain cement concrete PCC foundation bed casting",
+    "discipline": "Civil"
+  },
+  {
+    "field_term": "rcc",
+    "standard_term": "reinforced cement concrete RCC equipment foundation casting",
+    "discipline": "Civil"
+  },
+  {
+    "field_term": "bund wall",
+    "standard_term": "tank dyke perimeter bund wall civil construction",
+    "discipline": "Civil"
+  },
+  {
+    "field_term": "cable pulling",
+    "standard_term": "HT LT electrical cable laying and tray pulling",
+    "discipline": "Electrical"
+  },
+  {
+    "field_term": "glanding",
+    "standard_term": "cable glanding and lug termination at distribution panel",
+    "discipline": "Electrical"
+  },
+  {
+    "field_term": "earthing",
+    "standard_term": "station safety earthing grid and copper earth pit installation",
+    "discipline": "Electrical"
+  },
+  {
+    "field_term": "megger test",
+    "standard_term": "electrical insulation resistance IR megger testing",
+    "discipline": "Electrical"
+  },
+  {
+    "field_term": "transmitter calibration",
+    "standard_term": "instrument pressure and flow transmitter bench calibration",
+    "discipline": "Instrumentation"
+  },
+  {
+    "field_term": "loop check",
+    "standard_term": "DCS PLC instrument loop checking and signal validation",
+    "discipline": "Instrumentation"
+  },
+  {
+    "field_term": "compressor alignment",
+    "standard_term": "reciprocating gas compressor skid shaft cold and hot alignment",
+    "discipline": "Mechanical"
+  },
+  {
+    "field_term": "grouting",
+    "standard_term": "rotary equipment base plate epoxy non-shrink grouting",
+    "discipline": "Mechanical"
+  },
+  {
+    "field_term": "knockout drum",
+    "standard_term": "flare gas liquid knockout drum KOD vessel erection",
+    "discipline": "Mechanical"
+  }
+]

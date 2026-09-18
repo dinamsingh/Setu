@@ -1,0 +1,159 @@
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { supabase } from '../lib/supabase';
+import type { FieldUpdate } from '../types';
+import { computeKpis, parseCandidates } from '../lib/utils';
+
+export function useFieldUpdates() {
+  const [updates, setUpdates] = useState<FieldUpdate[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchUpdates = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error: sbError } = await supabase
+        .from('field_updates')
+        .select('*')
+        .order('update_id', { ascending: true });
+
+      if (sbError) throw sbError;
+
+      const formatted: FieldUpdate[] = (data || []).map((row: any) => ({
+        ...row,
+        candidate_matches: parseCandidates(row.candidate_matches),
+      }));
+
+      setUpdates(formatted);
+      setError(null);
+    } catch (err: any) {
+      console.error('Error fetching field updates:', err);
+      setError(err.message || 'Failed to fetch field updates');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUpdates();
+  }, [fetchUpdates]);
+
+  const kpis = useMemo(() => computeKpis(updates), [updates]);
+
+  const submitFieldUpdate = async ({
+    fieldText,
+    siteLocation,
+    reportedBy,
+    reportedDate,
+  }: {
+    fieldText: string;
+    siteLocation: string;
+    reportedBy?: string;
+    reportedDate?: string;
+  }) => {
+    try {
+      const nextNum = updates.length + 1;
+      const nextId = `UPD-2026-${String(nextNum).padStart(3, '0')}`;
+      const nowIso = new Date().toISOString().split('T')[0];
+
+      const payload = {
+        update_id: nextId,
+        source_type: 'manual_text',
+        field_text: fieldText.trim(),
+        site_location: siteLocation.trim() || 'Site Area',
+        reported_by: (reportedBy || 'Site Supervisor').trim(),
+        reported_date: reportedDate || nowIso,
+        status: 'pending',
+        confidence_level: 'Pending',
+        confidence_score: 0,
+        matched_activity_id: null,
+        expanded_text: null,
+        matched_layer: null,
+        candidate_matches: [],
+      };
+
+      const { data, error: insertError } = await supabase
+        .from('field_updates')
+        .insert([payload])
+        .select();
+
+      if (insertError) throw insertError;
+
+      await fetchUpdates();
+      return { success: true, data: data?.[0], updateId: nextId };
+    } catch (err: any) {
+      console.error('Error submitting field update:', err);
+      return { success: false, error: err.message || 'Failed to submit field update' };
+    }
+  };
+
+  const updateStatusAndAudit = async ({
+    updateUuid,
+    action,
+    previousActId,
+    newActId,
+    plannerName,
+    remarks,
+  }: {
+    updateUuid: string;
+    action: 'accept' | 'reject' | 'remap';
+    previousActId: string | null;
+    newActId: string | null;
+    plannerName: string;
+    remarks: string;
+  }) => {
+    try {
+      const statusMap = {
+        accept: 'approved',
+        reject: 'rejected',
+        remap: 'remapped',
+      } as const;
+      const newStatus = statusMap[action];
+      const finalMatchedAct = action === 'reject' ? previousActId : (newActId || previousActId);
+
+      // 1. Update field_updates
+      const { error: updError } = await supabase
+        .from('field_updates')
+        .update({
+          status: newStatus,
+          matched_activity_id: finalMatchedAct,
+          planner_remarks: remarks || `Action: ${action} confirmed by ${plannerName}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', updateUuid);
+
+      if (updError) throw updError;
+
+      // 2. Insert into planner_audit_logs
+      const { error: auditError } = await supabase
+        .from('planner_audit_logs')
+        .insert([
+          {
+            field_update_id: updateUuid,
+            action,
+            previous_activity_id: previousActId,
+            new_activity_id: finalMatchedAct,
+            planner_name: plannerName || 'Lead Project Planner',
+            remarks: remarks || `Action: ${action} confirmed.`,
+          },
+        ]);
+
+      if (auditError) throw auditError;
+
+      await fetchUpdates();
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error recording planner action:', err);
+      return { success: false, error: err.message || 'Failed to update planner decision' };
+    }
+  };
+
+  return {
+    updates,
+    kpis,
+    loading,
+    error,
+    refetch: fetchUpdates,
+    submitFieldUpdate,
+    updateStatusAndAudit,
+  };
+}
