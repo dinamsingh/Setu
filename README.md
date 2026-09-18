@@ -109,7 +109,7 @@ cp .env.example .env
 ```
 Ensure `SUPABASE_URL` and `SUPABASE_ANON_KEY` are configured.
 
-### 3. Run Test Suite (33 Tests)
+### 3. Run Test Suite (26 Tests)
 ```bash
 pytest tests/ -v
 ```
@@ -119,14 +119,32 @@ pytest tests/ -v
 # Ingest 220 activities, 29 aliases, and 40 field updates into Supabase
 python database/import_data.py
 
-# Execute hybrid matching and write back to Supabase
+# Execute hybrid matching on unreviewed reports and write back to Supabase
 python engine/run_supabase_matching.py
+
+# (Optional) Recompute scores for all records without altering planner decisions:
+python engine/run_supabase_matching.py --force-rematch-all
 
 # Verify database state and table integrity
 python database/verify_database.py
 ```
 
-### 5. Launch the Review Dashboard
+### 5. Live Field Updates Matching Worker
+When supervisors submit new progress updates from the Supervisor screen (`FieldCapture.tsx`), reports are saved in Supabase with `status='pending'` and `confidence_level='Pending'`. The live matching worker continuously listens for unmatched reports and processes them automatically:
+
+```bash
+# Start background polling worker (polls every 5 seconds by default)
+python engine/match_worker.py
+
+# Or run a single pass and exit:
+python engine/match_worker.py --once
+
+# Adjust polling interval or enable verbose idle logging:
+python engine/match_worker.py --interval 3 --verbose
+```
+The worker precomputes schedule embeddings **once at startup** (preventing expensive reloading per poll), detects unmapped reports, runs the hybrid ensemble matcher, and writes back candidate rankings and confidence scores without altering planner review status.
+
+### 6. Launch the Review Dashboard
 ```bash
 cd frontend
 npm install
@@ -164,7 +182,8 @@ SETU/
 │   ├── embeddings.py                # Sentence-transformers (all-MiniLM-L6-v2) vector search
 │   ├── ensemble_matcher.py          # Hybrid scoring & 3-tier confidence classification
 │   ├── run_matching_pipeline.py     # Local CLI runner for batch matching
-│   └── run_supabase_matching.py     # Database matching runner integrating with Supabase
+│   ├── run_supabase_matching.py     # Database matching runner integrating with Supabase
+│   └── match_worker.py              # Background polling worker for real-time field reports
 ├── frontend/                        # React + Vite + TypeScript Planner/Supervisor dashboard
 │   ├── src/
 │   │   ├── components/              # KPI cards, badges, review card, remap modal

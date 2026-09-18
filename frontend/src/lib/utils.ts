@@ -24,12 +24,15 @@ export function computeKpis(updates: FieldUpdate[]): KpiMetrics {
     rejected: 0,
     remapped: 0,
     pending: 0,
+    awaiting: 0,
   };
 
   for (const u of updates) {
-    if (u.confidence_level === 'High') kpis.high++;
-    else if (u.confidence_level === 'Medium') kpis.medium++;
-    else if (u.confidence_level === 'Low') kpis.low++;
+    const conf = u.confidence_level?.toLowerCase();
+    if (conf === 'high') kpis.high++;
+    else if (conf === 'medium') kpis.medium++;
+    else if (conf === 'low') kpis.low++;
+    else kpis.awaiting = (kpis.awaiting || 0) + 1;
 
     if (u.status === 'approved') kpis.approved++;
     else if (u.status === 'rejected') kpis.rejected++;
@@ -63,12 +66,13 @@ export function getConfidenceColor(level: string): { bg: string; text: string; b
         border: 'border-setu-red',
         label: 'Clarification / Remap Required',
       };
+    case 'pending':
     default:
       return {
         bg: 'bg-setu-slate-100',
         text: 'text-setu-slate-700',
         border: 'border-setu-slate-300',
-        label: 'Pending Link Analysis',
+        label: 'Awaiting Matching',
       };
   }
 }

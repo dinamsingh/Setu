@@ -36,9 +36,14 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const [remarks, setRemarks] = useState(update.planner_remarks || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isAwaiting = !update.confidence_level || update.confidence_level.toLowerCase() === 'pending';
   const actId = update.matched_activity_id;
-  const actName = matchedActivity ? matchedActivity.activity_name : 'No Auto-Matched Activity (Requires Manual Linking)';
-  const discipline = matchedActivity ? matchedActivity.discipline : 'General / Unassigned';
+  const actName = isAwaiting
+    ? 'Matching in progress — awaiting AI schedule analysis...'
+    : matchedActivity
+    ? matchedActivity.activity_name
+    : 'No Auto-Matched Activity (Requires Manual Linking)';
+  const discipline = isAwaiting ? 'Awaiting Worker' : matchedActivity ? matchedActivity.discipline : 'General / Unassigned';
   const wbs = matchedActivity?.wbs_code || '—';
 
   const candidates = Array.isArray(update.candidate_matches) ? update.candidate_matches : [];
@@ -117,7 +122,11 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-xs font-semibold text-setu-slate-500">
               <span>Target Schedule Activity:</span>
-              {actId ? (
+              {isAwaiting ? (
+                <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[11px]">
+                  AWAITING MATCHING
+                </span>
+              ) : actId ? (
                 <span className="font-mono px-1.5 py-0.5 rounded bg-setu-blue text-white font-bold text-[11px]">
                   {actId}
                 </span>
@@ -126,8 +135,12 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                   UNLINKED
                 </span>
               )}
-              <span className="text-setu-teal font-medium">[{discipline}]</span>
-              <span className="text-setu-slate-400 font-mono text-[11px]">WBS: {wbs}</span>
+              {!isAwaiting && (
+                <>
+                  <span className="text-setu-teal font-medium">[{discipline}]</span>
+                  <span className="text-setu-slate-400 font-mono text-[11px]">WBS: {wbs}</span>
+                </>
+              )}
             </div>
             <p className="text-sm font-bold text-setu-slate-900 truncate mt-0.5">
               {actName}
@@ -155,19 +168,19 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               <div>
                 <span className="text-setu-slate-500 block text-[11px]">Match Confidence Score</span>
                 <span className="text-base font-extrabold font-mono text-setu-navy">
-                  {update.confidence_score ? (Number(update.confidence_score) * 100).toFixed(1) + '%' : 'N/A'}
+                  {isAwaiting ? 'Awaiting matching' : update.confidence_score ? (Number(update.confidence_score) * 100).toFixed(1) + '%' : 'N/A'}
                 </span>
               </div>
               <div>
                 <span className="text-setu-slate-500 block text-[11px]">Matched Pipeline Layer</span>
                 <span className="text-sm font-bold capitalize text-setu-teal">
-                  {update.matched_layer || 'Unmatched'}
+                  {isAwaiting ? 'Pending worker' : update.matched_layer || 'Unmatched'}
                 </span>
               </div>
               <div>
                 <span className="text-setu-slate-500 block text-[11px]">Routing Classification</span>
                 <span className="text-sm font-bold text-setu-slate-800">
-                  {update.confidence_level} Tier
+                  {isAwaiting ? 'Awaiting Matching' : `${update.confidence_level} Tier`}
                 </span>
               </div>
             </div>
@@ -237,8 +250,9 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isAwaiting}
               onClick={handleAccept}
+              title={isAwaiting ? 'Cannot approve before AI matching has run' : undefined}
               className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-setu-green hover:bg-setu-green-dark text-white shadow-xs transition-colors disabled:opacity-50"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />

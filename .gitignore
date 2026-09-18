@@ -20,8 +20,6 @@ ENV/
 .coverage
 htmlcov/
 
-# Streamlit local state
-.streamlit/
 
 # Output directories & scratch
 graphify-out/

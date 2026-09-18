@@ -1,10 +1,11 @@
 """Database Matching Integration for SETU.
 
-Reads all pending field reports from Supabase, executes the existing Phase 2
+Reads pending field reports from Supabase, executes the existing Phase 2
 EnsembleMatcher without rewriting scoring logic, and writes back match results
-to the database with status='pending'.
+to the database without modifying planner review status.
 """
 
+import argparse
 import sys
 from pathlib import Path
 from typing import Any, Optional
@@ -24,11 +25,16 @@ from database.supabase_client import (
 from engine.ensemble_matcher import EnsembleMatcher
 
 
-def run_supabase_matching(client: Optional[Any] = None, status_filter: Optional[str] = None):
+def run_supabase_matching(
+    client: Optional[Any] = None,
+    status_filter: Optional[str] = None,
+    force_rematch_all: bool = False
+):
     """
     Executes matching on database records and writes back results.
     Never creates audit logs during matching (audit is human-only).
     Never silently drops unmatched updates.
+    Never overwrites planner review decisions (approved/rejected/remapped).
     """
     print("=" * 70)
     print("SETU - Supabase Database Matching Pipeline")
@@ -45,17 +51,49 @@ def run_supabase_matching(client: Optional[Any] = None, status_filter: Optional[
         )
     print(f"Loaded {len(activities)} schedule activities from database.")
 
-    # 2. Fetch Field Updates from Supabase (All 40 records)
+    # 2. Fetch Field Updates from Supabase
     if status_filter:
-        pending_updates = fetch_field_updates(db_client, status=status_filter)
+        all_updates = fetch_field_updates(db_client, status=status_filter)
     else:
-        pending_updates = fetch_field_updates(db_client)
+        all_updates = fetch_field_updates(db_client)
 
-    if not pending_updates:
-        print(f"No field updates found in database. Please run 'python database/import_data.py' first.")
+    if not all_updates:
+        print("No field updates found in database. Please run 'python database/import_data.py' first.")
         return
 
-    print(f"Found {len(pending_updates)} field update records to match.")
+    # Filter processable updates
+    if force_rematch_all:
+        print(
+            "\n[WARNING] --force-rematch-all enabled: Reprocessing all records. "
+            "Planner review decisions will be preserved, but scores and candidate matches will be recomputed.\n"
+        )
+        pending_updates = all_updates
+        skipped_count = 0
+    else:
+        pending_updates = []
+        skipped_count = 0
+        for r in all_updates:
+            status = (r.get("status") or "").lower()
+            conf_level = r.get("confidence_level")
+            # Never include rows whose status is 'approved', 'rejected', or 'remapped'
+            if status in ("approved", "rejected", "remapped"):
+                skipped_count += 1
+                continue
+            # Processable if status is 'pending' OR confidence_level is 'Pending'/NULL
+            if status == "pending" or conf_level is None or str(conf_level).strip().lower() in ("pending", "null", ""):
+                pending_updates.append(r)
+            else:
+                skipped_count += 1
+
+    print(
+        f"Found {len(all_updates)} total records: "
+        f"{len(pending_updates)} to match, {skipped_count} skipped (already reviewed)."
+    )
+
+    if not pending_updates:
+        print("All records have already been reviewed. Nothing to match.")
+        print("Use --force-rematch-all to recompute scores for all records while preserving review status.")
+        return
 
     # 3. Initialize Existing EnsembleMatcher (Zero code duplication)
     print("Initializing EnsembleMatcher with database activities...")
@@ -85,7 +123,7 @@ def run_supabase_matching(client: Optional[Any] = None, status_filter: Optional[
             matched_act_id = None
 
         # Fields to write back into the same field_updates row
-        # (Preserves original field_text, does not create new rows, idempotent)
+        # (Preserves original field_text, does not alter review status)
         update_payload = {
             "expanded_text": match_res["expanded_text"],
             "matched_activity_id": matched_act_id,
@@ -93,18 +131,17 @@ def run_supabase_matching(client: Optional[Any] = None, status_filter: Optional[
             "confidence_level": tier,
             "matched_layer": match_res["matched_layer"],
             "candidate_matches": match_res["candidate_matches"],
-            "status": "pending"  # Always pending planner verification; no silent drops
         }
 
         update_field_update_match(db_client, rep["update_id"], update_payload)
 
-        # Requirement 9: Add logging for every processed record
+        # Logging for processed record
         print(
             f"[PROCESSED] Report ID: {rep['update_id']:12s} | "
             f"Tier: {tier:6s} | "
             f"Matched Act: {str(matched_act_id or 'NULL'):15s} | "
             f"Score: {match_res['confidence_score']:.4f} | "
-            f"Status: pending"
+            f"Status: {rep.get('status', 'pending')}"
         )
 
     # 5. Summary & Verification
@@ -112,12 +149,17 @@ def run_supabase_matching(client: Optional[Any] = None, status_filter: Optional[
     print("\n" + "=" * 70)
     print("SUPABASE MATCHING WRITE-BACK SUMMARY")
     print("=" * 70)
-    print(f"Total Records Updated   : {total}")
-    print(f"High Confidence (>=0.82): {high_count:2d}  ({(high_count/total)*100:5.1f}%) -> Fast-Track Review")
-    print(f"Medium Confidence      : {med_count:2d}  ({(med_count/total)*100:5.1f}%) -> Planner Review Queue")
-    print(f"Low / Unmatched (<0.55) : {low_count:2d}  ({(low_count/total)*100:5.1f}%) -> Flagged for Review (Never Dropped)")
-    print(f"Status                  : 100% Pending Planner Review (40/40)")
-    print(f"Dropped Records         : 0 (Zero records dropped)")
+    print(f"Total Records Processed : {total}")
+    if total > 0:
+        print(f"High Confidence (>=0.82): {high_count:2d}  ({(high_count/total)*100:5.1f}%) -> Fast-Track Review")
+        print(f"Medium Confidence      : {med_count:2d}  ({(med_count/total)*100:5.1f}%) -> Planner Review Queue")
+        print(f"Low / Unmatched (<0.55) : {low_count:2d}  ({(low_count/total)*100:5.1f}%) -> Flagged for Review (Never Dropped)")
+    else:
+        print("High Confidence (>=0.82):  0  (  0.0%) -> Fast-Track Review")
+        print("Medium Confidence      :  0  (  0.0%) -> Planner Review Queue")
+        print("Low / Unmatched (<0.55) :  0  (  0.0%) -> Flagged for Review (Never Dropped)")
+    print(f"Skipped (Already Reviewed): {skipped_count:2d}")
+    print("Dropped Records         : 0 (Zero records dropped)")
     print("=" * 70)
 
     counts = get_table_counts(db_client)
@@ -128,4 +170,17 @@ def run_supabase_matching(client: Optional[Any] = None, status_filter: Optional[
 
 
 if __name__ == "__main__":
-    run_supabase_matching()
+    parser = argparse.ArgumentParser(description="SETU Supabase Database Matching Pipeline")
+    parser.add_argument(
+        "--force-rematch-all",
+        action="store_true",
+        help="Reprocess every row. Planner review decisions are preserved, but scores/tiers will be recomputed."
+    )
+    parser.add_argument(
+        "--status",
+        type=str,
+        default=None,
+        help="Filter field updates by status before matching."
+    )
+    args = parser.parse_args()
+    run_supabase_matching(status_filter=args.status, force_rematch_all=args.force_rematch_all)

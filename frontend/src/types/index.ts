@@ -79,6 +79,7 @@ export interface KpiMetrics {
   rejected: number;
   remapped: number;
   pending: number;
+  awaiting?: number;
 }
 
 export interface FilterState {

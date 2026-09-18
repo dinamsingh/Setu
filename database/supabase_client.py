@@ -168,6 +168,7 @@ class LocalMockDatabase:
             json.dump(self.tables, f, indent=2)
 
     def get_table(self, name: str) -> List[Dict]:
+        self.load()
         return self.tables.setdefault(name, [])
 
     def set_table(self, name: str, rows: List[Dict]):

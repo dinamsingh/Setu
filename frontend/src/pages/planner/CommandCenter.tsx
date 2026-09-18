@@ -38,12 +38,20 @@ export const CommandCenter: React.FC = () => {
 
   const loading = updatesLoading || scheduleLoading;
 
+  const awaitingCount = kpis.awaiting || 0;
+
   // Compute confidence chart data
-  const confidenceChartData = useMemo(() => [
-    { name: 'High Confidence (>=0.82)', value: kpis.high, color: '#219469' },
-    { name: 'Medium Confidence (0.55-0.81)', value: kpis.medium, color: '#C47814' },
-    { name: 'Low Confidence (<0.55)', value: kpis.low, color: '#C43C3C' },
-  ], [kpis]);
+  const confidenceChartData = useMemo(() => {
+    const data = [
+      { name: 'High Confidence (>=0.82)', value: kpis.high, color: '#219469' },
+      { name: 'Medium Confidence (0.55-0.81)', value: kpis.medium, color: '#C47814' },
+      { name: 'Low Confidence (<0.55)', value: kpis.low, color: '#C43C3C' },
+    ];
+    if (awaitingCount > 0) {
+      data.push({ name: 'Awaiting Matching', value: awaitingCount, color: '#64748B' });
+    }
+    return data;
+  }, [kpis, awaitingCount]);
 
   // Compute discipline chart data
   const disciplineChartData = useMemo(() => {
@@ -152,6 +160,27 @@ export const CommandCenter: React.FC = () => {
                 />
               </div>
 
+              {/* Awaiting Matching Worker Notice Banner */}
+              {awaitingCount > 0 && (
+                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center space-x-2.5">
+                    <span className="font-bold uppercase text-[10px] px-2 py-0.5 rounded bg-blue-200 text-blue-950 font-mono">
+                      {awaitingCount} Awaiting
+                    </span>
+                    <span>
+                      {awaitingCount} submitted report(s) are awaiting the matching worker. They will be linked automatically when the worker runs.
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => navigate('/planner/review?confidence=Pending')}
+                    className="inline-flex items-center space-x-1 text-xs font-bold text-setu-blue hover:underline shrink-0 ml-2"
+                  >
+                    <span>View in Queue</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               {/* Attention Required Panel */}
               <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-5 shadow-xs">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -222,6 +251,12 @@ export const CommandCenter: React.FC = () => {
                       <span className="w-3 h-3 rounded-full bg-[#C43C3C]" />
                       <span>Low ({kpis.low})</span>
                     </div>
+                    {awaitingCount > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-[#64748B]" />
+                        <span>Awaiting ({awaitingCount})</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

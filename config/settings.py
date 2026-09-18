@@ -25,8 +25,7 @@ THRESHOLD_MEDIUM_CONFIDENCE = float(os.getenv("THRESHOLD_MEDIUM_CONFIDENCE", "0.
 # Local Offline / Mock Database Flag (Disabled by default - forces live Supabase connection)
 USE_LOCAL_MOCK_DB = os.getenv("USE_LOCAL_MOCK_DB", "False").lower() in ("true", "1", "yes")
 
-# UI Settings
-STREAMLIT_SERVER_PORT = int(os.getenv("STREAMLIT_SERVER_PORT", "8501"))
+# Debug Settings
 DEBUG_MODE = os.getenv("DEBUG_MODE", "False").lower() in ("true", "1", "yes")
 
 # File Paths

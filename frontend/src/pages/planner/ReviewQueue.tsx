@@ -46,8 +46,11 @@ export const ReviewQueue: React.FC = () => {
   const filteredUpdates = useMemo(() => {
     return updates.filter((u) => {
       // 1. Confidence filter
-      if (confidenceFilter !== 'All' && u.confidence_level.toLowerCase() !== confidenceFilter.toLowerCase()) {
-        return false;
+      if (confidenceFilter !== 'All') {
+        const uConf = (u.confidence_level || 'pending').toLowerCase();
+        if (uConf !== confidenceFilter.toLowerCase()) {
+          return false;
+        }
       }
 
       // 2. Status filter
@@ -200,10 +203,11 @@ export const ReviewQueue: React.FC = () => {
                   onChange={(e) => setFilter('confidence', e.target.value)}
                   className="w-full text-xs p-2 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-setu-blue bg-white font-medium"
                 >
-                  <option value="All">All Tiers (40)</option>
+                  <option value="All">All Tiers</option>
                   <option value="High">High Confidence (&ge;82%)</option>
                   <option value="Medium">Medium Review (55-81%)</option>
                   <option value="Low">Low / Flagged (&lt;55%)</option>
+                  <option value="Pending">Awaiting Matching</option>
                 </select>
               </div>
 

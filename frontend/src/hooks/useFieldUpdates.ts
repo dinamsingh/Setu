@@ -8,9 +8,9 @@ export function useFieldUpdates() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUpdates = useCallback(async () => {
+  const fetchUpdates = useCallback(async (isPolling = false) => {
     try {
-      setLoading(true);
+      if (!isPolling) setLoading(true);
       const { data, error: sbError } = await supabase
         .from('field_updates')
         .select('*')
@@ -27,15 +27,34 @@ export function useFieldUpdates() {
       setError(null);
     } catch (err: any) {
       console.error('Error fetching field updates:', err);
-      setError(err.message || 'Failed to fetch field updates');
+      if (!isPolling) {
+        setError(err.message || 'Failed to fetch field updates');
+      }
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchUpdates();
   }, [fetchUpdates]);
+
+  // Poll every 4 seconds while any row is awaiting matching
+  const hasUnmatched = useMemo(() => {
+    return updates.some(
+      (u) => !u.confidence_level || u.confidence_level.toLowerCase() === 'pending'
+    );
+  }, [updates]);
+
+  useEffect(() => {
+    if (!hasUnmatched) return;
+
+    const intervalId = setInterval(() => {
+      fetchUpdates(true);
+    }, 4000);
+
+    return () => clearInterval(intervalId);
+  }, [hasUnmatched, fetchUpdates]);
 
   const kpis = useMemo(() => computeKpis(updates), [updates]);
 
