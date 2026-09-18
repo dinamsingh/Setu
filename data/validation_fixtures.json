@@ -1,0 +1,54 @@
+[
+  {
+    "fixture_id": "VAL-DATE-BLOCK-001",
+    "name": "Date Implausibility (Early Start Block)",
+    "source_type": "text",
+    "field_text": "Spool erection and field fit-up successfully finished at Manifold A today.",
+    "reported_by": "Ramesh Borah (Piping Foreman)",
+    "site_location": "Duliajan Manifold Area A",
+    "reported_date": "2024-01-10",
+    "expected_check": "date_plausibility",
+    "expected_validation_status": "block",
+    "expected_confidence_level": "High",
+    "description": "High confidence link blocked due to completion claimed 2.5 years before planned start."
+  },
+  {
+    "fixture_id": "VAL-AMBIG-BLOCK-002",
+    "name": "Candidate Ambiguity Block",
+    "source_type": "text",
+    "field_text": "Box-up work completed at Manifold B",
+    "reported_by": "Ramesh Borah (Piping Foreman)",
+    "site_location": "Manifold B",
+    "reported_date": "2026-06-20",
+    "expected_check": "candidate_ambiguity",
+    "expected_validation_status": "block",
+    "expected_confidence_level": "High",
+    "description": "High confidence match where top 2 candidates differ by margin < 0.05."
+  },
+  {
+    "fixture_id": "VAL-LOC-BLOCK-003",
+    "name": "Location Conflict Block",
+    "source_type": "text",
+    "field_text": "Piping spool erection and field fit-up work completed at Manifold B",
+    "reported_by": "Ramesh Borah (Piping Foreman)",
+    "site_location": "Manifold B Area",
+    "reported_date": "2026-06-20",
+    "target_activity_id": "OIL-PIP-202-A",
+    "expected_check": "location_consistency",
+    "expected_validation_status": "block",
+    "description": "Report states Manifold B while target activity is Manifold A."
+  },
+  {
+    "fixture_id": "VAL-DISC-WARN-004",
+    "name": "Cross-Discipline Warning",
+    "source_type": "text",
+    "field_text": "High tension HT cable pulling and routing completed across Feeder C.",
+    "reported_by": "Manoj Chetia (Civil Foreman)",
+    "site_location": "Substation Feeder C",
+    "reported_date": "2026-06-20",
+    "target_activity_id": "OIL-ELE-403-C",
+    "expected_check": "reporter_discipline",
+    "expected_validation_status": "warn",
+    "description": "Civil foreman reporting electrical cable work raises cross-discipline warning."
+  }
+]

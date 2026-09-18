@@ -46,6 +46,16 @@ export interface CandidateMatch {
   rationale?: string;
 }
 
+export interface ValidationCheckResult {
+  check: string;
+  name: string;
+  outcome: 'pass' | 'warn' | 'fail';
+  message: string;
+  evidence: Record<string, any>;
+  status?: 'pass' | 'warn' | 'fail';
+  reason?: string;
+}
+
 export interface FieldUpdate {
   id: string;
   update_id: string;
@@ -59,6 +69,12 @@ export interface FieldUpdate {
   confidence_level: 'High' | 'Medium' | 'Low' | 'Pending';
   matched_layer: string | null;
   candidate_matches: CandidateMatch[] | string | null;
+  validation_status?: 'pass' | 'warn' | 'block' | null;
+  validation_results?: ValidationCheckResult[] | string | null;
+  validation_overridden?: boolean;
+  override_reason?: string | null;
+  override_by?: string | null;
+  override_at?: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'remapped';
   planner_remarks: string | null;
   reported_date: string | null;
@@ -69,7 +85,7 @@ export interface FieldUpdate {
 export interface PlannerAuditLog {
   id: string;
   field_update_id: string;
-  action: 'accept' | 'reject' | 'remap' | 'requeue';
+  action: 'accept' | 'reject' | 'remap' | 'requeue' | 'override';
   previous_activity_id: string | null;
   new_activity_id: string | null;
   planner_name: string;

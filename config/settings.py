@@ -22,6 +22,11 @@ EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/
 THRESHOLD_HIGH_CONFIDENCE = float(os.getenv("THRESHOLD_HIGH_CONFIDENCE", "0.82"))
 THRESHOLD_MEDIUM_CONFIDENCE = float(os.getenv("THRESHOLD_MEDIUM_CONFIDENCE", "0.55"))
 
+# Validation Tolerances & Thresholds (Project Controls)
+VALIDATION_DATE_TOLERANCE_DAYS_BEFORE = int(os.getenv("VALIDATION_DATE_TOLERANCE_DAYS_BEFORE", "30"))
+VALIDATION_DATE_TOLERANCE_DAYS_AFTER = int(os.getenv("VALIDATION_DATE_TOLERANCE_DAYS_AFTER", "60"))
+VALIDATION_AMBIGUITY_THRESHOLD = float(os.getenv("VALIDATION_AMBIGUITY_THRESHOLD", "0.05"))
+
 # Local Offline / Mock Database Flag (Disabled by default - forces live Supabase connection)
 USE_LOCAL_MOCK_DB = os.getenv("USE_LOCAL_MOCK_DB", "False").lower() in ("true", "1", "yes")
 

@@ -222,6 +222,63 @@ export function useFieldUpdates() {
     }
   };
 
+  const overrideValidation = async ({
+    updateUuid,
+    plannerName,
+    reason,
+  }: {
+    updateUuid: string;
+    plannerName: string;
+    reason: string;
+  }) => {
+    try {
+      if (!reason || !reason.trim()) {
+        throw new Error('A non-empty justification is required to override validation.');
+      }
+
+      const row = updates.find((u) => u.id === updateUuid || u.update_id === updateUuid);
+      if (!row) throw new Error(`Field update ${updateUuid} not found.`);
+
+      const nowIso = new Date().toISOString();
+
+      // 1. Update field_updates
+      const { error: updError } = await supabase
+        .from('field_updates')
+        .update({
+          validation_overridden: true,
+          override_reason: reason.trim(),
+          override_by: plannerName || 'Lead Project Planner',
+          override_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq('id', row.id);
+
+      if (updError) throw updError;
+
+      // 2. Insert into planner_audit_logs
+      const { error: auditError } = await supabase
+        .from('planner_audit_logs')
+        .insert([
+          {
+            field_update_id: row.id,
+            action: 'override',
+            previous_activity_id: row.matched_activity_id,
+            new_activity_id: row.matched_activity_id,
+            planner_name: plannerName || 'Lead Project Planner',
+            remarks: `Validation Override: ${reason.trim()}`,
+          },
+        ]);
+
+      if (auditError) throw auditError;
+
+      await fetchUpdates();
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error overriding validation:', err);
+      return { success: false, error: err.message || 'Failed to override validation' };
+    }
+  };
+
   return {
     updates,
     kpis,
@@ -231,5 +288,6 @@ export function useFieldUpdates() {
     submitFieldUpdate,
     updateStatusAndAudit,
     requeueForRematching,
+    overrideValidation,
   };
 }

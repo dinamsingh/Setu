@@ -171,6 +171,14 @@ class LocalMockDatabase:
                     al.setdefault("id", idx + 1)
                     al.setdefault("status", "verified")
                     al.setdefault("origin", "seed")
+                # Ensure backward-compatible defaults for field_updates validation fields
+                for row in self.tables.get("field_updates", []):
+                    row.setdefault("validation_status", None)
+                    row.setdefault("validation_results", [])
+                    row.setdefault("validation_overridden", False)
+                    row.setdefault("override_reason", None)
+                    row.setdefault("override_by", None)
+                    row.setdefault("override_at", None)
             except Exception:
                 pass
 
@@ -266,7 +274,15 @@ def fetch_domain_aliases(client: Any, status: Optional[str] = None) -> List[Dict
     """Fetches domain aliases, optionally filtered by status (e.g. 'verified', 'proposed')."""
     query = client.table("domain_aliases").select("*")
     if status:
-        query = query.eq("status", status)
+        try:
+            query = query.eq("status", status)
+            res = query.execute()
+            return res.data or []
+        except Exception:
+            # Graceful fallback if status column is not yet migrated on remote instance
+            res = client.table("domain_aliases").select("*").execute()
+            rows = res.data or []
+            return [r for r in rows if r.get("status", "verified") == status]
     res = query.execute()
     return res.data or []
 
@@ -348,6 +364,53 @@ def requeue_field_update_for_rematch(
     create_planner_audit_log(client, audit_record)
 
 
+def override_field_update_validation(
+    client: Any,
+    update_id: Optional[str] = None,
+    planner_name: str = "Lead Project Planner",
+    reason: str = "",
+    update_uuid: Optional[str] = None,
+) -> Dict:
+    """
+    Records an explicit planner override on a validation-blocked report.
+    Requires a non-empty justification and logs action='override' in planner_audit_logs.
+    Accepts either update_id (e.g. 'OIL-DPR-001') or update_uuid.
+    """
+    if not reason or not reason.strip():
+        raise ValueError("A non-empty justification is required to override validation.")
+
+    target_id = update_id or update_uuid
+    if not target_id:
+        raise ValueError("Either update_id or update_uuid must be provided.")
+
+    all_updates = client.table("field_updates").select("*").execute().data or []
+    target = next((u for u in all_updates if u.get("update_id") == target_id or u.get("id") == target_id), None)
+    if not target:
+        raise ValueError(f"Field update '{target_id}' not found.")
+
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "validation_overridden": True,
+        "override_reason": reason.strip(),
+        "override_by": planner_name,
+        "override_at": now_iso,
+    }
+    target_key = "id" if "id" in target else "update_id"
+    client.table("field_updates").update(payload).eq(target_key, target[target_key]).execute()
+
+    audit_record = {
+        "field_update_id": target.get("id") or target.get("update_id"),
+        "action": "override",
+        "previous_activity_id": target.get("matched_activity_id"),
+        "new_activity_id": target.get("matched_activity_id"),
+        "planner_name": planner_name,
+        "remarks": reason.strip(),
+    }
+    create_planner_audit_log(client, audit_record)
+    return {**target, **payload}
+
+
 def upsert_domain_aliases(client: Any, aliases: List[Dict]) -> int:
     """Upserts domain aliases based on field_term."""
     client.table("domain_aliases").upsert(aliases, on_conflict="field_term").execute()
@@ -381,3 +444,21 @@ def update_field_update_match(client: Any, update_id: str, match_data: Dict) -> 
 def create_planner_audit_log(client: Any, audit_record: Dict) -> None:
     """Creates a planner decision audit trail log entry."""
     client.table("planner_audit_logs").insert(audit_record).execute()
+
+
+def fetch_planner_audit_logs(
+    client: Any,
+    field_update_id: Optional[str] = None,
+    update_id: Optional[str] = None,
+) -> List[Dict]:
+    """Fetches planner audit logs, optionally filtered by field_update_id or update_id."""
+    logs = client.table("planner_audit_logs").select("*").execute().data or []
+    if field_update_id:
+        logs = [l for l in logs if l.get("field_update_id") == field_update_id]
+    if update_id:
+        all_updates = client.table("field_updates").select("*").execute().data or []
+        target = next((u for u in all_updates if u.get("update_id") == update_id or u.get("id") == update_id), None)
+        if target:
+            valid_ids = {target.get("id"), target.get("update_id")} - {None}
+            logs = [l for l in logs if l.get("field_update_id") in valid_ids]
+    return logs

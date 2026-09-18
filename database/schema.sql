@@ -88,6 +88,12 @@ create table if not exists field_updates (
     status text default 'pending',                   -- 'pending', 'approved', 'rejected', 'remapped'
     planner_remarks text,                            -- Notes entered by Planner during review
     reported_date date default current_date,
+    validation_status text,                          -- 'pass', 'warn', 'block', or NULL (not yet run)
+    validation_results jsonb default '[]'::jsonb,    -- Array of check outcomes, messages, and evidence
+    validation_overridden boolean default false,     -- True if planner explicitly overrides a block
+    override_reason text,                            -- Mandatory justification for planner override
+    override_by text,                                -- Planner name who authorized override
+    override_at timestamptz,                         -- Timestamp when override was authorized
     created_at timestamptz default now(),
     updated_at timestamptz default now()
 );
@@ -98,12 +104,23 @@ on field_updates (status);
 create index if not exists idx_field_updates_confidence 
 on field_updates (confidence_level);
 
+create index if not exists idx_field_updates_validation_status 
+on field_updates (validation_status);
+
+-- Idempotent column migrations for field_updates
+alter table field_updates add column if not exists validation_status text;
+alter table field_updates add column if not exists validation_results jsonb default '[]'::jsonb;
+alter table field_updates add column if not exists validation_overridden boolean default false;
+alter table field_updates add column if not exists override_reason text;
+alter table field_updates add column if not exists override_by text;
+alter table field_updates add column if not exists override_at timestamptz;
+
 
 -- 4. Planner Audit Logs Table (Full decision trail for compliance)
 create table if not exists planner_audit_logs (
     id uuid primary key default gen_random_uuid(),
     field_update_id uuid references field_updates(id) on delete cascade,
-    action text not null,                            -- 'auto_link', 'accept', 'reject', 'remap'
+    action text not null,                            -- 'auto_link', 'accept', 'reject', 'remap', 'requeue', 'override'
     previous_activity_id text,
     new_activity_id text,
     planner_name text default 'Lead Project Planner',

@@ -25,6 +25,7 @@ from database.supabase_client import (
 )
 from engine.alias_expander import DomainAliasExpander
 from engine.ensemble_matcher import EnsembleMatcher
+from engine.validators import validate_report_matching
 
 
 def run_supabase_matching(
@@ -127,8 +128,20 @@ def run_supabase_matching(
             # For low/no-match records: matched_activity_id can be NULL
             matched_act_id = None
 
+        # Look up matched activity object
+        matched_act_obj = next((a for a in activities if a["activity_id"] == matched_act_id), None) if matched_act_id else None
+
+        # Run independent validation engine
+        val_res = validate_report_matching(
+            report=rep,
+            matched_activity=matched_act_obj,
+            candidates=match_res["candidate_matches"],
+            all_reports=all_updates,
+            all_activities=activities,
+        )
+
         # Fields to write back into the same field_updates row
-        # (Preserves original field_text, does not alter review status)
+        # (Preserves original field_text, does not alter review status, does not alter confidence score)
         update_payload = {
             "expanded_text": match_res["expanded_text"],
             "matched_activity_id": matched_act_id,
@@ -136,6 +149,9 @@ def run_supabase_matching(
             "confidence_level": tier,
             "matched_layer": match_res["matched_layer"],
             "candidate_matches": match_res["candidate_matches"],
+            "validation_status": val_res["status"],
+            "validation_results": val_res["results"],
+            "validation_overridden": rep.get("validation_overridden", False),
         }
 
         update_field_update_match(db_client, rep["update_id"], update_payload)
@@ -144,6 +160,7 @@ def run_supabase_matching(
         print(
             f"[PROCESSED] Report ID: {rep['update_id']:12s} | "
             f"Tier: {tier:6s} | "
+            f"Val: {val_res['status']:5s} | "
             f"Matched Act: {str(matched_act_id or 'NULL'):15s} | "
             f"Score: {match_res['confidence_score']:.4f} | "
             f"Status: {rep.get('status', 'pending')}"
@@ -172,6 +189,15 @@ def run_supabase_matching(
     for tbl, cnt in counts.items():
         print(f"  - {tbl:22s}: {cnt:4d} rows")
     print("=" * 70)
+
+    return {
+        "total_processed": total,
+        "high_confidence": high_count,
+        "medium_confidence": med_count,
+        "low_confidence": low_count,
+        "skipped": skipped_count,
+        "table_counts": counts,
+    }
 
 
 if __name__ == "__main__":

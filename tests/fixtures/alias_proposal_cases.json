@@ -1,0 +1,80 @@
+[
+  {
+    "case_id": "case_1_hyphenated_box_up",
+    "field_text": "Box-up work completed at Manifold B",
+    "target_activity_name": "Piping Spool Erection and Field Fit-up Assembly",
+    "target_discipline": "Piping",
+    "expected_candidates": [
+      {
+        "field_term": "box-up",
+        "standard_term": "Piping Spool Erection and Field Fit-up Assembly",
+        "discipline": "Piping",
+        "score": 6.0
+      },
+      {
+        "field_term": "manifold b",
+        "standard_term": "Piping Spool Erection and Field Fit-up Assembly",
+        "discipline": "Piping",
+        "score": 4.33
+      },
+      {
+        "field_term": "manifold",
+        "standard_term": "Piping Spool Erection and Field Fit-up Assembly",
+        "discipline": "Piping",
+        "score": 2.33
+      }
+    ]
+  },
+  {
+    "case_id": "case_2_multiword_hydrotesting",
+    "field_text": "Hydrotesting of mainline completed yesterday",
+    "target_activity_name": "Hydrostatic Pressure Testing of Main Pipeline",
+    "target_discipline": "Pipeline",
+    "expected_candidates": [
+      {
+        "field_term": "hydrotesting of mainline",
+        "standard_term": "Hydrostatic Pressure Testing of Main Pipeline",
+        "discipline": "Pipeline",
+        "score": 4.2
+      },
+      {
+        "field_term": "hydrotesting",
+        "standard_term": "Hydrostatic Pressure Testing of Main Pipeline",
+        "discipline": "Pipeline",
+        "score": 3.0
+      },
+      {
+        "field_term": "mainline",
+        "standard_term": "Hydrostatic Pressure Testing of Main Pipeline",
+        "discipline": "Pipeline",
+        "score": 1.6
+      }
+    ]
+  },
+  {
+    "case_id": "case_3_acronym_ht",
+    "field_text": "High tension HT cable pulling and routing done",
+    "target_activity_name": "High Tension Cable Routing and Pulling",
+    "target_discipline": "Electrical",
+    "expected_candidates": [
+      {
+        "field_term": "tension ht",
+        "standard_term": "High Tension Cable Routing and Pulling",
+        "discipline": "Electrical",
+        "score": 4.88
+      },
+      {
+        "field_term": "ht cable",
+        "standard_term": "High Tension Cable Routing and Pulling",
+        "discipline": "Electrical",
+        "score": 4.75
+      },
+      {
+        "field_term": "high tension ht",
+        "standard_term": "High Tension Cable Routing and Pulling",
+        "discipline": "Electrical",
+        "score": 4.2
+      }
+    ]
+  }
+]

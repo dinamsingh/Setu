@@ -27,6 +27,7 @@ from database.supabase_client import (
 )
 from engine.alias_expander import DomainAliasExpander
 from engine.ensemble_matcher import EnsembleMatcher
+from engine.validators import validate_report_matching
 
 
 def is_unmatched_row(row: Dict) -> bool:
@@ -41,11 +42,30 @@ def is_unmatched_row(row: Dict) -> bool:
     return conf_level is None or str(conf_level).strip().lower() in ("pending", "null", "")
 
 
-def match_single_update(matcher: EnsembleMatcher, db_client: Any, rep: Dict) -> Dict:
-    """Matches a single report and writes back results without altering review status."""
+def match_single_update(
+    matcher: EnsembleMatcher,
+    db_client: Any,
+    rep: Dict,
+    all_reports: Optional[List[Dict]] = None
+) -> Dict:
+    """Matches a single report, validates against project controls, and writes back results."""
     match_res = matcher.match_single_report(rep, top_k=3)
     tier = match_res["confidence_level"]
     matched_act_id = match_res["matched_activity_id"] if tier in ("High", "Medium") else None
+
+    # Look up matched activity object
+    matched_act_obj = None
+    if matched_act_id and hasattr(matcher, "activities"):
+        matched_act_obj = next((a for a in matcher.activities if a["activity_id"] == matched_act_id), None)
+
+    # Run independent validation engine
+    val_res = validate_report_matching(
+        report=rep,
+        matched_activity=matched_act_obj,
+        candidates=match_res["candidate_matches"],
+        all_reports=all_reports,
+        all_activities=getattr(matcher, "activities", []),
+    )
 
     update_payload = {
         "expanded_text": match_res["expanded_text"],
@@ -54,11 +74,15 @@ def match_single_update(matcher: EnsembleMatcher, db_client: Any, rep: Dict) -> 
         "confidence_level": tier,
         "matched_layer": match_res["matched_layer"],
         "candidate_matches": match_res["candidate_matches"],
+        "validation_status": val_res["status"],
+        "validation_results": val_res["results"],
+        "validation_overridden": rep.get("validation_overridden", False),
     }
     update_field_update_match(db_client, rep["update_id"], update_payload)
     return {
         "update_id": rep["update_id"],
         "tier": tier,
+        "validation_status": val_res["status"],
         "matched_activity_id": matched_act_id,
         "confidence_score": match_res["confidence_score"],
     }
@@ -128,10 +152,11 @@ def run_worker(
                 print(f"[WORKER] Found {len(unmatched_rows)} unmatched report(s) to process.")
                 for rep in unmatched_rows:
                     try:
-                        res = match_single_update(matcher, db_client, rep)
+                        res = match_single_update(matcher, db_client, rep, all_reports=all_updates)
                         print(
                             f"[MATCHED] Report ID: {res['update_id']:12s} | "
                             f"Tier: {res['tier']:6s} | "
+                            f"Val: {res.get('validation_status', 'pass'):5s} | "
                             f"Matched Act: {str(res['matched_activity_id'] or 'NULL'):15s} | "
                             f"Score: {res['confidence_score']:.4f}"
                         )

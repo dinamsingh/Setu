@@ -12,6 +12,7 @@ import { Header } from '../../components/common/Header';
 import { Sidebar } from '../../components/common/Sidebar';
 import { ReviewCard } from '../../components/planner/ReviewCard';
 import { RemapModal } from '../../components/planner/RemapModal';
+import { OverrideModal } from '../../components/planner/OverrideModal';
 import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
@@ -20,17 +21,19 @@ import type { FieldUpdate } from '../../types';
 
 export const ReviewQueue: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { updates, loading: updatesLoading, refetch, updateStatusAndAudit, requeueForRematching } = useFieldUpdates();
+  const { updates, loading: updatesLoading, refetch, updateStatusAndAudit, requeueForRematching, overrideValidation } = useFieldUpdates();
   const { activities, activitiesMap, disciplines, loading: scheduleLoading } = useScheduleData();
 
   const [plannerName, setPlannerName] = useState('Lead Project Planner');
   const [remapTarget, setRemapTarget] = useState<FieldUpdate | null>(null);
+  const [overrideTarget, setOverrideTarget] = useState<FieldUpdate | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Read filter params from URL
   const confidenceFilter = searchParams.get('confidence') || 'All';
   const statusFilter = searchParams.get('status') || 'All';
   const disciplineFilter = searchParams.get('discipline') || 'All';
+  const validationFilter = searchParams.get('validation') || 'All';
   const searchQuery = searchParams.get('q') || '';
 
   const setFilter = (key: string, val: string) => {
@@ -67,7 +70,21 @@ export const ReviewQueue: React.FC = () => {
         }
       }
 
-      // 4. Search query
+      // 4. Validation filter
+      if (validationFilter !== 'All') {
+        if (validationFilter.toLowerCase() === 'overridden') {
+          if (!u.validation_overridden) {
+            return false;
+          }
+        } else {
+          const uVal = (u.validation_status || 'pass').toLowerCase();
+          if (uVal !== validationFilter.toLowerCase()) {
+            return false;
+          }
+        }
+      }
+
+      // 5. Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const act = u.matched_activity_id ? activitiesMap.get(u.matched_activity_id) : undefined;
@@ -79,7 +96,7 @@ export const ReviewQueue: React.FC = () => {
 
       return true;
     });
-  }, [updates, confidenceFilter, statusFilter, disciplineFilter, searchQuery, activitiesMap]);
+  }, [updates, confidenceFilter, statusFilter, disciplineFilter, validationFilter, searchQuery, activitiesMap]);
 
   const handleAccept = async (update: FieldUpdate, remarks: string) => {
     const res = await updateStatusAndAudit({
@@ -133,6 +150,20 @@ export const ReviewQueue: React.FC = () => {
       showToast(`Report ${update.update_id} re-queued for AI matching worker.`);
     } else {
       showToast(res.error || 'Failed to re-queue update');
+    }
+  };
+
+  const handleConfirmOverride = async (update: FieldUpdate, reason: string) => {
+    const res = await overrideValidation({
+      updateUuid: update.id,
+      plannerName,
+      reason,
+    });
+    if (res.success) {
+      showToast(`Validation override recorded for ${update.update_id}.`);
+      setOverrideTarget(null);
+    } else {
+      showToast(res.error || 'Failed to record validation override');
     }
   };
 
@@ -205,7 +236,7 @@ export const ReviewQueue: React.FC = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               {/* Confidence Filter */}
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-setu-slate-500 mb-1">
@@ -259,6 +290,24 @@ export const ReviewQueue: React.FC = () => {
                 </select>
               </div>
 
+              {/* Validation Filter */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-setu-slate-500 mb-1">
+                  Validation Status
+                </label>
+                <select
+                  value={validationFilter}
+                  onChange={(e) => setFilter('validation', e.target.value)}
+                  className="w-full text-xs p-2 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-setu-blue bg-white font-medium"
+                >
+                  <option value="All">All Validations</option>
+                  <option value="pass">Validated (Pass)</option>
+                  <option value="warn">Warning</option>
+                  <option value="block">Blocked</option>
+                  <option value="overridden">Overridden</option>
+                </select>
+              </div>
+
               {/* Free-text Search */}
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-setu-slate-500 mb-1">
@@ -282,7 +331,7 @@ export const ReviewQueue: React.FC = () => {
               <span>
                 Showing <strong>{filteredUpdates.length}</strong> of {updates.length} total field reports
               </span>
-              {(confidenceFilter !== 'All' || statusFilter !== 'All' || disciplineFilter !== 'All' || searchQuery) && (
+              {(confidenceFilter !== 'All' || statusFilter !== 'All' || disciplineFilter !== 'All' || validationFilter !== 'All' || searchQuery) && (
                 <button
                   onClick={() => setSearchParams(new URLSearchParams())}
                   className="text-setu-blue hover:underline font-semibold"
@@ -325,6 +374,7 @@ export const ReviewQueue: React.FC = () => {
                     onAccept={handleAccept}
                     onReject={handleReject}
                     onOpenRemap={(u) => setRemapTarget(u)}
+                    onOpenOverride={(u) => setOverrideTarget(u)}
                     onRequeue={handleRequeue}
                   />
                 );
@@ -340,6 +390,15 @@ export const ReviewQueue: React.FC = () => {
             plannerName={plannerName}
             onClose={() => setRemapTarget(null)}
             onConfirmRemap={handleConfirmRemap}
+          />
+
+          {/* Override Validation Modal */}
+          <OverrideModal
+            isOpen={overrideTarget !== null}
+            update={overrideTarget}
+            plannerName={plannerName}
+            onClose={() => setOverrideTarget(null)}
+            onConfirmOverride={handleConfirmOverride}
           />
         </main>
       </div>
