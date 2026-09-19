@@ -202,6 +202,19 @@ alter table field_updates
 create index if not exists idx_field_updates_submitted_by
     on field_updates(submitted_by_user_id);
 
+-- Bind domain aliases to authenticated proposer & reviewer
+alter table domain_aliases
+    add column if not exists proposed_by_user_id uuid references auth.users(id) on delete set null;
+alter table domain_aliases
+    add column if not exists reviewed_by_user_id uuid references auth.users(id) on delete set null;
+
+-- Bind planner audit logs to acting user
+alter table planner_audit_logs
+    add column if not exists actor_user_id uuid references auth.users(id) on delete set null;
+
+create index if not exists idx_planner_audit_actor
+    on planner_audit_logs(actor_user_id);
+
 -- Apply least privilege. The service_role grant is intentionally broad because
 -- server-side matching/import workers use that credential and never expose it.
 revoke all on table schedule_activities from anon, authenticated;
@@ -214,7 +227,7 @@ grant select on table schedule_activities to authenticated;
 grant select, insert, update on table domain_aliases to authenticated;
 grant select, insert, update on table field_updates to authenticated;
 grant insert, select on table planner_audit_logs to authenticated;
-grant select on table user_roles to authenticated;
+grant select, insert, update, delete on table user_roles to authenticated;
 
 grant all on table schedule_activities to service_role;
 grant all on table domain_aliases to service_role;
@@ -269,8 +282,9 @@ for insert
 to authenticated
 with check (
     status = 'proposed'
-    and public.current_user_role() in ('site', 'engineer', 'planner', 'admin')
     and proposed_by is not null
+    and (proposed_by_user_id is null or proposed_by_user_id = (select auth.uid()))
+    and public.current_user_role() in ('site', 'engineer', 'planner', 'admin')
 );
 
 create policy "aliases_planner_admin_review"
@@ -318,6 +332,7 @@ for insert
 to authenticated
 with check (
     public.current_user_role() in ('site', 'engineer', 'planner', 'admin')
+    and (actor_user_id is null or actor_user_id = (select auth.uid()))
 );
 
 create policy "audit_planner_admin_select"
@@ -325,9 +340,6 @@ on planner_audit_logs
 for select
 to authenticated
 using (public.current_user_role() in ('planner', 'admin'));
-
--- No UPDATE/DELETE policies are created for audit logs: append-only for
--- browser users. service_role remains available to system workers.
 
 create policy "roles_authenticated_read_self"
 on user_roles
@@ -344,6 +356,65 @@ for all
 to authenticated
 using (public.current_user_role() = 'admin')
 with check (public.current_user_role() = 'admin');
+
+-- Trigger-level protection: original field report submission content is immutable
+create or replace function public.protect_field_update_original_submission()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    -- Service role / system workers are permitted for maintenance/imports
+    if auth.role() = 'service_role' then
+        return new;
+    end if;
+
+    -- For authenticated browser sessions, original submission data cannot be altered
+    if old.update_id is distinct from new.update_id then
+        raise exception 'Immutable field: update_id cannot be changed';
+    end if;
+    if old.field_text is distinct from new.field_text then
+        raise exception 'Immutable field: field_text cannot be modified during review';
+    end if;
+    if old.submitted_by_user_id is distinct from new.submitted_by_user_id then
+        raise exception 'Immutable field: submitted_by_user_id cannot be altered';
+    end if;
+    if old.reported_date is distinct from new.reported_date then
+        raise exception 'Immutable field: reported_date cannot be altered';
+    end if;
+    if old.site_location is distinct from new.site_location then
+        raise exception 'Immutable field: site_location cannot be altered';
+    end if;
+    if old.source_type is distinct from new.source_type then
+        raise exception 'Immutable field: source_type cannot be altered';
+    end if;
+
+    return new;
+end;
+$$;
+
+drop trigger if exists trg_protect_field_update_submission on public.field_updates;
+create trigger trg_protect_field_update_submission
+before update on public.field_updates
+for each row execute function public.protect_field_update_original_submission();
+
+-- Trigger-level protection: audit logs are strictly append-only (no UPDATE, no DELETE)
+create or replace function public.prevent_audit_log_modification()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    raise exception 'planner_audit_logs is append-only: UPDATE and DELETE operations are prohibited';
+end;
+$$;
+
+drop trigger if exists trg_prevent_audit_log_modification on public.planner_audit_logs;
+create trigger trg_prevent_audit_log_modification
+before update or delete on public.planner_audit_logs
+for each row execute function public.prevent_audit_log_modification();
 
 -- Stored procedure for semantic search remains available to authenticated
 -- browser sessions and server-side service-role workers.
