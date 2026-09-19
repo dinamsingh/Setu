@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import type { FieldUpdate } from '../types';
+import { useAuth } from '../lib/AuthContext';
 import { computeKpis, parseCandidates } from '../lib/utils';
 
 export function useFieldUpdates() {
   const [updates, setUpdates] = useState<FieldUpdate[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const fetchUpdates = useCallback(async (isPolling = false) => {
     try {
@@ -70,6 +72,7 @@ export function useFieldUpdates() {
     reportedDate?: string;
   }) => {
     try {
+      if (!user) throw new Error('You must be signed in to submit a field update.');
       const nextNum = updates.length + 1;
       const nextId = `UPD-2026-${String(nextNum).padStart(3, '0')}`;
       const nowIso = new Date().toISOString().split('T')[0];
@@ -88,6 +91,7 @@ export function useFieldUpdates() {
         expanded_text: null,
         matched_layer: null,
         candidate_matches: [],
+        submitted_by_user_id: user?.id ?? null,
       };
 
       const { data, error: insertError } = await supabase
