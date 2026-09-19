@@ -14,6 +14,12 @@ from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from config import settings
+from engine.location_extractor import (
+    extract_locations,
+    check_location_conflicts,
+    are_locations_compatible,
+    compute_location_match_score,
+)
 
 
 def _parse_date(d: Any) -> Optional[date]:
@@ -156,14 +162,20 @@ def _is_same_wbs_family(c1: Dict[str, Any], c2: Dict[str, Any]) -> bool:
 
 def _names_differ_only_by_location(name1: str, name2: str) -> Tuple[bool, Set[str], Set[str]]:
     """Checks if candidate names differ solely by location tokens with matching base task descriptions."""
-    loc_pattern = r"(?i)\b(manifold\s+[a-z0-9]+|section\s+[a-z0-9]+|shed\s+[a-z0-9]+|foundation\s+[a-z0-9]+|feeder\s+[a-z0-9]+|crossing\s+[a-z0-9]+|batch\s+[a-z0-9]+|kp\s+\d+[-–]\d+|kp\s+\d+)\b"
-    l1 = set(m.strip().lower() for m in re.findall(loc_pattern, name1))
-    l2 = set(m.strip().lower() for m in re.findall(loc_pattern, name2))
+    l1 = extract_locations(name1)
+    l2 = extract_locations(name2)
     if not l1 or not l2 or l1 == l2:
         return False, l1, l2
 
-    base1 = re.sub(r"[\s\-_]+", " ", re.sub(loc_pattern, "", name1)).strip().lower()
-    base2 = re.sub(r"[\s\-_]+", " ", re.sub(loc_pattern, "", name2)).strip().lower()
+    base1 = name1
+    for tok in sorted(l1, key=len, reverse=True):
+        base1 = re.sub(re.escape(tok), "", base1, flags=re.IGNORECASE)
+    base2 = name2
+    for tok in sorted(l2, key=len, reverse=True):
+        base2 = re.sub(re.escape(tok), "", base2, flags=re.IGNORECASE)
+
+    base1 = re.sub(r"[\s\-_]+", " ", base1).strip().lower()
+    base2 = re.sub(r"[\s\-_]+", " ", base2).strip().lower()
 
     w1 = set(base1.split())
     w2 = set(base2.split())
@@ -286,15 +298,7 @@ def validate_candidate_ambiguity(
 
 def _extract_location_tokens(text: str) -> Set[str]:
     """Extracts standardized location tokens from a text string."""
-    if not text:
-        return set()
-    pattern = r"(?i)\b(manifold\s+[a-z0-9]+|section\s+[a-z0-9]+|shed\s+[a-z0-9]+|foundation\s+[a-z0-9]+|feeder\s+[a-z0-9]+|crossing\s+[a-z0-9]+|batch\s+[a-z0-9]+|kp\s+\d+[-–]\d+|kp\s+\d+)\b"
-    raw_matches = re.findall(pattern, text)
-    cleaned = set()
-    for m in raw_matches:
-        norm = re.sub(r"\s+", " ", m.strip().lower())
-        cleaned.add(norm)
-    return cleaned
+    return extract_locations(text)
 
 
 def validate_location_consistency(
@@ -304,8 +308,8 @@ def validate_location_consistency(
 ) -> Dict[str, Any]:
     """
     Check 3: Location Consistency.
-    Extracts location tokens (e.g. Manifold B, Section A) from the report and compares
-    against the matched activity's name and WBS. Conflicting location tokens block the link.
+    Extracts location tokens (e.g. Manifold B, Section A, Shed A, KP 16-30) from the report
+    and compares against the matched activity's name and WBS. Conflicting location tokens block the link.
     """
     check_meta = {
         "check": "location_consistency",
@@ -323,27 +327,10 @@ def validate_location_consistency(
     rep_text = f"{report.get('site_location', '')} {report.get('field_text', '')}"
     act_text = f"{matched_activity.get('activity_name', '')} {matched_activity.get('wbs_name', '')}"
 
-    rep_locations = _extract_location_tokens(rep_text)
-    act_locations = _extract_location_tokens(act_text)
+    rep_locations = extract_locations(rep_text)
+    act_locations = extract_locations(act_text)
 
-    # Group locations by category (e.g. "manifold", "section")
-    def _categorize(tokens: Set[str]) -> Dict[str, str]:
-        cats = {}
-        for t in tokens:
-            prefix = t.split()[0]
-            cats[prefix] = t
-        return cats
-
-    rep_cats = _categorize(rep_locations)
-    act_cats = _categorize(act_locations)
-
-    # Check for direct conflicts in shared categories (e.g. report says manifold b, act says manifold a)
-    conflicts = []
-    for cat, rep_token in rep_cats.items():
-        if cat in act_cats:
-            act_token = act_cats[cat]
-            if rep_token != act_token:
-                conflicts.append((rep_token, act_token))
+    conflicts = check_location_conflicts(rep_locations, act_locations)
 
     if conflicts:
         rep_conf, act_conf = conflicts[0]
@@ -360,21 +347,28 @@ def validate_location_consistency(
             }
         }
 
-    if rep_locations and act_locations and rep_locations.intersection(act_locations):
-        matched_loc = list(rep_locations.intersection(act_locations))[0].title()
+    # Check for verified matching location
+    matched_locations = []
+    for r_loc in rep_locations:
+        for a_loc in act_locations:
+            is_match, _ = are_locations_compatible(r_loc, a_loc)
+            if is_match:
+                matched_locations.append(r_loc.title())
+
+    if matched_locations:
         return {
             **check_meta,
             "outcome": "pass",
-            "message": f"Location verified: '{matched_loc}' confirmed across field report and activity name.",
+            "message": f"Location verified: '{matched_locations[0]}' confirmed across field report and activity name.",
             "evidence": {
-                "matched_locations": sorted(list(rep_locations.intersection(act_locations)))
+                "matched_locations": sorted(list(set(matched_locations)))
             }
         }
 
     return {
         **check_meta,
         "outcome": "pass",
-        "message": "No location conflicts detected between field report and schedule activity.",
+        "message": "Location consistency check passed (no conflicting facility designations found).",
         "evidence": {
             "report_locations": sorted(list(rep_locations)),
             "activity_locations": sorted(list(act_locations))

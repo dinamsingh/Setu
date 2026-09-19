@@ -38,14 +38,20 @@ def db_client():
     """Isolated local mock database for testing institutional memory."""
     test_storage = settings.DATA_DIR / "test_institutional_memory_mock.json"
     if test_storage.exists():
-        test_storage.unlink()
+        try:
+            test_storage.unlink()
+        except OSError:
+            pass
     client = LocalMockDatabase(test_storage)
     import_schedule_activities(client)
     import_domain_aliases(client)
     import_raw_field_updates(client)
     yield client
     if test_storage.exists():
-        test_storage.unlink()
+        try:
+            test_storage.unlink()
+        except OSError:
+            pass
 
 
 def test_alias_proposer_extraction():
@@ -235,7 +241,10 @@ def test_existing_tier_distribution_preserved():
     """Verifies that running matching on the clean baseline maintains the 40-record tier distribution."""
     fresh_storage = settings.DATA_DIR / "test_baseline_dist_mock.json"
     if fresh_storage.exists():
-        fresh_storage.unlink()
+        try:
+            fresh_storage.unlink()
+        except OSError:
+            pass
 
     client = LocalMockDatabase(fresh_storage)
     import_schedule_activities(client)
@@ -252,10 +261,14 @@ def test_existing_tier_distribution_preserved():
     low = sum(1 for u in updates if u.get("confidence_level") == "Low")
 
     assert high + med + low == 40
-    # Original baseline: 10 High, 15 Medium, 15 Low
-    assert high == 10
+    # Phase 4 Location-Aware Scoring baseline: 12 High, 15 Medium, 13 Low
+    # (Location matching disambiguates 2 reports into High tier with 0 overconfident misroutes)
+    assert high == 12
     assert med == 15
-    assert low == 15
+    assert low == 13
 
     if fresh_storage.exists():
-        fresh_storage.unlink()
+        try:
+            fresh_storage.unlink()
+        except OSError:
+            pass

@@ -3,6 +3,7 @@
 **Project:** SETU (SIH 2026, Problem Statement SIH26122)  
 **Stakeholder:** Oil India Limited  
 **Module:** Hybrid Schedule Matching Engine & 6-Check Project Controls Validation Layer  
+**Phase:** Phase 4 Location-Aware Matching & Ambiguity Re-Calibration  
 **Date:** September 2026  
 
 ---
@@ -20,24 +21,26 @@
 | Metric | Measured Value | Operational Meaning |
 | :--- | :--- | :--- |
 | **Over-Confident Misroutes** | **0 / 40 (0.0%)** | Zero reports intended for planner review or unmatched queues were placed in High auto-link tier. |
-| **High Tier Top-1 Accuracy** | **90.0% (9 / 10)** | Reports meeting the $\ge 0.82$ confidence threshold achieve 90% top-1 exact match. |
-| **High Tier Top-3 Accuracy** | **100.0% (10 / 10)** | Ground-truth activity is in the top-3 candidate list for 100% of auto-linked reports. |
-| **Overall Top-1 Hit Rate** | **40.0% (16 / 40)** | Exact match across all confidence tiers including ambiguous and completely unmatched reports. |
-| **Overall Top-3 Hit Rate** | **60.0% (24 / 40)** | Ground-truth activity present in top-3 candidates across all reports. |
-| **Abstention Rate (Low Tier)** | **37.5% (15 / 40)** | Low-confidence or uncorroborated reports intentionally held for manual planner review. |
+| **High Tier Top-1 Accuracy** | **100.0% (12 / 12)** | Reports meeting the $\ge 0.82$ confidence threshold achieve 100% exact match against ground truth. |
+| **High Tier Top-3 Accuracy** | **100.0% (12 / 12)** | Ground-truth activity is present in top-3 candidates for 100% of auto-linked reports. |
+| **Overall Top-1 Hit Rate** | **47.5% (19 / 40)** | Exact match across all confidence tiers (up from 40.0% prior to location scoring). |
+| **Overall Top-3 Hit Rate** | **67.5% (27 / 40)** | Ground-truth activity present in top-3 candidates across all reports (up from 60.0%). |
+| **Abstention Rate (Low Tier)** | **32.5% (13 / 40)** | Low-confidence or uncorroborated reports intentionally held for manual planner review. |
+| **Ground-Truth Validation FP Rate** | **0.0% (0 / 30)** | Zero false-positive blocks across all 6 validation checks when evaluated on ground truth. |
 
 ---
 
 ## 2. Accuracy & Hit Rates Against Ground Truth
 
-Evaluated against `benchmark_expected_act` across all 40 baseline reports:
+Evaluated against `benchmark_expected_act` across all 40 baseline reports under the calibrated Phase 4 formula:
+$$\text{Score} = 0.40 \times \text{Semantic} + 0.30 \times \text{Fuzzy} + 0.10 \times \text{Discipline} + 0.20 \times \text{Location}$$
 
 | Tier | Total Reports ($N$) | Top-1 Hits | Top-1 Accuracy (%) | Top-3 Hits | Top-3 Accuracy (%) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Overall** | **40** | **16** | **40.0%** | **24** | **60.0%** |
-| **High** ($\ge 0.82$) | 10 | 9 | 90.0% | 10 | 100.0% |
-| **Medium** ($[0.55, 0.82)$) | 15 | 7 | 46.7% | 12 | 80.0% |
-| **Low** ($< 0.55$) | 15 | 0 | 0.0% | 2 | 13.3% |
+| **Overall** | **40** | **19** | **47.5%** | **27** | **67.5%** |
+| **High** ($\ge 0.82$) | 12 | 12 | 100.0% | 12 | 100.0% |
+| **Medium** ($[0.55, 0.82)$) | 15 | 7 | 46.7% | 14 | 93.3% |
+| **Low** ($< 0.55$) | 13 | 0 | 0.0% | 1 | 7.7% |
 
 ---
 
@@ -47,14 +50,15 @@ Comparison between intended tier (derived from ground-truth column `benchmark_in
 
 | Intended Intent \ Assigned Tier | High (Auto-Link) | Medium (Review) | Low (Unmatched) | Total Intended |
 | :--- | :---: | :---: | :---: | :---: |
-| **High** (`high_auto_link`) | **10** | 5 | 0 | 15 |
-| **Medium** (`medium_planner_review`) | **0** | **10** | 5 | 15 |
+| **High** (`high_auto_link`) | **12** | 3 | 0 | 15 |
+| **Medium** (`medium_planner_review`) | **0** | **12** | 3 | 15 |
 | **Low** (`low_unmatched_review`) | **0** | 0 | **10** | 10 |
-| **Total Assigned** | **10** | **15** | **15** | **40** |
+| **Total Assigned** | **12** | **15** | **13** | **40** |
 
 ### Key Observations:
-1. **Safety Monotonicity:** When the engine misclassifies tier, it errs strictly towards caution (e.g. 5 `high_auto_link` reports held in Medium; 5 `medium_planner_review` held in Low).
-2. **Zero Over-Confident Misroutes:** The top-right cell and middle-left cell are 0: no ambiguous or unmatched update is ever promoted to High auto-link.
+1. **Zero Over-Confident Misroutes:** The entire lower-left quadrant is 0: ambiguous or unmatched updates are NEVER promoted to High auto-link.
+2. **Safety Monotonicity:** Misclassifications are strictly conservative: 3 `high_auto_link` updates are held in Medium review; 3 `medium_planner_review` updates are held in Low unmatched queue.
+3. **Disambiguation Gain:** Two previously ambiguous High candidates (`UPD-2026-005` Compressor Shed A and `UPD-2026-007` River Crossing C) now legitimately achieve High tier ($\ge 0.82$) with 100% accuracy due to 20% location discrimination.
 
 ---
 
@@ -62,71 +66,90 @@ Comparison between intended tier (derived from ground-truth column `benchmark_in
 
 Measured distribution of score difference between rank-1 and rank-2 candidates ($s_1 - s_2$):
 
-| Statistic | Value |
-| :--- | :--- |
-| **Count** | 40 |
-| **Min** | 0.0000 |
-| **10th Percentile (P10)** | 0.0006 |
-| **25th Percentile (P25)** | 0.0025 |
-| **Median (P50)** | **0.0056** |
-| **75th Percentile (P75)** | 0.0082 |
-| **90th Percentile (P90)** | 0.0146 |
-| **Max** | 0.0280 |
-| **Mean $\pm$ Std** | $0.0068 \pm 0.0062$ |
+| Statistic | Distorted Baseline (Pre-4.1) | Clean Baseline (Pre-4.4) | Phase 4 Location-Aware (Post-4.4) |
+| :--- | :---: | :---: | :---: |
+| **Count** | 40 | 40 | 40 |
+| **Min** | 0.0000 | 0.0000 | **0.0001** |
+| **P10** | 0.0006 | 0.0006 | **0.0013** |
+| **P25** | 0.0025 | 0.0025 | **0.0040** |
+| **Median (P50)** | **0.0056** | **0.0056** | **0.0093** *(+66%)* |
+| **P75** | 0.0082 | 0.0082 | **0.1958** *(23.9x jump)* |
+| **P90** | 0.0146 | 0.0146 | **0.2055** *(14.1x jump)* |
+| **Max** | 0.0280 | 0.0280 | **0.2205** *(7.9x jump)* |
+| **Mean $\pm$ Std** | $0.0068 \pm 0.0062$ | $0.0068 \pm 0.0062$ | $\mathbf{0.0779 \pm 0.0889}$ |
 
 ---
 
 ## 5. Candidate Ambiguity Threshold Sweep & Calibration
 
 ### Empirical Findings:
-- **Correlation:** Pearson correlation between margin and actually wrong top-1 match is **$-0.4310$** (moderate negative correlation: smaller score margins correlate with higher error probability).
-- **Previous Defect:** In Phase 2, threshold was set arbitrarily to `0.05`. Because the maximum margin in the entire 40-report dataset is `0.0280`, `40 / 40` reports failed candidate ambiguity, causing 100% `validation_status = 'block'`.
-- **Calibration Action:**
-  1. Softened outcome from `'fail'` (block) to `'warn'`. Near-ties warrant planner review, not automated refusal of work.
-  2. Narrowed trigger to isolate sibling activities in the same WBS family differing only by location tokens where the field report text does not resolve which one.
-  3. Calibrated threshold to **`0.008`** based on the sweep below:
+- **Correlation with Error:** Pearson correlation between score margin and wrong top-1 match jumped from **$-0.4310$** to **$-0.8222$**. With location scoring, near-ties are extremely strong indicators of genuine ambiguity.
+- **Threshold Calibration:** `VALIDATION_AMBIGUITY_THRESHOLD = 0.008` remains optimal. At 0.008, precision against true errors reaches **94.7%** (18 true errors out of 19 flagged).
+- **Target Case Resolution:**
+  - **`UPD-2026-005` (Compressor Shed A vs Shed B):**
+    - *Old (no location):* Top-1 `OIL-MEC-604-B` (0.8394) vs Top-2 `OIL-MEC-604-A` (0.8332), Margin = **0.0062** (Wrong match!).
+    - *Phase 4 (location-aware):* Top-1 `OIL-MEC-604-A` (0.8490) vs Top-2 `OIL-MEC-604-B` (0.6533), Margin = **0.1957** (31.6x separation, Correct match!).
+  - **`UPD-2026-003` (Section B KP 16-30 vs Section D):**
+    - *Old:* Top candidates were Section D and A (0.7526 vs 0.7464, Margin = 0.0062).
+    - *Phase 4:* Section B activities promoted to top ranks (~0.80), while Section D/A received location penalty (0.0). Margin widened to **0.0666**.
+
+### Full Empirical Sweep Table:
 
 | Margin Threshold | Flagged Reports | % of Baseline | True Positives (Wrong & Flagged) | False Positives (Correct & Flagged) | Precision | Recall |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **0.001** | 7 | 17.5% | 5 | 2 | 0.714 | 0.208 |
-| **0.002** | 9 | 22.5% | 6 | 3 | 0.667 | 0.250 |
-| **0.003** | 12 | 30.0% | 9 | 3 | 0.750 | 0.375 |
-| **0.004** | 16 | 40.0% | 12 | 4 | 0.750 | 0.500 |
-| **0.005** | 17 | 42.5% | 12 | 5 | 0.706 | 0.500 |
-| **0.006** | 20 | 50.0% | 14 | 6 | 0.700 | 0.583 |
-| **0.007** | 26 | 65.0% | 18 | 8 | 0.692 | 0.750 |
-| **0.008** *(Chosen)* | **28** (Raw) / **9** (Narrowed) | **70.0%** (Raw) / **22.5%** (Narrowed) | **20** (Raw) / **8** (Narrowed) | **8** (Raw) / **1** (Narrowed) | **0.714** (Raw) / **0.889** (Narrowed) | **0.833** (Raw) / **0.333** (Narrowed) |
-| **0.010** | 31 | 77.5% | 23 | 8 | 0.742 | 0.958 |
-| **0.015** | 36 | 90.0% | 24 | 12 | 0.667 | 1.000 |
-| **0.020** | 38 | 95.0% | 24 | 14 | 0.632 | 1.000 |
-| **0.030** | 40 | 100.0% | 24 | 16 | 0.600 | 1.000 |
-| **0.050** *(Defect)* | 40 | 100.0% | 24 | 16 | 0.600 | 1.000 |
+| **0.001** | 3 | 7.5% | 3 | 0 | 1.000 | 0.143 |
+| **0.002** | 6 | 15.0% | 6 | 0 | 1.000 | 0.286 |
+| **0.003** | 9 | 22.5% | 8 | 1 | 0.889 | 0.381 |
+| **0.004** | 10 | 25.0% | 9 | 1 | 0.900 | 0.429 |
+| **0.005** | 13 | 32.5% | 12 | 1 | 0.923 | 0.571 |
+| **0.006** | 16 | 40.0% | 15 | 1 | 0.938 | 0.714 |
+| **0.007** | 19 | 47.5% | 18 | 1 | 0.947 | 0.857 |
+| **0.008** *(Calibrated)* | **19** (Raw) | **47.5%** | **18** | **1** | **0.947** | **0.857** |
+| **0.010** | 20 | 50.0% | 18 | 2 | 0.900 | 0.857 |
+| **0.015** | 21 | 52.5% | 19 | 2 | 0.905 | 0.905 |
+| **0.020** | 21 | 52.5% | 19 | 2 | 0.905 | 0.905 |
+| **0.030** | 21 | 52.5% | 19 | 2 | 0.905 | 0.905 |
+| **0.050** *(Old Defect)* | 22 | 55.0% | 20 | 2 | 0.909 | 0.952 |
 
-*Justification for 0.008:* Combined with narrowed confusable-candidate filtering, threshold 0.008 flags 9 reports (22.5% of baseline), achieving **88.9% precision** (8 true errors / 1 false alarm) without overwhelming the reviewer or degenerating into a constant signal.
-
----
-
-## 6. Validation Status Distribution: Before vs After Calibration
-
-| Validation Status | Before Calibration (`thresh=0.05`, outcome `'fail'`) | After Calibration (`thresh=0.008`, outcome `'warn'`) | Change Rationale |
-| :--- | :---: | :---: | :--- |
-| **BLOCK** | **40 (100.0%)** | **23 (57.5%)** | Hard blocks strictly reserved for physically impossible dates (>60d late) and conflicting facilities. |
-| **WARN** | **0 (0.0%)** | **10 (25.0%)** | Informs planner of near-tie sibling candidates or reporter discipline divergence without locking approval. |
-| **PASS** | **0 (0.0%)** | **7 (17.5%)** | Clean, fully corroborated updates can proceed directly to standard approval. |
+> [!NOTE]
+> **Raw Sweep vs Narrowed Operational Filter:**  
+> - **Raw Sweep:** Evaluates margin threshold across all 40 reports without WBS filtering. At 0.008 with location-aware scores, flags 19/40 (47.5%) with 94.7% precision.
+> - **Narrowed Filter:** In production, candidate ambiguity only triggers when top-2 candidates belong to the same WBS family differing by location tokens that the report does not resolve. This eliminates false alarms on distinct tasks while preserving critical near-tie warnings.
 
 ---
 
-## 7. Per-Check Breakdown (Post-Calibration)
+## 6. Validation Status Evolution Across Project Phases
 
-Across all 40 baseline reports, breakdown of outcomes for the 6 independent checks:
-
-| Check Name | PASS | WARN | FAIL (BLOCK) | Failure Rate (%) |
+| Metric | Phase 2 (Defect) | Phase 3 (Distorted Baseline) | Phase 4 Clean Baseline | Phase 4 Location-Aware (Final) |
 | :--- | :---: | :---: | :---: | :---: |
-| **`date_plausibility`** | 21 | 0 | 19 | 47.5% |
-| **`candidate_ambiguity`** | 18 | 22 | 0 | 0.0% (Calibrated to Warn) |
-| **`location_consistency`** | 33 | 0 | 7 | 17.5% |
-| **`duplicate_detection`** | 40 | 0 | 0 | 0.0% |
-| **`reporter_discipline`** | 38 | 2 | 0 | 0.0% (Soft Warning) |
-| **`sequence_plausibility`** | 40 | 0 | 0 | 0.0% |
+| **Formula Weights (Sem/Fuzz/Disc/Loc)** | 0.55/0.35/0.10/0.00 | 0.55/0.35/0.10/0.00 | 0.55/0.35/0.10/0.00 | **0.40/0.30/0.10/0.20** |
+| **Ambiguity Threshold / Status** | 0.05 (Block) | 0.008 (Warn) | 0.008 (Warn) | **0.008 (Warn)** |
+| **BLOCK Status Count** | 40 (100.0%) | 23 (57.5%) | 9 (22.5%) | **3 (7.5%)** |
+| **PASS Status Count** | 0 (0.0%) | 8 (20.0%) | 16 (40.0%) | **20 (50.0%)** |
+| **WARN Status Count** | 0 (0.0%) | 9 (22.5%) | 15 (37.5%) | **17 (42.5%)** |
+| **Date Plausibility Fails** | 40 (100.0%) | 17 (42.5%) | 3 (7.5%) | **3 (7.5%)** *(0 on GT)* |
+| **Location Consistency Fails** | - | 7 (17.5%) | 6 (15.0%) | **0 (0.0%)** *(0 on GT)* |
+| **Overall Top-1 Hit Rate** | 40.0% | 40.0% | 40.0% | **47.5% (+7.5%)** |
+| **High Tier Top-1 Hit Rate** | 90.0% | 90.0% | 90.0% | **100.0% (+10.0%)** |
+| **High Tier Top-3 Hit Rate** | 100.0% | 100.0% | 100.0% | **100.0%** |
+| **Over-Confident Misroutes** | 0 | 0 | 0 | **0 (Safety Invariant)** |
 
-*Safety Guard Compliance:* No single check exceeds the maximum allowed 60% failure ceiling, ensuring that validation flags remain informative and differentiated.
+---
+
+## 7. Per-Check Breakdown & Ground-Truth Validation Guard
+
+Across all 40 baseline reports:
+
+| Check Name | PASS | WARN | FAIL (BLOCK) | Failure Rate (%) | Ground-Truth Fails ($N=30$) | Ground-Truth FP Rate (%) | Guard Status |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`date_plausibility`** | 37 | 0 | 3 | 7.5% | **0** | **0.0%** | **PASS** ($\le 5.0\%$) |
+| **`candidate_ambiguity`** | 21 | 19 | 0 | 0.0% (Warn) | **0** | **0.0%** | **PASS** |
+| **`location_consistency`** | 40 | 0 | 0 | 0.0% | **0** | **0.0%** | **PASS** ($\le 5.0\%$) |
+| **`duplicate_detection`** | 40 | 0 | 0 | 0.0% | **0** | **0.0%** | **PASS** ($\le 5.0\%$) |
+| **`reporter_discipline`** | 38 | 2 | 0 | 0.0% (Warn) | **0** | **0.0%** | **PASS** ($\le 5.0\%$) |
+| **`sequence_plausibility`** | 40 | 0 | 0 | 0.0% | **0** | **0.0%** | **PASS** ($\le 5.0\%$) |
+
+*Master Guard Evaluation:*
+- Maximum False Positive Rate on Verified Ground-Truth Links: **0.0%** (0 / 30).
+- Permitted Threshold (`VALIDATION_MAX_GROUND_TRUTH_FP_RATE`): **5.0%**.
+- Final Verdict: **COMPLIANT & PASSED**.

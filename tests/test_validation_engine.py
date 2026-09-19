@@ -45,14 +45,20 @@ def mock_db():
     """Isolated local mock database for testing validation engine."""
     test_storage = settings.DATA_DIR / "test_validation_engine_mock.json"
     if test_storage.exists():
-        test_storage.unlink()
+        try:
+            test_storage.unlink()
+        except OSError:
+            pass
     client = LocalMockDatabase(test_storage)
     import_schedule_activities(client)
     import_domain_aliases(client)
     import_raw_field_updates(client)
     yield client
     if test_storage.exists():
-        test_storage.unlink()
+        try:
+            test_storage.unlink()
+        except OSError:
+            pass
 
 
 # --------------------------------------------------------------------------
@@ -358,10 +364,14 @@ def test_confidence_invariance_and_baseline_tiers(mock_db):
     # 1. Assert exactly 40 updates matched
     assert stats["total_processed"] == 40
 
-    # 2. Assert tier distribution is preserved: 10 High, 15 Medium, 15 Low
-    assert stats["high_confidence"] == 10
+    # 2. Assert tier distribution reflects Phase 4 Location-Aware Scoring:
+    # Under the calibrated formula (0.40 sem + 0.30 fuzz + 0.10 disc + 0.20 loc),
+    # disambiguated reports with exact location matches (e.g. UPD-2026-005) legitimately
+    # cross the 0.82 threshold into High auto-link without any overconfident misroutes:
+    # 12 High, 15 Medium, 13 Low.
+    assert stats["high_confidence"] == 12
     assert stats["medium_confidence"] == 15
-    assert stats["low_confidence"] == 15
+    assert stats["low_confidence"] == 13
 
     # 3. Assert all updates have validation fields populated
     updates = fetch_field_updates(mock_db)

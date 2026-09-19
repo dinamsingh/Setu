@@ -134,8 +134,14 @@ def test_explainable_score_components(ensemble_engine):
     assert "semantic_score" in top_cand
     assert "fuzzy_score" in top_cand
     assert "discipline_boost" in top_cand
+    assert "location_score" in top_cand
     assert "final_score" in top_cand
     
-    # Check formula: 0.55 * sem + 0.35 * fuzz + 0.10 * disc
-    expected = (0.55 * top_cand["semantic_score"]) + (0.35 * top_cand["fuzzy_score"]) + (0.10 * top_cand["discipline_boost"])
+    # Check Phase 4 formula: 0.40 * sem + 0.30 * fuzz + 0.10 * disc + 0.20 * loc
+    expected = (
+        (0.40 * top_cand["semantic_score"])
+        + (0.30 * top_cand["fuzzy_score"])
+        + (0.10 * top_cand["discipline_boost"])
+        + (0.20 * top_cand["location_score"])
+    )
     assert abs(top_cand["final_score"] - expected) < 0.001

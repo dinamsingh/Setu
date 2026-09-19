@@ -24,11 +24,17 @@ def db_client():
     """Returns an isolated test client so tests never pollute the main application database."""
     test_storage = settings.DATA_DIR / "test_supabase_mock.json"
     if test_storage.exists():
-        test_storage.unlink()
+        try:
+            test_storage.unlink()
+        except OSError:
+            pass
     client = LocalMockDatabase(test_storage)
     yield client
     if test_storage.exists():
-        test_storage.unlink()
+        try:
+            test_storage.unlink()
+        except OSError:
+            pass
 
 
 def test_missing_credentials_raises_error():

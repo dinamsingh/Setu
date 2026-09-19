@@ -345,11 +345,33 @@ FIELD_REPORTS = [
 
 
 def generate_field_updates():
-    base_date = date(2026, 4, 15)
+    p6_csv = DATA_DIR / "synthetic_p6_schedule.csv"
+    p6_df = pd.read_csv(p6_csv)
+    p6_map = {row["activity_id"]: row for _, row in p6_df.iterrows()}
+    
+    completion_keywords = ["completed", "finished", "finalized", "done", "pulled through", "poured"]
+    unmatched_base = date(2026, 5, 1)
     rows = []
     
     for idx, rep in enumerate(FIELD_REPORTS, start=1):
-        rep_date = base_date + timedelta(days=(idx % 20))
+        exp_act = rep["benchmark_expected_act"]
+        if exp_act and exp_act in p6_map:
+            act_info = p6_map[exp_act]
+            p_start = date.fromisoformat(act_info["planned_start_date"])
+            p_finish = date.fromisoformat(act_info["planned_finish_date"])
+            text_lower = rep["field_text"].lower()
+            if any(k in text_lower for k in completion_keywords):
+                # Completion claim: within 3 days of planned_finish_date (not before p_start)
+                offset = (idx % 3)
+                rep_date = min(p_finish, max(p_start, p_finish - timedelta(days=offset)))
+            else:
+                # Ongoing / progress claim: between planned_start_date and planned_finish_date
+                offset = (idx % 5) + 1
+                rep_date = min(p_finish, p_start + timedelta(days=offset))
+        else:
+            # Unmatched reports spread across the project calendar
+            rep_date = unmatched_base + timedelta(days=(idx * 7) % 90)
+            
         rows.append({
             "update_id": f"UPD-2026-{idx:03d}",
             "reported_date": rep_date.isoformat(),

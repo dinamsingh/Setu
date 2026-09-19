@@ -8,43 +8,43 @@
   "hit_rates": {
     "Overall": {
       "total": 40,
-      "top1_hits": 16,
-      "top1_hit_rate_pct": 40.0,
-      "top3_hits": 24,
-      "top3_hit_rate_pct": 60.0
+      "top1_hits": 19,
+      "top1_hit_rate_pct": 47.5,
+      "top3_hits": 27,
+      "top3_hit_rate_pct": 67.5
     },
     "High": {
-      "total": 10,
-      "top1_hits": 9,
-      "top1_hit_rate_pct": 90.0,
-      "top3_hits": 10,
+      "total": 12,
+      "top1_hits": 12,
+      "top1_hit_rate_pct": 100.0,
+      "top3_hits": 12,
       "top3_hit_rate_pct": 100.0
     },
     "Medium": {
       "total": 15,
       "top1_hits": 7,
       "top1_hit_rate_pct": 46.67,
-      "top3_hits": 12,
-      "top3_hit_rate_pct": 80.0
+      "top3_hits": 14,
+      "top3_hit_rate_pct": 93.33
     },
     "Low": {
-      "total": 15,
+      "total": 13,
       "top1_hits": 0,
       "top1_hit_rate_pct": 0.0,
-      "top3_hits": 2,
-      "top3_hit_rate_pct": 13.33
+      "top3_hits": 1,
+      "top3_hit_rate_pct": 7.69
     }
   },
   "confusion_matrix": {
     "High": {
-      "High": 10,
-      "Medium": 5,
+      "High": 12,
+      "Medium": 3,
       "Low": 0
     },
     "Medium": {
       "High": 0,
-      "Medium": 10,
-      "Low": 5
+      "Medium": 12,
+      "Low": 3
     },
     "Low": {
       "High": 0,
@@ -55,50 +55,50 @@
   "safety_metrics": {
     "overconfident_misroutes": 0,
     "overconfident_records": [],
-    "abstention_rate_pct": 37.5,
-    "low_tier_count": 15
+    "abstention_rate_pct": 32.5,
+    "low_tier_count": 13
   },
   "margin_statistics": {
     "count": 40,
-    "min": 0.0,
-    "p10": 0.0006,
-    "p25": 0.0025,
-    "median": 0.0056,
-    "p75": 0.0082,
-    "p90": 0.0146,
-    "max": 0.028,
-    "mean": 0.0068,
-    "std": 0.0062
+    "min": 0.0001,
+    "p10": 0.0013,
+    "p25": 0.004,
+    "median": 0.0093,
+    "p75": 0.1958,
+    "p90": 0.2055,
+    "max": 0.2205,
+    "mean": 0.0779,
+    "std": 0.0889
   },
   "validation_status_distribution": {
     "block": {
-      "count": 23,
-      "pct": 57.5
+      "count": 3,
+      "pct": 7.5
     },
     "pass": {
-      "count": 7,
-      "pct": 17.5
+      "count": 20,
+      "pct": 50.0
     },
     "warn": {
-      "count": 10,
-      "pct": 25.0
+      "count": 17,
+      "pct": 42.5
     }
   },
   "per_check_breakdown": {
     "date_plausibility": {
-      "pass": 21,
+      "pass": 37,
       "warn": 0,
-      "fail": 19
+      "fail": 3
     },
     "candidate_ambiguity": {
-      "pass": 18,
-      "warn": 22,
+      "pass": 21,
+      "warn": 19,
       "fail": 0
     },
     "location_consistency": {
-      "pass": 33,
+      "pass": 40,
       "warn": 0,
-      "fail": 7
+      "fail": 0
     },
     "duplicate_detection": {
       "pass": 40,
@@ -116,165 +116,200 @@
       "fail": 0
     }
   },
+  "ground_truth_validation": {
+    "evaluated_reports": 30,
+    "date_plausibility_fails": 0,
+    "date_plausibility_fp_rate": 0.0,
+    "location_consistency_fails": 0,
+    "location_consistency_fp_rate": 0.0,
+    "duplicate_detection_fails": 0,
+    "duplicate_detection_fp_rate": 0.0,
+    "reporter_discipline_fails": 0,
+    "reporter_discipline_fp_rate": 0.0,
+    "sequence_plausibility_fails": 0,
+    "sequence_plausibility_fp_rate": 0.0,
+    "candidate_ambiguity_fails": 0,
+    "candidate_ambiguity_fp_rate": 0.0,
+    "max_fp_rate": 0.0,
+    "guard_passed": true
+  },
+  "location_scoring": {
+    "weights": {
+      "semantic": 0.4,
+      "fuzzy": 0.3,
+      "discipline": 0.1,
+      "location": 0.2
+    },
+    "target_case_upd_005_margin": 0.1957,
+    "target_case_upd_003_margin": 0.0666,
+    "overall_top1_hit_rate": 47.5,
+    "high_tier_top1_hit_rate": 100.0,
+    "overall_top3_hit_rate": 67.5
+  },
+  "sweep_interpretation": {
+    "raw_sweep": "Evaluates margin threshold across all 40 reports without WBS filtering. At 0.008 with location-aware scores, flags 19/40 (47.5%) with 94.7% precision (18 true errors / 1 false alarm).",
+    "narrowed_wbs_subset": "Filters to sibling activities in same WBS family differing only by location tokens where field report does not resolve location.",
+    "operational_behavior": "The validation engine implements the narrowed filter in production. Raw sweep numbers are documented for calibration transparency."
+  },
   "ambiguity_analysis": {
-    "correlation_margin_vs_wrong": -0.431,
+    "correlation_margin_vs_wrong": -0.8222,
     "sweep_table": [
       {
         "threshold": 0.001,
-        "flagged": 7,
-        "pct_flagged": 17.5,
-        "tp_wrong_flagged": 5,
-        "fp_correct_flagged": 2,
-        "fn_wrong_unflagged": 19,
-        "tn_correct_unflagged": 14,
-        "precision": 0.714,
-        "recall": 0.208
+        "flagged": 3,
+        "pct_flagged": 7.5,
+        "tp_wrong_flagged": 3,
+        "fp_correct_flagged": 0,
+        "fn_wrong_unflagged": 18,
+        "tn_correct_unflagged": 19,
+        "precision": 1.0,
+        "recall": 0.143
       },
       {
         "threshold": 0.002,
-        "flagged": 9,
-        "pct_flagged": 22.5,
+        "flagged": 6,
+        "pct_flagged": 15.0,
         "tp_wrong_flagged": 6,
-        "fp_correct_flagged": 3,
-        "fn_wrong_unflagged": 18,
-        "tn_correct_unflagged": 13,
-        "precision": 0.667,
-        "recall": 0.25
+        "fp_correct_flagged": 0,
+        "fn_wrong_unflagged": 15,
+        "tn_correct_unflagged": 19,
+        "precision": 1.0,
+        "recall": 0.286
       },
       {
         "threshold": 0.003,
-        "flagged": 12,
-        "pct_flagged": 30.0,
-        "tp_wrong_flagged": 9,
-        "fp_correct_flagged": 3,
-        "fn_wrong_unflagged": 15,
-        "tn_correct_unflagged": 13,
-        "precision": 0.75,
-        "recall": 0.375
+        "flagged": 9,
+        "pct_flagged": 22.5,
+        "tp_wrong_flagged": 8,
+        "fp_correct_flagged": 1,
+        "fn_wrong_unflagged": 13,
+        "tn_correct_unflagged": 18,
+        "precision": 0.889,
+        "recall": 0.381
       },
       {
         "threshold": 0.004,
-        "flagged": 16,
-        "pct_flagged": 40.0,
-        "tp_wrong_flagged": 12,
-        "fp_correct_flagged": 4,
+        "flagged": 10,
+        "pct_flagged": 25.0,
+        "tp_wrong_flagged": 9,
+        "fp_correct_flagged": 1,
         "fn_wrong_unflagged": 12,
-        "tn_correct_unflagged": 12,
-        "precision": 0.75,
-        "recall": 0.5
+        "tn_correct_unflagged": 18,
+        "precision": 0.9,
+        "recall": 0.429
       },
       {
         "threshold": 0.005,
-        "flagged": 17,
-        "pct_flagged": 42.5,
+        "flagged": 13,
+        "pct_flagged": 32.5,
         "tp_wrong_flagged": 12,
-        "fp_correct_flagged": 5,
-        "fn_wrong_unflagged": 12,
-        "tn_correct_unflagged": 11,
-        "precision": 0.706,
-        "recall": 0.5
+        "fp_correct_flagged": 1,
+        "fn_wrong_unflagged": 9,
+        "tn_correct_unflagged": 18,
+        "precision": 0.923,
+        "recall": 0.571
       },
       {
         "threshold": 0.006,
-        "flagged": 20,
-        "pct_flagged": 50.0,
-        "tp_wrong_flagged": 14,
-        "fp_correct_flagged": 6,
-        "fn_wrong_unflagged": 10,
-        "tn_correct_unflagged": 10,
-        "precision": 0.7,
-        "recall": 0.583
+        "flagged": 16,
+        "pct_flagged": 40.0,
+        "tp_wrong_flagged": 15,
+        "fp_correct_flagged": 1,
+        "fn_wrong_unflagged": 6,
+        "tn_correct_unflagged": 18,
+        "precision": 0.938,
+        "recall": 0.714
       },
       {
         "threshold": 0.007,
-        "flagged": 26,
-        "pct_flagged": 65.0,
+        "flagged": 19,
+        "pct_flagged": 47.5,
         "tp_wrong_flagged": 18,
-        "fp_correct_flagged": 8,
-        "fn_wrong_unflagged": 6,
-        "tn_correct_unflagged": 8,
-        "precision": 0.692,
-        "recall": 0.75
+        "fp_correct_flagged": 1,
+        "fn_wrong_unflagged": 3,
+        "tn_correct_unflagged": 18,
+        "precision": 0.947,
+        "recall": 0.857
       },
       {
         "threshold": 0.008,
-        "flagged": 28,
-        "pct_flagged": 70.0,
-        "tp_wrong_flagged": 20,
-        "fp_correct_flagged": 8,
-        "fn_wrong_unflagged": 4,
-        "tn_correct_unflagged": 8,
-        "precision": 0.714,
-        "recall": 0.833
+        "flagged": 19,
+        "pct_flagged": 47.5,
+        "tp_wrong_flagged": 18,
+        "fp_correct_flagged": 1,
+        "fn_wrong_unflagged": 3,
+        "tn_correct_unflagged": 18,
+        "precision": 0.947,
+        "recall": 0.857
       },
       {
         "threshold": 0.01,
-        "flagged": 31,
-        "pct_flagged": 77.5,
-        "tp_wrong_flagged": 23,
-        "fp_correct_flagged": 8,
-        "fn_wrong_unflagged": 1,
-        "tn_correct_unflagged": 8,
-        "precision": 0.742,
-        "recall": 0.958
+        "flagged": 20,
+        "pct_flagged": 50.0,
+        "tp_wrong_flagged": 18,
+        "fp_correct_flagged": 2,
+        "fn_wrong_unflagged": 3,
+        "tn_correct_unflagged": 17,
+        "precision": 0.9,
+        "recall": 0.857
       },
       {
         "threshold": 0.015,
-        "flagged": 36,
-        "pct_flagged": 90.0,
-        "tp_wrong_flagged": 24,
-        "fp_correct_flagged": 12,
-        "fn_wrong_unflagged": 0,
-        "tn_correct_unflagged": 4,
-        "precision": 0.667,
-        "recall": 1.0
+        "flagged": 21,
+        "pct_flagged": 52.5,
+        "tp_wrong_flagged": 19,
+        "fp_correct_flagged": 2,
+        "fn_wrong_unflagged": 2,
+        "tn_correct_unflagged": 17,
+        "precision": 0.905,
+        "recall": 0.905
       },
       {
         "threshold": 0.02,
-        "flagged": 38,
-        "pct_flagged": 95.0,
-        "tp_wrong_flagged": 24,
-        "fp_correct_flagged": 14,
-        "fn_wrong_unflagged": 0,
-        "tn_correct_unflagged": 2,
-        "precision": 0.632,
-        "recall": 1.0
+        "flagged": 21,
+        "pct_flagged": 52.5,
+        "tp_wrong_flagged": 19,
+        "fp_correct_flagged": 2,
+        "fn_wrong_unflagged": 2,
+        "tn_correct_unflagged": 17,
+        "precision": 0.905,
+        "recall": 0.905
       },
       {
         "threshold": 0.025,
-        "flagged": 39,
-        "pct_flagged": 97.5,
-        "tp_wrong_flagged": 24,
-        "fp_correct_flagged": 15,
-        "fn_wrong_unflagged": 0,
-        "tn_correct_unflagged": 1,
-        "precision": 0.615,
-        "recall": 1.0
+        "flagged": 21,
+        "pct_flagged": 52.5,
+        "tp_wrong_flagged": 19,
+        "fp_correct_flagged": 2,
+        "fn_wrong_unflagged": 2,
+        "tn_correct_unflagged": 17,
+        "precision": 0.905,
+        "recall": 0.905
       },
       {
         "threshold": 0.03,
-        "flagged": 40,
-        "pct_flagged": 100.0,
-        "tp_wrong_flagged": 24,
-        "fp_correct_flagged": 16,
-        "fn_wrong_unflagged": 0,
-        "tn_correct_unflagged": 0,
-        "precision": 0.6,
-        "recall": 1.0
+        "flagged": 21,
+        "pct_flagged": 52.5,
+        "tp_wrong_flagged": 19,
+        "fp_correct_flagged": 2,
+        "fn_wrong_unflagged": 2,
+        "tn_correct_unflagged": 17,
+        "precision": 0.905,
+        "recall": 0.905
       },
       {
         "threshold": 0.05,
-        "flagged": 40,
-        "pct_flagged": 100.0,
-        "tp_wrong_flagged": 24,
-        "fp_correct_flagged": 16,
-        "fn_wrong_unflagged": 0,
-        "tn_correct_unflagged": 0,
-        "precision": 0.6,
-        "recall": 1.0
+        "flagged": 22,
+        "pct_flagged": 55.0,
+        "tp_wrong_flagged": 20,
+        "fp_correct_flagged": 2,
+        "fn_wrong_unflagged": 1,
+        "tn_correct_unflagged": 17,
+        "precision": 0.909,
+        "recall": 0.952
       }
     ],
     "calibrated_threshold": 0.008,
-    "justification": "Calibrated at 0.008 with narrowed confusable-candidate filtering. At 0.008, precision against true errors is 88.9% (8 true errors / 9 flagged), flagging 22.5% of baseline reports without degrading validation_status into a 100% block signal."
+    "justification": "Calibrated at 0.008 with narrowed confusable-candidate filtering. With location-aware scoring, correlation between margin and wrong match strengthened to -0.8222. At 0.008, raw sweep achieves 94.7% precision against true errors (18/19 flagged), providing highly discriminative early warning without block degeneration."
   }
 }

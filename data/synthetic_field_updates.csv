@@ -1,41 +1,41 @@
 update_id,reported_date,source_type,field_text,site_location,reported_by,benchmark_expected_act,benchmark_intent
-UPD-2026-001,2026-04-16,whatsapp_log,Spool erection and field fit-up successfully finished at Manifold A today.,Duliajan Manifold Area A,Ramesh Borah (Piping Foreman),OIL-PIP-202-A,high_auto_link
-UPD-2026-002,2026-04-17,text,"Completed right of way ROW clearing, grubbing & grading for Section B pipeline route.",Section B ROW,Diganta Saikia (Pipeline Engr),OIL-PLN-102-B,high_auto_link
-UPD-2026-003,2026-04-18,excel,100% NDT radiography testing carried out on all 12 weld joints at KP 16 to 30.,Section B KP 16-30,Sunil Gogoi (QA/QC Inspector),OIL-PLN-107-B,high_auto_link
-UPD-2026-004,2026-04-19,excel,High tension HT cable pulling and routing completed across Feeder C.,Substation Feeder C,Pranab Phukan (Elec Supervisor),OIL-ELE-403-C,high_auto_link
-UPD-2026-005,2026-04-20,whatsapp_log,Dial gauge cold and hot alignment of compressor motor shaft finalized in Shed A.,Compressor Shed A,Ankur Barua (Mechanical Lead),OIL-MEC-604-A,high_auto_link
-UPD-2026-006,2026-04-21,text,"Reinforcement steel bar rebar cutting, bending and fixing done for Foundation B.",Compressor Foundation B,Manoj Chetia (Civil Foreman),OIL-CIV-304-B,high_auto_link
-UPD-2026-007,2026-04-22,excel,Horizontal directional drilling HDD river crossing pulled through at Crossing C.,River Crossing C,Subhashish Roy (HDD Incharge),OIL-PLN-111-C,high_auto_link
-UPD-2026-008,2026-04-23,whatsapp_log,Golden tie-in welding at existing header connection completed at Manifold D.,Manifold D Header,Debojit Hazarika (Welding Sup),OIL-PIP-203-D,high_auto_link
-UPD-2026-009,2026-04-24,excel,Bench calibration of pressure and temperature transmitters completed for Batch A.,Field Lab Batch A,Nayan Moni (Inst Engineer),OIL-INS-504-A,high_auto_link
-UPD-2026-010,2026-04-25,text,Installation of 33kV/415V main stepdown transformer completed in Substation A.,Main Substation A,Bhaskar Sarma (Elec Lead),OIL-ELE-401-A,high_auto_link
-UPD-2026-011,2026-04-26,whatsapp_log,"Trench padding, backfilling and soil compaction completed KP 31 to 45 Section C.",Pipeline Section C,Bikash Mech (Pipeline Sup),OIL-PLN-110-C,high_auto_link
-UPD-2026-012,2026-04-27,excel,Dyke bund wall civil construction around crude storage Tank B finished up to 2m height.,Crude Tank Dyke B,Rohit Verma (Civil Engr),OIL-CIV-307-B,high_auto_link
-UPD-2026-013,2026-04-28,whatsapp_log,Emergency shutdown valve ESDV stroke testing and calibration carried out at Station D.,ESDV Station D,Pankaj Kalita (Inst Tech),OIL-INS-507-D,high_auto_link
-UPD-2026-014,2026-04-29,text,Flare knockout drum KOD skidded vessel erection placed on foundation at Area B.,Flare Area B,Tapan Dutta (Rigger Lead),OIL-MEC-602-B,high_auto_link
-UPD-2026-015,2026-04-30,excel,Piping spool prefabrication at field workshop Manifold C 42 joints welded.,Yard Manifold C,Jyoti Lahon (Piping QC),OIL-PIP-201-C,high_auto_link
-UPD-2026-016,2026-05-01,whatsapp_log,"Hydrotesting done today on line 3 section B, holding 95 bar pressure.",Section B Line 3,Hiren Das (Site Incharge),OIL-PIP-205-B,medium_planner_review
-UPD-2026-017,2026-05-02,text,Lowering work completed today for pipeline near river bank area.,River Bank Sector,Mukesh Tiwari (Lowering Sup),OIL-PLN-109-A,medium_planner_review
-UPD-2026-018,2026-05-03,excel,"PCC layer poured for main compressor block, curing initiated.",Compressor Block,Amitabh Baruah (Civil Sup),OIL-CIV-303-A,medium_planner_review
-UPD-2026-019,2026-05-04,whatsapp_log,Cable tray fixing and cable laying ongoing along the overhead pipe rack.,Overhead Rack Area,Kamal Baruah (Electrician),OIL-ELE-402-A,medium_planner_review
-UPD-2026-020,2026-04-15,excel,Chemical copper earthing pit digging and backfilling with compound completed.,Grid Substation,Bipul Sharma (Elec Contractor),OIL-ELE-406-B,medium_planner_review
-UPD-2026-021,2026-04-16,text,"Golden tie-in joint welded at header junction, visual check passed.",Junction Skid,Gaurav Singh (Welding Inspector),OIL-PIP-203-A,medium_planner_review
-UPD-2026-022,2026-04-17,whatsapp_log,"Valve pit wall concrete casted today, 18 cum consumed.",Station Valve Pit,Jiten Deka (Civil Supervisor),OIL-CIV-308-C,medium_planner_review
-UPD-2026-023,2026-04-18,excel,Gas compressor skid positioned on foundation bolts with 50 ton crane.,Compressor Shed D,Sanjib Bora (Heavy Rigging),OIL-MEC-603-D,medium_planner_review
-UPD-2026-024,2026-04-19,whatsapp_log,DCS instrument signal checking in progress with control room engineer.,Control Room Loop,Anil Sonowal (Automation Engr),OIL-INS-508-B,medium_planner_review
-UPD-2026-025,2026-04-20,text,Flange bolt torquing and tensioning inspection completed on main skid.,Main Skid Manifold,Kishore Nath (Mechanical Foreman),OIL-PIP-206-A,medium_planner_review
-UPD-2026-026,2026-04-21,whatsapp_log,Stringing of 14-inch coated pipes done for 85 joints along right of way.,ROW Chainage 12,Suraj Tamang (Pipe Hauler),OIL-PLN-103-A,medium_planner_review
-UPD-2026-027,2026-04-22,excel,Non-shrink epoxy grouting poured below dispatch pump baseplate.,Pump Shed B,Dipen Borpatra (Pump Station Lead),OIL-MEC-605-B,medium_planner_review
-UPD-2026-028,2026-04-23,whatsapp_log,RTU panel installed and terminal wiring connected in local shelter.,RTU Shelter C,Ashim Bhattacharya (SCADA Eng),OIL-INS-501-C,medium_planner_review
+UPD-2026-001,2026-06-19,whatsapp_log,Spool erection and field fit-up successfully finished at Manifold A today.,Duliajan Manifold Area A,Ramesh Borah (Piping Foreman),OIL-PIP-202-A,high_auto_link
+UPD-2026-002,2026-05-09,text,"Completed right of way ROW clearing, grubbing & grading for Section B pipeline route.",Section B ROW,Diganta Saikia (Pipeline Engr),OIL-PLN-102-B,high_auto_link
+UPD-2026-003,2026-06-22,excel,100% NDT radiography testing carried out on all 12 weld joints at KP 16 to 30.,Section B KP 16-30,Sunil Gogoi (QA/QC Inspector),OIL-PLN-107-B,high_auto_link
+UPD-2026-004,2026-07-09,excel,High tension HT cable pulling and routing completed across Feeder C.,Substation Feeder C,Pranab Phukan (Elec Supervisor),OIL-ELE-403-C,high_auto_link
+UPD-2026-005,2026-04-29,whatsapp_log,Dial gauge cold and hot alignment of compressor motor shaft finalized in Shed A.,Compressor Shed A,Ankur Barua (Mechanical Lead),OIL-MEC-604-A,high_auto_link
+UPD-2026-006,2026-07-10,text,"Reinforcement steel bar rebar cutting, bending and fixing done for Foundation B.",Compressor Foundation B,Manoj Chetia (Civil Foreman),OIL-CIV-304-B,high_auto_link
+UPD-2026-007,2026-05-15,excel,Horizontal directional drilling HDD river crossing pulled through at Crossing C.,River Crossing C,Subhashish Roy (HDD Incharge),OIL-PLN-111-C,high_auto_link
+UPD-2026-008,2026-07-23,whatsapp_log,Golden tie-in welding at existing header connection completed at Manifold D.,Manifold D Header,Debojit Hazarika (Welding Sup),OIL-PIP-203-D,high_auto_link
+UPD-2026-009,2026-06-15,excel,Bench calibration of pressure and temperature transmitters completed for Batch A.,Field Lab Batch A,Nayan Moni (Inst Engineer),OIL-INS-504-A,high_auto_link
+UPD-2026-010,2026-06-09,text,Installation of 33kV/415V main stepdown transformer completed in Substation A.,Main Substation A,Bhaskar Sarma (Elec Lead),OIL-ELE-401-A,high_auto_link
+UPD-2026-011,2026-09-06,whatsapp_log,"Trench padding, backfilling and soil compaction completed KP 31 to 45 Section C.",Pipeline Section C,Bikash Mech (Pipeline Sup),OIL-PLN-110-C,high_auto_link
+UPD-2026-012,2026-08-29,excel,Dyke bund wall civil construction around crude storage Tank B finished up to 2m height.,Crude Tank Dyke B,Rohit Verma (Civil Engr),OIL-CIV-307-B,high_auto_link
+UPD-2026-013,2026-06-28,whatsapp_log,Emergency shutdown valve ESDV stroke testing and calibration carried out at Station D.,ESDV Station D,Pankaj Kalita (Inst Tech),OIL-INS-507-D,high_auto_link
+UPD-2026-014,2026-07-29,text,Flare knockout drum KOD skidded vessel erection placed on foundation at Area B.,Flare Area B,Tapan Dutta (Rigger Lead),OIL-MEC-602-B,high_auto_link
+UPD-2026-015,2026-05-17,excel,Piping spool prefabrication at field workshop Manifold C 42 joints welded.,Yard Manifold C,Jyoti Lahon (Piping QC),OIL-PIP-201-C,high_auto_link
+UPD-2026-016,2026-07-14,whatsapp_log,"Hydrotesting done today on line 3 section B, holding 95 bar pressure.",Section B Line 3,Hiren Das (Site Incharge),OIL-PIP-205-B,medium_planner_review
+UPD-2026-017,2026-08-12,text,Lowering work completed today for pipeline near river bank area.,River Bank Sector,Mukesh Tiwari (Lowering Sup),OIL-PLN-109-A,medium_planner_review
+UPD-2026-018,2026-06-25,excel,"PCC layer poured for main compressor block, curing initiated.",Compressor Block,Amitabh Baruah (Civil Sup),OIL-CIV-303-A,medium_planner_review
+UPD-2026-019,2026-05-15,whatsapp_log,Cable tray fixing and cable laying ongoing along the overhead pipe rack.,Overhead Rack Area,Kamal Baruah (Electrician),OIL-ELE-402-A,medium_planner_review
+UPD-2026-020,2026-07-13,excel,Chemical copper earthing pit digging and backfilling with compound completed.,Grid Substation,Bipul Sharma (Elec Contractor),OIL-ELE-406-B,medium_planner_review
+UPD-2026-021,2026-06-05,text,"Golden tie-in joint welded at header junction, visual check passed.",Junction Skid,Gaurav Singh (Welding Inspector),OIL-PIP-203-A,medium_planner_review
+UPD-2026-022,2026-04-13,whatsapp_log,"Valve pit wall concrete casted today, 18 cum consumed.",Station Valve Pit,Jiten Deka (Civil Supervisor),OIL-CIV-308-C,medium_planner_review
+UPD-2026-023,2026-04-17,excel,Gas compressor skid positioned on foundation bolts with 50 ton crane.,Compressor Shed D,Sanjib Bora (Heavy Rigging),OIL-MEC-603-D,medium_planner_review
+UPD-2026-024,2026-07-05,whatsapp_log,DCS instrument signal checking in progress with control room engineer.,Control Room Loop,Anil Sonowal (Automation Engr),OIL-INS-508-B,medium_planner_review
+UPD-2026-025,2026-08-13,text,Flange bolt torquing and tensioning inspection completed on main skid.,Main Skid Manifold,Kishore Nath (Mechanical Foreman),OIL-PIP-206-A,medium_planner_review
+UPD-2026-026,2026-06-08,whatsapp_log,Stringing of 14-inch coated pipes done for 85 joints along right of way.,ROW Chainage 12,Suraj Tamang (Pipe Hauler),OIL-PLN-103-A,medium_planner_review
+UPD-2026-027,2026-05-16,excel,Non-shrink epoxy grouting poured below dispatch pump baseplate.,Pump Shed B,Dipen Borpatra (Pump Station Lead),OIL-MEC-605-B,medium_planner_review
+UPD-2026-028,2026-04-14,whatsapp_log,RTU panel installed and terminal wiring connected in local shelter.,RTU Shelter C,Ashim Bhattacharya (SCADA Eng),OIL-INS-501-C,medium_planner_review
 UPD-2026-029,2026-04-24,text,Pigging run tool launched and retrieved successfully with zero damage to cup.,Pig Receiver Station B,Ranjit Moran (Pipeline Operator),OIL-PLN-112-B,medium_planner_review
-UPD-2026-030,2026-04-25,excel,"Formwork and water curing of concrete block completed, 14 days finished.",Block C Foundation,Rajib Borgohain (Civil QC),OIL-CIV-306-C,medium_planner_review
-UPD-2026-031,2026-04-26,whatsapp_log,"Continuous heavy torrential rain since 9 AM, site completely waterlogged, civil work suspended.",All Sectors,Site Incharge Office,UNMATCHED,low_unmatched_review
-UPD-2026-032,2026-04-27,whatsapp_log,Daily safety toolbox meeting conducted with 45 workers regarding working at height and PPE.,Safety Muster Point,HSE Officer Dibrugarh,UNMATCHED,low_unmatched_review
-UPD-2026-033,2026-04-28,text,"Site DG generator 250 kVA fuel tank filled with 800 liters diesel, oil filter replaced.",DG Yard,Utility Mechanic,UNMATCHED,low_unmatched_review
-UPD-2026-034,2026-04-29,excel,Local village panchayat delegation visited site regarding culvert crossing access road.,Village Approach Gate,Liaison Officer,UNMATCHED,low_unmatched_review
-UPD-2026-035,2026-04-30,whatsapp_log,"Hydraulic excavator CAT 320 broken down due to blown oil hose, mechanic team dispatched.",KP 22 Workshop,Equipment Store Incharge,UNMATCHED,low_unmatched_review
-UPD-2026-036,2026-05-01,text,Catering and drinking water delivery received for night shift crew.,Base Camp Mess,Camp Administrator,UNMATCHED,low_unmatched_review
-UPD-2026-037,2026-05-02,excel,Third party ISO audit team completed documentation review in admin building.,Conference Hall,QA Auditor,UNMATCHED,low_unmatched_review
-UPD-2026-038,2026-05-03,whatsapp_log,Forest department ranger conducted joint boundary pillar verification.,Reserve Forest Boundary,Survey Team 2,UNMATCHED,low_unmatched_review
+UPD-2026-030,2026-07-30,excel,"Formwork and water curing of concrete block completed, 14 days finished.",Block C Foundation,Rajib Borgohain (Civil QC),OIL-CIV-306-C,medium_planner_review
+UPD-2026-031,2026-06-07,whatsapp_log,"Continuous heavy torrential rain since 9 AM, site completely waterlogged, civil work suspended.",All Sectors,Site Incharge Office,UNMATCHED,low_unmatched_review
+UPD-2026-032,2026-06-14,whatsapp_log,Daily safety toolbox meeting conducted with 45 workers regarding working at height and PPE.,Safety Muster Point,HSE Officer Dibrugarh,UNMATCHED,low_unmatched_review
+UPD-2026-033,2026-06-21,text,"Site DG generator 250 kVA fuel tank filled with 800 liters diesel, oil filter replaced.",DG Yard,Utility Mechanic,UNMATCHED,low_unmatched_review
+UPD-2026-034,2026-06-28,excel,Local village panchayat delegation visited site regarding culvert crossing access road.,Village Approach Gate,Liaison Officer,UNMATCHED,low_unmatched_review
+UPD-2026-035,2026-07-05,whatsapp_log,"Hydraulic excavator CAT 320 broken down due to blown oil hose, mechanic team dispatched.",KP 22 Workshop,Equipment Store Incharge,UNMATCHED,low_unmatched_review
+UPD-2026-036,2026-07-12,text,Catering and drinking water delivery received for night shift crew.,Base Camp Mess,Camp Administrator,UNMATCHED,low_unmatched_review
+UPD-2026-037,2026-07-19,excel,Third party ISO audit team completed documentation review in admin building.,Conference Hall,QA Auditor,UNMATCHED,low_unmatched_review
+UPD-2026-038,2026-07-26,whatsapp_log,Forest department ranger conducted joint boundary pillar verification.,Reserve Forest Boundary,Survey Team 2,UNMATCHED,low_unmatched_review
 UPD-2026-039,2026-05-04,text,Site perimeter floodlights bulb replacement completed on Mast 4.,Perimeter Mast 4,Maintenance Electrician,UNMATCHED,low_unmatched_review
-UPD-2026-040,2026-04-15,whatsapp_log,Scaffolding dismantled from administrative building stairwell.,Admin Building,General Labor Gang,UNMATCHED,low_unmatched_review
+UPD-2026-040,2026-05-11,whatsapp_log,Scaffolding dismantled from administrative building stairwell.,Admin Building,General Labor Gang,UNMATCHED,low_unmatched_review

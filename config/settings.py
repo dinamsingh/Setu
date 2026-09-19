@@ -29,6 +29,8 @@ VALIDATION_DATE_TOLERANCE_DAYS_AFTER = int(os.getenv("VALIDATION_DATE_TOLERANCE_
 # At 0.008 with narrowed confusable-candidate filtering, precision is 88.9% (8/9 flagged reports are true errors)
 # without degrading into a 100% block signal.
 VALIDATION_AMBIGUITY_THRESHOLD = float(os.getenv("VALIDATION_AMBIGUITY_THRESHOLD", "0.008"))
+VALIDATION_MAX_GROUND_TRUTH_FP_RATE = float(os.getenv("VALIDATION_MAX_GROUND_TRUTH_FP_RATE", "0.05"))  # max 5% false-positive rate on ground-truth links
+
 
 # Local Offline / Mock Database Flag (Disabled by default - forces live Supabase connection)
 USE_LOCAL_MOCK_DB = os.getenv("USE_LOCAL_MOCK_DB", "False").lower() in ("true", "1", "yes")

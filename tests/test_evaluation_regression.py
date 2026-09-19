@@ -134,3 +134,26 @@ def test_candidate_distinction_no_duplicate_location_wording():
     )
     assert "Location differences:" in diff_dist
     assert "Manifold A" in diff_dist and "Manifold D" in diff_dist
+
+
+def test_ground_truth_false_positive_guard(current_evaluation):
+    """
+    Guard 7: Ground-truth links must not trigger false positive validation blocks.
+    Deterministic checks on verified ground-truth activities must have an FP rate <= 5%.
+    Specifically:
+    - date_plausibility_fp_rate <= 0.05 (0.0 with coherent dates)
+    - duplicate_detection_fp_rate <= 0.05
+    - sequence_plausibility_fp_rate <= 0.05
+    - reporter_discipline_fp_rate <= 0.05
+    - guard_passed is True
+    """
+    gt_val = current_evaluation.get("ground_truth_validation")
+    assert gt_val is not None, "ground_truth_validation missing from evaluation output"
+    assert gt_val["evaluated_reports"] == 30
+
+    assert gt_val["date_plausibility_fp_rate"] <= settings.VALIDATION_MAX_GROUND_TRUTH_FP_RATE
+    assert gt_val["date_plausibility_fp_rate"] == 0.0, f"Expected 0.0 date FP rate, got {gt_val['date_plausibility_fp_rate']}"
+    assert gt_val["duplicate_detection_fp_rate"] <= settings.VALIDATION_MAX_GROUND_TRUTH_FP_RATE
+    assert gt_val["sequence_plausibility_fp_rate"] <= settings.VALIDATION_MAX_GROUND_TRUTH_FP_RATE
+    assert gt_val["reporter_discipline_fp_rate"] <= settings.VALIDATION_MAX_GROUND_TRUTH_FP_RATE
+    assert gt_val["guard_passed"] is True

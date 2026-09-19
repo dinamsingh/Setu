@@ -12,10 +12,11 @@ from config import settings
 from engine.alias_expander import DomainAliasExpander
 from engine.embeddings import EmbeddingMatcher
 from engine.fuzzy_matcher import FuzzyMatcher
+from engine.location_extractor import extract_locations, compute_location_match_score
 
 
 class EnsembleMatcher:
-    """Hybrid matching engine orchestrating lexical and semantic scoring."""
+    """Hybrid matching engine orchestrating lexical, semantic, and location scoring."""
 
     def __init__(
         self,
@@ -52,11 +53,15 @@ class EnsembleMatcher:
             confidence score, confidence level, and explainable score components.
         """
         raw_text = report.get("field_text", "")
+        site_location = report.get("site_location", "")
         source_type = report.get("source_type", "text")
         reported_date = report.get("reported_date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
 
         # Step 1: Domain Alias Expansion
         expanded_text, matched_aliases, detected_disciplines = self.alias_expander.expand(raw_text)
+
+        # Extract locations from report
+        report_locations = extract_locations(f"{site_location} {raw_text}")
 
         # Step 2: Semantic Similarity (Sentence-Transformers)
         query_embedding = self.embedding_matcher.encode([expanded_text])[0]
@@ -69,6 +74,8 @@ class EnsembleMatcher:
         for idx, act in enumerate(self.activities):
             act_name = act["activity_name"]
             act_discipline = act.get("discipline", "")
+            wbs_code = act.get("wbs_code", "")
+            wbs_name = act.get("wbs_name", "")
 
             # Semantic score for this candidate
             sem_score = round(float(semantic_scores[idx]), 4)
@@ -84,19 +91,29 @@ class EnsembleMatcher:
             else:
                 discipline_boost = 0.0
 
-            # Weighted Explainable Formula:
-            # 55% Semantic + 35% Fuzzy + 10% Discipline Boost
-            final_score = (0.55 * sem_score) + (0.35 * fuzzy_score) + (0.10 * discipline_boost)
+            # Location score: 1.0 if match/unconstrained, 0.0 if direct conflict, 0.5 if neutral
+            activity_locations = extract_locations(f"{act_name} {wbs_code} {wbs_name}")
+            location_score = compute_location_match_score(report_locations, activity_locations)
+
+            # Weighted Explainable Formula (Phase 4 Location-Aware Matching):
+            # 40% Semantic + 30% Fuzzy + 10% Discipline Boost + 20% Location Match
+            final_score = (
+                (0.40 * sem_score)
+                + (0.30 * fuzzy_score)
+                + (0.10 * discipline_boost)
+                + (0.20 * location_score)
+            )
             final_score = round(min(1.0, max(0.0, final_score)), 4)
 
             candidate_list.append({
                 "activity_id": act["activity_id"],
                 "activity_name": act_name,
                 "discipline": act_discipline,
-                "wbs_code": act.get("wbs_code", ""),
+                "wbs_code": wbs_code,
                 "semantic_score": sem_score,
                 "fuzzy_score": fuzzy_score,
                 "discipline_boost": discipline_boost,
+                "location_score": location_score,
                 "final_score": final_score
             })
 
