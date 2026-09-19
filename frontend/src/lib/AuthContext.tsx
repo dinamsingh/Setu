@@ -23,15 +23,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshRole = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const activeUser = session?.user;
+    if (!activeUser) {
       setRole(null);
       return null;
     }
     const { data, error } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('user_id', activeUser.id)
       .maybeSingle();
     if (error) throw error;
     const nextRole = (data?.role as AppRole | undefined) ?? null;
