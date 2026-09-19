@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Layers, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 
 export const RoleSelection: React.FC = () => {
-  const { signIn } = useAuth();
+  const { signIn, refreshRole } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -14,7 +16,18 @@ export const RoleSelection: React.FC = () => {
     setBusy(true);
     setError(null);
     const result = await signIn(email.trim(), password);
-    if (result.error) setError(result.error.message);
+    if (result.error) {
+      setError(result.error.message);
+    } else {
+      try {
+        const role = await refreshRole();
+        if (role === 'planner' || role === 'admin') navigate('/planner/command-center', { replace: true });
+        else if (role === 'site' || role === 'engineer') navigate('/supervisor/capture', { replace: true });
+        else setError('Authenticated account has no SETU role assignment.');
+      } catch (roleError: any) {
+        setError(roleError?.message || 'Unable to resolve SETU role.');
+      }
+    }
     setBusy(false);
   };
 
