@@ -222,16 +222,21 @@ def get_supabase_client(require_remote: bool = False) -> Any:
     global _mock_db_instance
 
     url = settings.SUPABASE_URL.strip()
-    key = (settings.SUPABASE_SERVICE_ROLE_KEY or settings.SUPABASE_ANON_KEY).strip()
-
     if not settings.USE_LOCAL_MOCK_DB or require_remote:
-        if not url or not key or url.startswith("https://your-project-id"):
+        if not url or url.startswith("https://your-project-id"):
             raise ValueError(
-                "Missing or unconfigured Supabase credentials in .env!\n"
-                "Please configure valid SUPABASE_URL and SUPABASE_ANON_KEY in your .env file."
+                "Missing or unconfigured SUPABASE_URL in .env!\n"
+                "Please configure a valid SUPABASE_URL."
+            )
+        # System workers must use the service-role credential. Never silently
+        # fall back to the browser anon/publishable key for privileged writes.
+        if not settings.SUPABASE_SERVICE_ROLE_KEY.strip():
+            raise ValueError(
+                "SUPABASE_SERVICE_ROLE_KEY is required for server-side Supabase "
+                "workers/imports. Refusing to fall back to the anon key."
             )
         from supabase import create_client
-        return create_client(url, key)
+        return create_client(url, settings.SUPABASE_SERVICE_ROLE_KEY.strip())
 
     # Use local mock database ONLY if explicitly enabled via USE_LOCAL_MOCK_DB=True
     if _mock_db_instance is None:
