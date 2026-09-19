@@ -33,3 +33,5 @@ jobs:
       - run: npm ci
       - run: npx tsc -b --noEmit
       - run: npx vitest run
+
+# Phase 5 verification workflow.
