@@ -22,16 +22,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshRole = async () => {
-    const activeUser = session?.user;
-    if (!activeUser) {
+  const refreshRole = async (userId?: string) => {
+    const activeUserId = userId ?? session?.user?.id;
+    if (!activeUserId) {
       setRole(null);
       return null;
     }
     const { data, error } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', activeUser.id)
+      .eq('user_id', activeUserId)
       .maybeSingle();
     if (error) throw error;
     const nextRole = (data?.role as AppRole | undefined) ?? null;
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
       setSession(session);
       try {
-        if (session) await refreshRole();
+        if (session) await refreshRole(session.user.id);
       } catch (error) {
         console.error('SETU: failed to resolve authenticated role', error);
         setRole(null);
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
       setSession(nextSession);
       try {
-        if (nextSession) await refreshRole();
+        if (nextSession) await refreshRole(nextSession.user.id);
         else setRole(null);
       } catch (error) {
         console.error('SETU: failed to resolve authenticated role', error);
