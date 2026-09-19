@@ -43,6 +43,8 @@ export interface CandidateMatch {
   semantic_score?: number;
   fuzzy_score?: number;
   discipline_boost?: number;
+  location_score?: number;
+  location_match?: boolean;
   rationale?: string;
 }
 
@@ -112,4 +114,4 @@ export interface FilterState {
   search: string;
 }
 
-export type UserRole = 'supervisor' | 'planner' | null;
+export type UserRole = 'site' | 'engineer' | 'planner' | 'admin' | null;

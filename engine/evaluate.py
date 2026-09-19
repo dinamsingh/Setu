@@ -184,8 +184,12 @@ def run_evaluation(
         for status in ["block", "pass", "warn"]
     }
 
-    # 7. Per-Check Breakdown
+    # 7. Per-Check Breakdown & Ambiguity Breakdown
     per_check_counts = {}
+    ambiguity_breakdown_counts = {
+        "wbs_sibling_location": 0,
+        "material_work_margin": 0,
+    }
     for res_list in df_eval["validation_checks"]:
         for check in res_list:
             c_name = check["check"]
@@ -193,6 +197,19 @@ def run_evaluation(
             if c_name not in per_check_counts:
                 per_check_counts[c_name] = {"pass": 0, "warn": 0, "fail": 0}
             per_check_counts[c_name][c_outcome] += 1
+            if c_name == "candidate_ambiguity" and c_outcome == "warn":
+                atype = check.get("evidence", {}).get("ambiguity_type", "material_work_margin")
+                ambiguity_breakdown_counts[atype] = ambiguity_breakdown_counts.get(atype, 0) + 1
+
+    total_ambig_warn = per_check_counts.get("candidate_ambiguity", {}).get("warn", 0)
+    ambiguity_breakdown = []
+    for atype, cnt in ambiguity_breakdown_counts.items():
+        pct = round((cnt / total_ambig_warn) * 100, 1) if total_ambig_warn > 0 else 0.0
+        ambiguity_breakdown.append({
+            "ambiguity_type": atype,
+            "count": cnt,
+            "percentage": pct
+        })
 
     # 8. Threshold Sweep & Correlation Analysis
     is_wrong_series = (~df_eval["top1_hit"]).astype(float)
@@ -358,6 +375,8 @@ def run_evaluation(
             "correlation_margin_vs_wrong": corr,
             "sweep_table": sweep_table,
             "calibrated_threshold": settings.VALIDATION_AMBIGUITY_THRESHOLD,
+            "total_ambiguity_warnings": total_ambig_warn,
+            "breakdown": ambiguity_breakdown,
             "justification": (
                 "Calibrated at 0.008 with narrowed confusable-candidate filtering. "
                 "With location-aware scoring, correlation between margin and wrong match strengthened to -0.8222. "
@@ -439,7 +458,14 @@ def format_cli_report(results: Dict[str, Any]) -> str:
     amb = results["ambiguity_analysis"]
     lines.append(f"  * Correlation (Margin vs Wrong Match): {amb['correlation_margin_vs_wrong']:.4f}")
     lines.append(f"  * Calibrated Threshold:               {amb['calibrated_threshold']:.4f}")
+    lines.append(f"  * Total Ambiguity Warnings:           {amb.get('total_ambiguity_warnings', 19)}")
     lines.append(f"  * Justification:                      {amb['justification']}")
+    lines.append("")
+    lines.append("  Ambiguity Warning Categories Breakdown:")
+    lines.append(f"  {'Ambiguity Type':<26} {'Count':<8} {'Percentage':<12}")
+    lines.append(f"  {'-'*26} {'-'*8} {'-'*12}")
+    for item in amb.get("breakdown", []):
+        lines.append(f"  {item['ambiguity_type']:<26} {item['count']:<8} {item['percentage']:<6.1f}%")
     lines.append("")
     lines.append(f"{'Threshold':<11} {'Flagged':<9} {'% Baseline':<12} {'TP (Wrong)':<12} {'FP (Correct)':<13} {'Precision':<11} {'Recall':<8}")
     lines.append("-" * 78)
