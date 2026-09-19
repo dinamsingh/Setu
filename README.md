@@ -16,7 +16,7 @@ SETU bridges unstructured infrastructure field updates (daily site WhatsApp note
    [ Domain Alias Expander ]  ──► Expands oil & gas slang (spool, stringing, tie-in)
              │
              ▼
-  [ Hybrid Ensemble Scorer ]  ──► 0.55 * Semantic + 0.35 * Fuzzy + 0.10 * Discipline Boost
+  [ Hybrid Ensemble Scorer ]  ──► 0.40 * Semantic + 0.30 * Fuzzy + 0.10 * Discipline + 0.20 * Location
              │
     ┌────────┴──────────────────────────┐
     ▼                                   ▼                                   ▼
@@ -83,6 +83,29 @@ npm run dev
 
 ---
 
+## Authentication, Roles & Row Level Security
+
+SETU uses Supabase Auth for browser sessions and PostgreSQL Row Level Security (RLS) for authorization.
+
+Roles:
+- `site`
+- `engineer`
+- `planner`
+- `admin`
+
+The browser only receives the publishable/anon key. It never receives the service-role key.
+
+Database enforcement:
+- `schedule_activities`: authenticated read; planner/admin write.
+- `field_updates`: site/engineer can insert their own reports; planner/admin can review/update all reports.
+- `domain_aliases`: authenticated read/propose; planner/admin review.
+- `planner_audit_logs`: authenticated append; planner/admin read; no browser UPDATE/DELETE policy.
+- `user_roles`: users can read their own role; only admin can manage role assignments.
+
+Server-side matching/import workers use `SUPABASE_SERVICE_ROLE_KEY` and fail fast if it is missing. The service-role key must never be placed in frontend code.
+
+The frontend route guard is a convenience layer; authorization is enforced again by database RLS.
+
 ## Supabase Database Schema
 
 The database uses PostgreSQL with the `pgvector` extension across four primary tables:
@@ -107,9 +130,11 @@ Copy `.env.example` to `.env` and configure your credentials:
 ```bash
 cp .env.example .env
 ```
-Ensure `SUPABASE_URL` and `SUPABASE_ANON_KEY` are configured.
+Configure `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` for server-side CLI workers. For the browser, configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 
-### 3. Run Test Suite (26 Tests)
+### 3. Run Test Suite
+
+Run the actual current suite and report the real count; the number is intentionally not hard-coded here.
 ```bash
 pytest tests/ -v
 ```
