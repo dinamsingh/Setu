@@ -43,7 +43,12 @@ def run_supabase_matching(
     print("SETU - Supabase Database Matching Pipeline")
     print("=" * 70)
 
-    db_client = client or get_supabase_client()
+    if client is not None:
+        db_client = client
+    else:
+        # Server-side matching requires the service-role credential so RLS
+        # cannot block controlled write-back.
+        db_client = get_supabase_client(require_remote=True)
 
     # 1. Fetch Schedule Activities from Supabase
     activities = fetch_schedule_activities(db_client)

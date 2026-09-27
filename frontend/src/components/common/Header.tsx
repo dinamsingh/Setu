@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Layers, ShieldAlert, ArrowLeftRight, UserCircle2 } from 'lucide-react';
+import { Layers, ShieldAlert, LogOut, UserCircle2 } from 'lucide-react';
+import { useAuth } from '../../lib/AuthContext';
 
 interface HeaderProps {
   currentRole?: 'supervisor' | 'planner';
@@ -8,6 +9,29 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ currentRole }) => {
   const navigate = useNavigate();
+  const { user, role, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (err) {
+      console.error('Sign out error:', err);
+    } finally {
+      navigate('/');
+    }
+  };
+
+  const roleLabel = role
+    ? role === 'admin'
+      ? 'Administrator'
+      : role === 'planner'
+      ? 'Lead Planner'
+      : role === 'engineer'
+      ? 'Field Engineer'
+      : 'Site Supervisor'
+    : currentRole === 'planner'
+    ? 'Lead Planner'
+    : 'Site Supervisor';
 
   return (
     <header className="bg-setu-navy text-white border-b border-setu-slate-700 sticky top-0 z-40 shadow-sm">
@@ -42,24 +66,29 @@ export const Header: React.FC<HeaderProps> = ({ currentRole }) => {
             <span>Illustrative synthetic data — prototype demonstration only.</span>
           </div>
 
-          {/* Role & Switcher */}
+          {/* User Session & Role & Sign Out */}
           <div className="flex items-center space-x-3">
-            {currentRole && (
-              <div className="flex items-center space-x-2 bg-setu-navy-dark px-3 py-1.5 rounded-md border border-setu-slate-700 text-xs font-medium">
-                <UserCircle2 className="w-4 h-4 text-setu-blue-light" />
-                <span className="text-setu-slate-300">Active Role:</span>
-                <span className="text-white font-semibold capitalize">
-                  {currentRole === 'planner' ? 'Lead Planner' : 'Site Supervisor'}
+            <div className="flex items-center space-x-2 bg-setu-navy-dark px-3 py-1.5 rounded-md border border-setu-slate-700 text-xs font-medium">
+              <UserCircle2 className="w-4 h-4 text-setu-blue-light" />
+              <div className="flex flex-col text-left">
+                {user?.email && (
+                  <span className="text-[10px] text-setu-slate-400 truncate max-w-[140px]">
+                    {user.email}
+                  </span>
+                )}
+                <span className="text-white font-semibold">
+                  {roleLabel}
                 </span>
               </div>
-            )}
+            </div>
+
             <button
-              onClick={() => navigate('/')}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded text-xs font-medium bg-setu-slate-800 hover:bg-setu-slate-700 text-setu-slate-200 border border-setu-slate-600 transition-colors"
-              title="Switch user role"
+              onClick={handleSignOut}
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded text-xs font-medium bg-setu-slate-800 hover:bg-red-900/50 hover:text-red-200 text-setu-slate-200 border border-setu-slate-600 hover:border-red-700 transition-colors"
+              title="Sign out of SETU"
             >
-              <ArrowLeftRight className="w-3.5 h-3.5 text-setu-blue-light" />
-              <span className="hidden sm:inline">Switch Role</span>
+              <LogOut className="w-3.5 h-3.5 text-setu-blue-light group-hover:text-red-300" />
+              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
         </div>

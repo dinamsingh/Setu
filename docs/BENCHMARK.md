@@ -111,6 +111,14 @@ Measured distribution of score difference between rank-1 and rank-2 candidates (
 | **0.030** | 21 | 52.5% | 19 | 2 | 0.905 | 0.905 |
 | **0.050** *(Old Defect)* | 22 | 55.0% | 20 | 2 | 0.909 | 0.952 |
 
+### Ambiguity Warning Categories Breakdown (19 Warnings):
+
+| Ambiguity Type | Count | Percentage | Operational Meaning |
+| :--- | :---: | :---: | :--- |
+| **`wbs_sibling_location`** | 13 | 68.4% | Top candidates are sibling activities in the same WBS family differing by location qualifiers where the field report does not uniquely resolve location. |
+| **`material_work_margin`** | 6 | 31.6% | Top candidates have close scores within the calibrated margin (margin < 0.008) across distinct scopes of work. |
+| **Total Warnings** | **19** | **100.0%** | Reconciles exactly with 19 ambiguity warnings across 40 baseline reports. |
+
 > [!NOTE]
 > **Raw Sweep vs Narrowed Operational Filter:**  
 > - **Raw Sweep:** Evaluates margin threshold across all 40 reports without WBS filtering. At 0.008 with location-aware scores, flags 19/40 (47.5%) with 94.7% precision.

@@ -41,15 +41,24 @@ def test_missing_credentials_raises_error():
     """Client must fail with clear error when require_remote=True and keys are missing."""
     orig_url = settings.SUPABASE_URL
     orig_key = settings.SUPABASE_ANON_KEY
+    orig_srv_key = settings.SUPABASE_SERVICE_ROLE_KEY
     
+    # 1. Missing URL
     settings.SUPABASE_URL = ""
     settings.SUPABASE_ANON_KEY = ""
-    
-    with pytest.raises(ValueError, match="Missing or unconfigured Supabase credentials in .env"):
+    settings.SUPABASE_SERVICE_ROLE_KEY = ""
+    with pytest.raises(ValueError, match="Missing or unconfigured SUPABASE_URL in .env"):
+        get_supabase_client(require_remote=True)
+        
+    # 2. Configured URL but missing SUPABASE_SERVICE_ROLE_KEY
+    settings.SUPABASE_URL = "https://live-test-project.supabase.co"
+    settings.SUPABASE_SERVICE_ROLE_KEY = ""
+    with pytest.raises(ValueError, match="SUPABASE_SERVICE_ROLE_KEY is required"):
         get_supabase_client(require_remote=True)
         
     settings.SUPABASE_URL = orig_url
     settings.SUPABASE_ANON_KEY = orig_key
+    settings.SUPABASE_SERVICE_ROLE_KEY = orig_srv_key
 
 
 def test_idempotent_schedule_import(db_client):

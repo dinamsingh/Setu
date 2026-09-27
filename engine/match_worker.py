@@ -102,7 +102,13 @@ def run_worker(
     print("SETU - Live Field Updates Matching Worker")
     print("=" * 70)
 
-    db_client = client or get_supabase_client()
+    if client is not None:
+        db_client = client
+    else:
+        # The matching worker is a server-side process and must bypass RLS via
+        # the service-role credential. get_supabase_client() fails fast if it
+        # is missing rather than silently using the browser anon key.
+        db_client = get_supabase_client(require_remote=True)
     print(f"Database Mode: {get_database_mode()}")
 
     # Preload schedule activities and verified domain aliases, construct EnsembleMatcher ONCE at startup

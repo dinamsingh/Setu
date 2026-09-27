@@ -310,6 +310,19 @@
       }
     ],
     "calibrated_threshold": 0.008,
+    "total_ambiguity_warnings": 19,
+    "breakdown": [
+      {
+        "ambiguity_type": "wbs_sibling_location",
+        "count": 13,
+        "percentage": 68.4
+      },
+      {
+        "ambiguity_type": "material_work_margin",
+        "count": 6,
+        "percentage": 31.6
+      }
+    ],
     "justification": "Calibrated at 0.008 with narrowed confusable-candidate filtering. With location-aware scoring, correlation between margin and wrong match strengthened to -0.8222. At 0.008, raw sweep achieves 94.7% precision against true errors (18/19 flagged), providing highly discriminative early warning without block degeneration."
   }
 }
