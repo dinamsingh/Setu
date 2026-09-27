@@ -93,7 +93,7 @@ begin
                 created_at,
                 updated_at
             ) values (
-                v_user_id::text,
+                v_user_id,
                 v_user_id,
                 jsonb_build_object('sub', v_user_id::text, 'email', v_users.email),
                 'email',
