@@ -1,0 +1,12 @@
+{
+  "name": "setu",
+  "private": true,
+  "version": "1.0.0",
+  "description": "SETU - AI-Assisted Schedule Linking & Planner Review",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "test": "npm --prefix frontend run test"
+  }
+}
