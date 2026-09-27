@@ -11,6 +11,32 @@ create table if not exists public.user_roles (
 
 create index if not exists idx_user_roles_role on public.user_roles(role);
 
+-- Ensure prerequisite columns exist on domain_aliases
+alter table public.domain_aliases
+    add column if not exists status text default 'verified';
+alter table public.domain_aliases
+    add column if not exists origin text default 'seed';
+alter table public.domain_aliases
+    add column if not exists source_update_id text;
+alter table public.domain_aliases
+    add column if not exists proposed_by text;
+alter table public.domain_aliases
+    add column if not exists reviewed_by text;
+alter table public.domain_aliases
+    add column if not exists created_at timestamptz default now();
+alter table public.domain_aliases
+    add column if not exists reviewed_at timestamptz;
+
+-- Ensure prerequisite columns exist on field_updates
+alter table public.field_updates
+    add column if not exists status text default 'pending';
+alter table public.field_updates
+    add column if not exists reported_date date default current_date;
+alter table public.field_updates
+    add column if not exists site_location text;
+alter table public.field_updates
+    add column if not exists source_type text default 'text';
+
 -- Bind field updates to authenticated submitter
 alter table public.field_updates
     add column if not exists submitted_by_user_id uuid references auth.users(id) on delete set null;
@@ -221,7 +247,16 @@ create trigger trg_prevent_audit_log_modification
 before update or delete on public.planner_audit_logs
 for each row execute function public.prevent_audit_log_modification();
 
--- 8. Semantic vector search function privileges
-revoke execute on function public.match_schedule_activities(vector, float, int) from public, anon;
-grant execute on function public.match_schedule_activities(vector, float, int) to authenticated, service_role;
+-- 8. Semantic vector search function privileges (conditional)
+do $$
+begin
+    if exists (
+        select 1 from pg_proc p
+        join pg_namespace n on p.pronamespace = n.oid
+        where n.nspname = 'public' and p.proname = 'match_schedule_activities'
+    ) then
+        execute 'revoke execute on function public.match_schedule_activities(vector, float, int) from public, anon';
+        execute 'grant execute on function public.match_schedule_activities(vector, float, int) to authenticated, service_role';
+    end if;
+end $$;
 

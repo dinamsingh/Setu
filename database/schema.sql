@@ -418,5 +418,14 @@ for each row execute function public.prevent_audit_log_modification();
 
 -- Stored procedure for semantic search remains available to authenticated
 -- browser sessions and server-side service-role workers.
-revoke execute on function match_schedule_activities(vector, float, int) from public, anon;
-grant execute on function match_schedule_activities(vector, float, int) to authenticated, service_role;
+do $$
+begin
+    if exists (
+        select 1 from pg_proc p
+        join pg_namespace n on p.pronamespace = n.oid
+        where n.nspname = 'public' and p.proname = 'match_schedule_activities'
+    ) then
+        execute 'revoke execute on function match_schedule_activities(vector, float, int) from public, anon';
+        execute 'grant execute on function match_schedule_activities(vector, float, int) to authenticated, service_role';
+    end if;
+end $$;
