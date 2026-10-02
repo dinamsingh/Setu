@@ -99,6 +99,18 @@ export const ReviewQueue: React.FC = () => {
   }, [updates, confidenceFilter, statusFilter, disciplineFilter, validationFilter, searchQuery, activitiesMap]);
 
   const handleAccept = async (update: FieldUpdate, remarks: string) => {
+    if (['approved', 'rejected', 'remapped'].includes(update.status)) {
+      showToast(`Update ${update.update_id} is already finalized and read-only.`);
+      return;
+    }
+    if (update.validation_status === 'block' && !update.validation_overridden) {
+      showToast('A documented validation override is required before approval.');
+      return;
+    }
+    if (!update.matched_activity_id || !activitiesMap.has(update.matched_activity_id)) {
+      showToast('Select a valid schedule activity through Remap before approval.');
+      return;
+    }
     const res = await updateStatusAndAudit({
       updateUuid: update.id,
       action: 'accept',
@@ -113,6 +125,10 @@ export const ReviewQueue: React.FC = () => {
   };
 
   const handleReject = async (update: FieldUpdate, remarks: string) => {
+    if (['approved', 'rejected', 'remapped'].includes(update.status)) {
+      showToast(`Update ${update.update_id} is already finalized and read-only.`);
+      return;
+    }
     const res = await updateStatusAndAudit({
       updateUuid: update.id,
       action: 'reject',
@@ -127,6 +143,18 @@ export const ReviewQueue: React.FC = () => {
   };
 
   const handleConfirmRemap = async (update: FieldUpdate, newActivityId: string, remarks: string) => {
+    if (['approved', 'rejected', 'remapped'].includes(update.status)) {
+      showToast(`Update ${update.update_id} is already finalized and read-only.`);
+      return;
+    }
+    if (update.validation_status === 'block' && !update.validation_overridden) {
+      showToast('A documented validation override is required before final remapping.');
+      return;
+    }
+    if (!activitiesMap.has(newActivityId)) {
+      showToast('Choose a valid schedule activity before confirming the remap.');
+      return;
+    }
     const res = await updateStatusAndAudit({
       updateUuid: update.id,
       action: 'remap',

@@ -13,16 +13,23 @@ interface RemapModalProps {
   onConfirmRemap: (update: FieldUpdate, newActivityId: string, remarks: string) => Promise<void>;
 }
 
-export const RemapModal: React.FC<RemapModalProps> = ({
-  isOpen,
+type RemapModalContentProps = Omit<RemapModalProps, 'isOpen' | 'update'> & {
+  update: FieldUpdate;
+};
+
+export const RemapModal: React.FC<RemapModalProps> = ({ isOpen, update, ...rest }) => {
+  if (!isOpen || !update) return null;
+
+  return <RemapModalContent key={update.id} update={update} {...rest} />;
+};
+
+const RemapModalContent: React.FC<RemapModalContentProps> = ({
   update,
   activities,
   plannerName,
   onClose,
   onConfirmRemap,
 }) => {
-  if (!isOpen || !update) return null;
-
   const [search, setSearch] = useState('');
   const [selectedActId, setSelectedActId] = useState<string>(
     update.matched_activity_id || activities[0]?.activity_id || ''
@@ -166,7 +173,7 @@ export const RemapModal: React.FC<RemapModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-bold text-setu-slate-700">
-                Or Search All 220 Baseline Activities:
+                Or Search All Loaded Baseline Activities ({activities.length}):
               </span>
               <span className="text-[11px] text-setu-slate-400">
                 {filteredActivities.length} matching

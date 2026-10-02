@@ -32,9 +32,9 @@ import {
 
 export const CommandCenter: React.FC = () => {
   const navigate = useNavigate();
-  const { updates, kpis, loading: updatesLoading } = useFieldUpdates();
-  const { activities, activitiesMap, loading: scheduleLoading } = useScheduleData();
-  const { logs } = useAuditLogs();
+  const { updates, kpis, loading: updatesLoading, error: updatesError } = useFieldUpdates();
+  const { activities, activitiesMap, disciplines, loading: scheduleLoading, error: scheduleError } = useScheduleData();
+  const { logs, error: auditError } = useAuditLogs();
 
   const loading = updatesLoading || scheduleLoading;
 
@@ -88,7 +88,13 @@ export const CommandCenter: React.FC = () => {
                   Planner Command Center
                 </h1>
                 <p className="text-xs sm:text-sm text-setu-slate-300 mt-1">
-                  Baseline v1.0 &middot; <strong className="text-white">{activities.length || 220} activities indexed</strong> &middot; 6 engineering disciplines &middot; <span className="text-emerald-400 font-semibold">0 updates silently dropped</span>
+                  {scheduleLoading ? (
+                    'Loading schedule baselineâ€¦'
+                  ) : scheduleError ? (
+                    'Schedule baseline unavailable'
+                  ) : (
+                    <><strong className="text-white">{activities.length} activities indexed</strong> &middot; {disciplines.length} engineering disciplines &middot; {updates.length} field reports visible</>
+                  )}
                 </p>
               </div>
 
@@ -111,6 +117,13 @@ export const CommandCenter: React.FC = () => {
               <span>Synthetic prototype routing output — not pilot results. Real-time metrics computed directly from Supabase.</span>
             </div>
           </div>
+
+          {(updatesError || scheduleError || auditError) && (
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-900 text-xs">
+              <strong>Live data unavailable:</strong>{' '}
+              {[updatesError, scheduleError, auditError].filter(Boolean).join(' ')}
+            </div>
+          )}
 
           {loading ? (
             <LoadingSkeleton rows={3} />

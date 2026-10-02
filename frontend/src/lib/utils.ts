@@ -1,6 +1,22 @@
-import type { CandidateMatch, FieldUpdate, KpiMetrics, ScheduleActivity } from '../types';
+import type { CandidateMatch, FieldUpdate, KpiMetrics, ScheduleActivity, ValidationCheckResult } from '../types';
 
 export function parseCandidates(raw: any): CandidateMatch[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+export function parseValidationResults(
+  raw: FieldUpdate['validation_results']
+): ValidationCheckResult[] {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
   if (typeof raw === 'string') {
@@ -95,17 +111,21 @@ export function buildExportData(
   activitiesMap: Map<string, ScheduleActivity>
 ) {
   return updates
-    .filter((u) => u.status === 'approved' || u.status === 'remapped')
+    .filter(
+      (u) =>
+        (u.status === 'approved' || u.status === 'remapped') &&
+        Boolean(u.matched_activity_id) &&
+        activitiesMap.has(u.matched_activity_id as string)
+    )
     .map((u) => {
-      const actId = u.matched_activity_id || 'UNASSIGNED';
-      const act = actId !== 'UNASSIGNED' ? activitiesMap.get(actId) : undefined;
-      const actName = act ? act.activity_name : 'Manual Review Activity';
+      const actId = u.matched_activity_id as string;
+      const act = activitiesMap.get(actId) as ScheduleActivity;
 
       const scoreNum = u.confidence_score ? Number(u.confidence_score).toFixed(3) : '0.000';
 
       return {
         'Activity ID': actId,
-        'Activity Name': actName,
+        'Activity Name': act.activity_name,
         'Reported Date': u.reported_date || '',
         'Site Location': u.site_location || '',
         'Field Evidence': u.field_text || '',

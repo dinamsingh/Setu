@@ -18,9 +18,10 @@ import {
   Clock,
   Layers
 } from 'lucide-react';
-import type { FieldUpdate, ScheduleActivity, ValidationCheckResult } from '../../types';
+import type { FieldUpdate, ScheduleActivity } from '../../types';
 import { ConfidenceBadge } from '../common/ConfidenceBadge';
 import { StatusBadge } from '../common/StatusBadge';
+import { parseValidationResults } from '../../lib/utils';
 
 interface ReviewCardProps {
   update: FieldUpdate;
@@ -61,6 +62,20 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const wbs = matchedActivity?.wbs_code || '—';
 
   const candidates = Array.isArray(update.candidate_matches) ? update.candidate_matches : [];
+  const validationResults = parseValidationResults(update.validation_results);
+  const supportedValidationResults = validationResults.filter((check) =>
+    [
+      'date_plausibility',
+      'candidate_ambiguity',
+      'location_consistency',
+      'duplicate_detection',
+      'reporter_discipline',
+      'sequence_plausibility',
+    ].includes(check.check)
+  );
+  const isReviewed = ['approved', 'rejected', 'remapped'].includes((update.status || '').toLowerCase());
+  const isBlocked = update.validation_status === 'block' && !update.validation_overridden;
+  const hasValidMatchedActivity = Boolean(update.matched_activity_id && matchedActivity);
 
   const handleAccept = async () => {
     setIsSubmitting(true);
@@ -79,8 +94,6 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
       setIsSubmitting(false);
     }
   };
-
-  const isReviewed = ['approved', 'rejected', 'remapped'].includes((update.status || '').toLowerCase());
 
   const handleRequeue = async () => {
     if (!onRequeue) return;
@@ -153,7 +166,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             <div className="text-xs">
               <p className="font-bold text-rose-900">Auto-link suggestion blocked by Project Controls</p>
               <p className="text-rose-700 mt-0.5">
-                One or more physical, temporal, or candidate ambiguity checks failed. Review validation checks below or override with mandatory planner justification.
+                One or more project-control checks failed. Approval and final remapping are locked until a planner records a validation override with mandatory justification.
               </p>
             </div>
           </div>
@@ -320,7 +333,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           >
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-setu-teal" />
-              <span>Project Controls Validation (6 Checks)</span>
+              <span>Project Controls Validation</span>
               <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
                 update.validation_overridden
                   ? 'bg-purple-100 text-purple-800'
@@ -338,41 +351,49 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
         )}
 
         {/* Validation Details */}
-        {isValidationExpanded && update.validation_results && (
+        {isValidationExpanded && (
           <div className="p-3.5 rounded-lg bg-setu-slate-50 border border-setu-slate-200 space-y-2.5 text-xs animate-fadeIn">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {[
-                { key: 'date_plausibility', label: 'Date Plausibility', icon: Clock },
-                { key: 'candidate_ambiguity', label: 'Candidate Ambiguity Margin', icon: Layers },
-                { key: 'location_consistency', label: 'Site Location Consistency', icon: MapPin },
-                { key: 'duplicate_detection', label: 'Duplicate Progress Check', icon: RotateCcw },
-                { key: 'discipline_consistency', label: 'Discipline Alignment', icon: User },
-                { key: 'sequence_plausibility', label: 'Sequence Predecessor Logic', icon: Sparkles },
-              ].map(({ key, label, icon: Icon }) => {
-                const check = (update.validation_results as Record<string, ValidationCheckResult> | undefined)?.[key];
-                const outcome = check?.outcome || check?.status || 'pass';
+            {supportedValidationResults.length === 0 ? (
+              <p className="rounded-lg border border-setu-slate-200 bg-white p-3 text-setu-slate-600">
+                No detailed validation check results are stored for this report.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {supportedValidationResults.map((check) => {
+                const iconByCheck = {
+                  date_plausibility: Clock,
+                  candidate_ambiguity: Layers,
+                  location_consistency: MapPin,
+                  duplicate_detection: RotateCcw,
+                  reporter_discipline: User,
+                  sequence_plausibility: Sparkles,
+                } as const;
+                const Icon = iconByCheck[check.check as keyof typeof iconByCheck] || ShieldCheck;
+                const outcome = check.outcome || check.status;
                 return (
-                  <div key={key} className="p-2.5 rounded-lg bg-white border border-setu-slate-200 flex flex-col justify-between gap-1.5 shadow-2xs">
+                  <div key={check.check} className="p-2.5 rounded-lg bg-white border border-setu-slate-200 flex flex-col justify-between gap-1.5 shadow-2xs">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-setu-slate-800 flex items-center gap-1.5 text-[11px]">
                         <Icon className="w-3.5 h-3.5 text-setu-slate-500" />
-                        {label}
+                        {check.name}
                       </span>
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase flex items-center gap-1 ${
                         outcome === 'fail' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
                         outcome === 'warn' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                        'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        outcome === 'pass' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                        'bg-setu-slate-100 text-setu-slate-700 border border-setu-slate-200'
                       }`}>
                         {outcome === 'fail' ? <XCircle className="w-2.5 h-2.5" /> :
                          outcome === 'warn' ? <AlertTriangle className="w-2.5 h-2.5" /> :
-                         <CheckCircle2 className="w-2.5 h-2.5" />}
-                        {outcome === 'fail' ? 'BLOCK' : outcome.toUpperCase()}
+                         outcome === 'pass' ? <CheckCircle2 className="w-2.5 h-2.5" /> :
+                         <ShieldAlert className="w-2.5 h-2.5" />}
+                        {outcome === 'fail' ? 'BLOCK' : (outcome || 'unknown').toUpperCase()}
                       </span>
                     </div>
                     <p className="text-[11px] text-setu-slate-600 leading-snug">
-                      {check?.message || check?.reason || 'Check passed.'}
+                      {check.message || check.reason || 'No validation message was stored.'}
                     </p>
-                    {check?.evidence && Object.keys(check.evidence).length > 0 && (
+                    {check.evidence && Object.keys(check.evidence).length > 0 && (
                       <div className="mt-1 pt-1 border-t border-setu-slate-100 flex flex-wrap gap-1 text-[10px] font-mono text-setu-slate-500">
                         {Object.entries(check.evidence).map(([k, v]) => (
                           <span key={k} className="bg-setu-slate-50 px-1.5 py-0.5 rounded border border-setu-slate-200">
@@ -384,12 +405,30 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                   </div>
                 );
               })}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Planner Decision Control Strip */}
-        <div className="pt-3 border-t border-setu-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        {isReviewed ? (
+          <div className="pt-3 border-t border-setu-slate-100">
+            <div className="rounded-lg border border-setu-slate-200 bg-setu-slate-50 px-3 py-2.5 text-xs text-setu-slate-700 flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-setu-teal" />
+              <div>
+                <p className="font-bold">Finalized planner decision — this report is read-only.</p>
+                {update.planner_remarks && <p className="mt-0.5 text-setu-slate-600">{update.planner_remarks}</p>}
+              </div>
+            </div>
+          </div>
+        ) : (
+        <div className="pt-3 border-t border-setu-slate-100 flex flex-col gap-3">
+          {!hasValidMatchedActivity && !isAwaiting && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              This report has no valid linked schedule activity. Remap it to an activity or reject it; direct approval is unavailable.
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="flex-1">
             <input
               type="text"
@@ -401,7 +440,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {update.validation_status === 'block' && !update.validation_overridden ? (
+            {isBlocked ? (
               <button
                 type="button"
                 disabled={isSubmitting}
@@ -412,28 +451,29 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 <ShieldAlert className="w-3.5 h-3.5" />
                 <span>Override Validation...</span>
               </button>
-            ) : (
+            ) : hasValidMatchedActivity && !isAwaiting ? (
               <button
                 type="button"
-                disabled={isSubmitting || isAwaiting}
+                disabled={isSubmitting}
                 onClick={handleAccept}
-                title={isAwaiting ? 'Cannot approve before AI matching has run' : undefined}
                 className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-setu-green hover:bg-setu-green-dark text-white shadow-xs transition-colors disabled:opacity-50"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>{update.validation_overridden ? 'Approve (Overridden)' : 'Approve Link'}</span>
               </button>
-            )}
+            ) : null}
 
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => onOpenRemap(update)}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-colors disabled:opacity-50"
-            >
-              <ArrowRightLeft className="w-3.5 h-3.5" />
-              <span>Remap Activity</span>
-            </button>
+            {!isBlocked && (
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => onOpenRemap(update)}
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-colors disabled:opacity-50"
+              >
+                <ArrowRightLeft className="w-3.5 h-3.5" />
+                <span>Remap Activity</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -464,7 +504,9 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               </button>
             )}
           </div>
+          </div>
         </div>
+        )}
       </div>
     </div>
   );

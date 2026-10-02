@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, ShieldAlert, AlertTriangle, CheckCircle2, Lock } from 'lucide-react';
-import type { FieldUpdate, ValidationCheckResult } from '../../types';
+import type { FieldUpdate } from '../../types';
+import { parseValidationResults } from '../../lib/utils';
 
 interface OverrideModalProps {
   isOpen: boolean;
@@ -10,24 +11,26 @@ interface OverrideModalProps {
   onConfirmOverride: (update: FieldUpdate, reason: string) => Promise<void>;
 }
 
-export const OverrideModal: React.FC<OverrideModalProps> = ({
-  isOpen,
+type OverrideModalContentProps = Omit<OverrideModalProps, 'isOpen' | 'update'> & {
+  update: FieldUpdate;
+};
+
+export const OverrideModal: React.FC<OverrideModalProps> = ({ isOpen, update, ...rest }) => {
+  if (!isOpen || !update) return null;
+
+  return <OverrideModalContent key={update.id} update={update} {...rest} />;
+};
+
+const OverrideModalContent: React.FC<OverrideModalContentProps> = ({
   update,
   plannerName,
   onClose,
   onConfirmOverride,
 }) => {
-  if (!isOpen || !update) return null;
-
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const rawResults = update.validation_results;
-  const validationList: ValidationCheckResult[] = Array.isArray(rawResults)
-    ? rawResults
-    : typeof rawResults === 'string'
-    ? JSON.parse(rawResults || '[]')
-    : [];
+  const validationList = parseValidationResults(update.validation_results);
 
   const failingChecks = validationList.filter((c) => c.outcome === 'fail');
   const warningChecks = validationList.filter((c) => c.outcome === 'warn');

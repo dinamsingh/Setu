@@ -13,7 +13,7 @@ import { Sidebar } from '../../components/common/Sidebar';
 import { useScheduleData } from '../../hooks/useScheduleData';
 
 export const ScheduleOnboarding: React.FC = () => {
-  const { activities, disciplines } = useScheduleData();
+  const { activities, disciplines, loading, error } = useScheduleData();
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -83,19 +83,27 @@ export const ScheduleOnboarding: React.FC = () => {
               <div>
                 <div className="flex items-center space-x-2 text-xs font-bold text-setu-blue uppercase tracking-wider">
                   <Database className="w-4 h-4" />
-                  <span>Oracle Primavera P6 Baseline Sync</span>
+                  <span>Primavera-Style Baseline CSV Review</span>
                 </div>
                 <h1 className="text-2xl font-extrabold text-setu-slate-900 mt-1">
                   Schedule Baseline Onboarding
                 </h1>
                 <p className="text-xs text-setu-slate-500 mt-1">
-                  Inspect active indexed project activities and validate newly staged schedule revisions.
+                  Inspect the active schedule index and preview the required structure of a local CSV.
                 </p>
               </div>
 
-              <div className="flex items-center space-x-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg font-semibold self-start sm:self-center">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Baseline v1.0 Indexed & Vectorized</span>
+              <div className={`flex items-center space-x-2 text-xs px-3 py-1.5 rounded-lg font-semibold self-start sm:self-center border ${
+                error
+                  ? 'text-rose-800 bg-rose-50 border-rose-200'
+                  : loading
+                  ? 'text-setu-slate-700 bg-setu-slate-50 border-setu-slate-200'
+                  : 'text-emerald-800 bg-emerald-50 border-emerald-200'
+              }`}>
+                {error ? <AlertCircle className="w-4 h-4 text-rose-600" /> : <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                  <span>
+                    {loading ? 'Checking baseline...' : error ? 'Baseline unavailable' : `${activities.length} activities loaded`}
+                  </span>
               </div>
             </div>
           </div>
@@ -118,18 +126,18 @@ export const ScheduleOnboarding: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl bg-white border border-setu-slate-200">
               <span className="text-xs font-bold uppercase tracking-wider text-setu-slate-400">Indexed Tasks</span>
-              <div className="text-2xl font-extrabold text-setu-navy mt-1">{activities.length || 220}</div>
+              <div className="text-2xl font-extrabold text-setu-navy mt-1">{loading ? '-' : activities.length}</div>
               <p className="text-[11px] text-setu-slate-500 mt-0.5">L5 / L6 Primavera Activities</p>
             </div>
             <div className="p-4 rounded-xl bg-white border border-setu-slate-200">
               <span className="text-xs font-bold uppercase tracking-wider text-setu-slate-400">Disciplines</span>
-              <div className="text-2xl font-extrabold text-setu-teal mt-1">{disciplines.length || 6}</div>
+              <div className="text-2xl font-extrabold text-setu-teal mt-1">{loading ? '-' : disciplines.length}</div>
               <p className="text-[11px] text-setu-slate-500 mt-0.5">Piping, Civil, Pipeline, etc.</p>
             </div>
             <div className="p-4 rounded-xl bg-white border border-setu-slate-200">
-              <span className="text-xs font-bold uppercase tracking-wider text-setu-slate-400">Vector Index</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-setu-slate-400">Embedding Schema</span>
               <div className="text-2xl font-extrabold text-setu-green mt-1">384-dim</div>
-              <p className="text-[11px] text-setu-slate-500 mt-0.5">all-MiniLM-L6-v2 pgvector</p>
+              <p className="text-[11px] text-setu-slate-500 mt-0.5">Configured vector dimension</p>
             </div>
             <div className="p-4 rounded-xl bg-white border border-setu-slate-200">
               <span className="text-xs font-bold uppercase tracking-wider text-setu-slate-400">Baseline Status</span>
@@ -143,22 +151,22 @@ export const ScheduleOnboarding: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-setu-slate-800">
-                  Stage New Primavera Schedule Revision (CSV)
+                   Validate Schedule CSV (Preview Only)
                 </h3>
                 <p className="text-xs text-setu-slate-500 mt-0.5">
-                  Validate column schema and review activity structure before committing index updates.
+                   Select a local CSV to validate required columns and preview its activity structure. This phase does not import or commit the file.
                 </p>
               </div>
             </div>
 
-            {/* Drag and Drop Zone */}
+            {/* Local file selection zone */}
             <div className="border-2 border-dashed border-setu-slate-300 hover:border-setu-blue rounded-xl p-8 text-center transition-colors bg-setu-slate-50/50">
               <UploadCloud className="w-10 h-10 text-setu-slate-400 mx-auto mb-2" />
               <p className="text-xs font-bold text-setu-slate-700">
-                Drag and drop your Primavera schedule export file here
+                 Select a Primavera-style schedule CSV for local schema preview
               </p>
               <p className="text-[11px] text-setu-slate-500 mt-1">
-                Accepts comma-separated format (.csv) containing activity_id, activity_name, wbs_code, etc.
+                 The selected file remains a browser preview; no baseline records are written.
               </p>
 
               <label className="mt-4 inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-white border border-setu-slate-300 text-xs font-semibold text-setu-slate-700 hover:bg-setu-slate-50 cursor-pointer shadow-2xs">
@@ -197,7 +205,7 @@ export const ScheduleOnboarding: React.FC = () => {
               <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 space-y-2">
                 <div className="flex items-center space-x-1.5 font-bold">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Schema Validated Successfully! All mandatory Primavera columns detected.</span>
+                  <span>Required columns detected. Preview is available below; no import has occurred.</span>
                 </div>
                 {previewRows.length > 0 && (
                   <div className="overflow-x-auto pt-1">
@@ -225,19 +233,18 @@ export const ScheduleOnboarding: React.FC = () => {
                     </table>
                   </div>
                 )}
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="button"
-                    disabled
-                    title="Read-only prototype safeguard: baseline updates are locked in demo mode"
-                    className="px-4 py-2 rounded-lg bg-setu-slate-300 text-setu-slate-600 text-xs font-bold cursor-not-allowed"
-                  >
-                    Confirm Read-Only Index (Safeguard Active)
-                  </button>
+                <div className="pt-2 text-right text-[11px] font-semibold text-emerald-800">
+                  Preview complete - schedule import is intentionally not enabled in this phase.
                 </div>
               </div>
             )}
           </div>
+
+          {error && (
+            <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-900">
+              <strong>Unable to load the active schedule baseline:</strong> {error}
+            </div>
+          )}
 
           {/* Active Indexed Baseline Table */}
           <div className="bg-white rounded-xl border border-setu-slate-200 p-6 shadow-xs space-y-4">
@@ -263,6 +270,20 @@ export const ScheduleOnboarding: React.FC = () => {
               </div>
             </div>
 
+            {loading ? (
+              <div className="p-8 text-center text-xs text-setu-slate-500 border border-dashed border-setu-slate-300 rounded-lg">
+                Loading schedule activities from Supabase...
+              </div>
+            ) : error ? (
+              <div className="p-8 text-center text-xs text-rose-700 border border-dashed border-rose-300 bg-rose-50 rounded-lg">
+                The activity table is unavailable until the baseline query succeeds.
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="p-8 text-center text-xs text-setu-slate-500 border border-dashed border-setu-slate-300 rounded-lg">
+                No schedule activities were returned by the active baseline query.
+              </div>
+            ) : (
+            <>
             <div className="overflow-x-auto max-h-96 border border-setu-slate-200 rounded-lg">
               <table className="min-w-full text-left text-xs border-collapse">
                 <thead className="bg-setu-slate-50 sticky top-0 border-b border-setu-slate-200 text-setu-slate-600">
@@ -300,6 +321,8 @@ export const ScheduleOnboarding: React.FC = () => {
             <p className="text-[11px] text-setu-slate-400 text-right">
               Showing top {Math.min(filteredActivities.length, 100)} of {filteredActivities.length} matching activities
             </p>
+            </>
+            )}
           </div>
         </main>
       </div>

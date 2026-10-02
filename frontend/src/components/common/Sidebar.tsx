@@ -81,24 +81,19 @@ export const Sidebar: React.FC = () => {
         </nav>
       </div>
 
-      {/* Baseline Status Card at bottom */}
+      {/* Baseline governance card at bottom */}
       <div className="p-4 m-3 rounded-lg bg-setu-slate-800/80 border border-setu-slate-700/60 text-xs">
         <div className="flex items-center space-x-1.5 text-setu-blue-light font-semibold mb-1">
           <Database className="w-3.5 h-3.5" />
-          <span>Active Baseline: v1.0</span>
+          <span>Read-Only Schedule Baseline</span>
         </div>
         <div className="space-y-1 text-setu-slate-400">
-          <div className="flex justify-between">
-            <span>Indexed Activities:</span>
-            <span className="text-white font-medium">220</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Disciplines:</span>
-            <span className="text-white font-medium">6</span>
-          </div>
-          <div className="flex items-center space-x-1 pt-1.5 border-t border-setu-slate-700 text-[11px] text-setu-green-light">
+          <p className="leading-relaxed">
+            Live activity counts and connection status are shown in Schedule Onboarding.
+          </p>
+          <div className="flex items-center space-x-1 pt-1.5 border-t border-setu-slate-700 text-[11px] text-setu-slate-300">
             <Cpu className="w-3 h-3" />
-            <span>pgvector (384-dim) Ready</span>
+            <span>384-dimensional embedding schema</span>
           </div>
         </div>
       </div>

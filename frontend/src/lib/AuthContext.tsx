@@ -12,7 +12,7 @@ type AuthContextValue = {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<{ error: Error | null }>;
-  refreshRole: () => Promise<AppRole | null>;
+  refreshRole: (userId?: string) => Promise<AppRole | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);

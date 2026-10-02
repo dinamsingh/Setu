@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   Send, 
   Sparkles, 
@@ -8,14 +7,12 @@ import {
   Paperclip, 
   HardHat, 
   CheckCircle2, 
-  ArrowRight,
   Info
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 
 export const FieldCapture: React.FC = () => {
-  const navigate = useNavigate();
   const { submitFieldUpdate } = useFieldUpdates();
 
   const [fieldText, setFieldText] = useState('');
@@ -23,7 +20,6 @@ export const FieldCapture: React.FC = () => {
   const [siteLocation, setSiteLocation] = useState('Duliajan Manifold Area A');
   const [reportedBy, setReportedBy] = useState('Ramesh Borah (Site Supervisor)');
   const [reportedDate, setReportedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [evidenceFilename, setEvidenceFilename] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionResult, setSubmissionResult] = useState<{
     success: boolean;
@@ -58,7 +54,6 @@ export const FieldCapture: React.FC = () => {
     setFieldText(random.text);
     setDiscipline(random.discipline);
     setSiteLocation(random.location);
-    setEvidenceFilename('site_photo_dpr_log.jpg');
     setSubmissionResult(null);
   };
 
@@ -134,13 +129,9 @@ export const FieldCapture: React.FC = () => {
                   >
                     Submit Another Report
                   </button>
-                  <button
-                    onClick={() => navigate('/planner/review')}
-                    className="inline-flex items-center space-x-1 text-xs font-bold px-2.5 py-1 rounded bg-emerald-700 text-white hover:bg-emerald-800"
-                  >
-                    <span>View in Planner Queue</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold">
+                    Queued for planner review
+                  </span>
                 </div>
               </div>
             </div>
@@ -236,29 +227,16 @@ export const FieldCapture: React.FC = () => {
             </div>
           </div>
 
-          {/* Optional File Attachment Placeholder */}
+          {/* Evidence attachment availability */}
           <div>
             <label className="block text-xs font-bold text-setu-slate-700 mb-1.5">
               Evidence Document / Photo (Optional)
             </label>
-            <div className="flex items-center space-x-2">
-              <div className="relative flex-1">
-                <Paperclip className="w-3.5 h-3.5 absolute left-3 top-3 text-setu-slate-400" />
-                <input
-                  type="text"
-                  value={evidenceFilename}
-                  onChange={(e) => setEvidenceFilename(e.target.value)}
-                  placeholder="Upload site DPR photo, weld radiograph report, or inspection note..."
-                  className="w-full text-xs pl-8 pr-3 py-2.5 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-setu-teal bg-setu-slate-50"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setEvidenceFilename('dpr_site_evidence_photo.jpg')}
-                className="px-3 py-2.5 text-xs font-medium text-setu-slate-600 bg-setu-slate-100 hover:bg-setu-slate-200 rounded-lg border border-setu-slate-200"
-              >
-                Browse
-              </button>
+            <div className="flex items-start gap-2 rounded-lg border border-setu-slate-200 bg-setu-slate-50 px-3 py-2.5 text-xs text-setu-slate-600">
+              <Paperclip className="w-3.5 h-3.5 mt-0.5 shrink-0 text-setu-slate-400" />
+              <p>
+                Evidence attachments are not enabled in this prototype phase. Add the relevant document or photo reference to the narrative if needed.
+              </p>
             </div>
           </div>
 
