@@ -68,6 +68,9 @@ export const ScheduleOnboarding: React.FC = () => {
       a.activity_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       a.discipline.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const datedActivities = activities.filter(
+    (activity) => activity.planned_start_date && activity.planned_finish_date
+  ).length;
 
   return (
     <div className="min-h-screen bg-setu-slate-100 flex flex-col">
@@ -83,13 +86,13 @@ export const ScheduleOnboarding: React.FC = () => {
               <div>
                 <div className="flex items-center space-x-2 text-xs font-bold text-setu-blue uppercase tracking-wider">
                   <Database className="w-4 h-4" />
-                  <span>Primavera-Style Baseline CSV Review</span>
+                  <span>Planner setup · read-only baseline</span>
                 </div>
                 <h1 className="text-2xl font-extrabold text-setu-slate-900 mt-1">
-                  Schedule Baseline Onboarding
+                  Baseline Index & CSV Preview
                 </h1>
                 <p className="text-xs text-setu-slate-500 mt-1">
-                  Inspect the active schedule index and preview the required structure of a local CSV.
+                  Inspect indexed schedule activities and validate a local CSV structure without importing it.
                 </p>
               </div>
 
@@ -115,15 +118,15 @@ export const ScheduleOnboarding: React.FC = () => {
               <span>Read-Only Governance Boundary</span>
             </div>
             <p className="text-blue-900 leading-relaxed">
-              <strong>SETU indexes the baseline schedule; it does not modify Primavera directly.</strong> All updates are verified separately in the Planner Review Queue before a schedule diff export is generated for planner upload.
+              <strong>SETU indexes the baseline schedule; it does not modify Primavera directly.</strong> Planner-approved evidence-to-activity mappings can be downloaded separately for controlled review.
             </p>
             <div className="pt-1 text-[11px] text-blue-800 italic">
-              Live prototype: Primavera-style CSV ingestion. Deployment extension: Direct XER / XML parser integration.
+              Local CSV validation is preview-only. No file or baseline activity is written from this screen.
             </div>
           </div>
 
           {/* Active Baseline Summary Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 rounded-xl bg-white border border-setu-slate-200">
               <span className="text-xs font-bold uppercase tracking-wider text-setu-slate-400">Indexed Tasks</span>
               <div className="text-2xl font-extrabold text-setu-navy mt-1">{loading ? '-' : activities.length}</div>
@@ -135,14 +138,9 @@ export const ScheduleOnboarding: React.FC = () => {
               <p className="text-[11px] text-setu-slate-500 mt-0.5">Piping, Civil, Pipeline, etc.</p>
             </div>
             <div className="p-4 rounded-xl bg-white border border-setu-slate-200">
-              <span className="text-xs font-bold uppercase tracking-wider text-setu-slate-400">Embedding Schema</span>
-              <div className="text-2xl font-extrabold text-setu-green mt-1">384-dim</div>
-              <p className="text-[11px] text-setu-slate-500 mt-0.5">Configured vector dimension</p>
-            </div>
-            <div className="p-4 rounded-xl bg-white border border-setu-slate-200">
-              <span className="text-xs font-bold uppercase tracking-wider text-setu-slate-400">Baseline Status</span>
-              <div className="text-2xl font-extrabold text-setu-blue mt-1">Locked</div>
-              <p className="text-[11px] text-setu-slate-500 mt-0.5">Read-only protection active</p>
+              <span className="text-xs font-bold uppercase tracking-wider text-setu-slate-400">Dated activities</span>
+              <div className="text-2xl font-extrabold text-setu-blue mt-1">{loading ? '-' : datedActivities}</div>
+              <p className="text-[11px] text-setu-slate-500 mt-0.5">Planned start and finish available</p>
             </div>
           </div>
 
@@ -151,7 +149,7 @@ export const ScheduleOnboarding: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-setu-slate-800">
-                   Validate Schedule CSV (Preview Only)
+                   Validate schedule CSV structure
                 </h3>
                 <p className="text-xs text-setu-slate-500 mt-0.5">
                    Select a local CSV to validate required columns and preview its activity structure. This phase does not import or commit the file.
@@ -292,7 +290,7 @@ export const ScheduleOnboarding: React.FC = () => {
                     <th className="py-2.5 px-3 font-bold">Activity Name</th>
                     <th className="py-2.5 px-3 font-bold">WBS Code</th>
                     <th className="py-2.5 px-3 font-bold">Discipline</th>
-                    <th className="py-2.5 px-3 font-bold">Duration</th>
+                    <th className="py-2.5 px-3 font-bold">Planned window</th>
                     <th className="py-2.5 px-3 font-bold">Planned Qty</th>
                   </tr>
                 </thead>

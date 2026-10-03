@@ -10,7 +10,8 @@ import {
   Sparkles,
   CheckCircle2,
   XCircle,
-  Clock
+  Clock,
+  ChevronDown
 } from 'lucide-react';
 import Papa from 'papaparse';
 import { Header } from '../../components/common/Header';
@@ -29,6 +30,7 @@ export const AuditExport: React.FC = () => {
   const [aliasTab, setAliasTab] = useState<'all' | 'proposed' | 'verified' | 'rejected'>('all');
   const [aliasSearch, setAliasSearch] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showAliasGovernance, setShowAliasGovernance] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -50,7 +52,7 @@ export const AuditExport: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', 'planner_approved_schedule_updates.csv');
+    link.setAttribute('download', 'approved_evidence_activity_mapping.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -82,10 +84,10 @@ export const AuditExport: React.FC = () => {
                   <span>Compliance & Change Tracking</span>
                 </div>
                 <h1 className="text-2xl font-extrabold text-setu-slate-900 mt-1">
-                  Audit Trail & Controlled Schedule Export
+                  Audit & Export
                 </h1>
                 <p className="text-xs text-setu-slate-500 mt-1">
-                  Immutable regulatory log of human planner decisions and verified schedule update export.
+                  Append-only planner audit trail and controlled evidence-to-activity mapping export.
                 </p>
               </div>
 
@@ -114,7 +116,7 @@ export const AuditExport: React.FC = () => {
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-purple-300 block">Step Two</span>
-                <span className="text-xs font-bold">Immutable Audit Logging</span>
+                <span className="text-xs font-bold">Append-only Audit Logging</span>
               </div>
             </div>
 
@@ -124,7 +126,7 @@ export const AuditExport: React.FC = () => {
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-emerald-300 block">Step Three</span>
-                <span className="text-xs font-bold">Reviewable CSV Schedule Diff</span>
+                <span className="text-xs font-bold">Controlled Mapping Export</span>
               </div>
             </div>
           </div>
@@ -134,7 +136,7 @@ export const AuditExport: React.FC = () => {
             <div className="flex items-center space-x-2">
               <FileCheck className="w-4 h-4 text-emerald-700 shrink-0" />
               <span>
-                <strong>Controlled Schedule Governance:</strong> No direct Primavera write-back. Only planner-approved updates are exported.
+                <strong>Controlled governance:</strong> No direct Primavera write-back. Export contains only finalized evidence-to-activity mappings.
               </span>
             </div>
           </div>
@@ -144,10 +146,10 @@ export const AuditExport: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold text-setu-slate-900">
-                  Planner-Approved Schedule Update CSV Preview
+                  Approved Evidence-to-Activity Mapping Preview
                 </h2>
                 <p className="text-xs text-setu-slate-500">
-                  Contains strictly approved and remapped field reports. Excludes pending or rejected updates.
+                  Contains approved and remapped field evidence linked to loaded schedule activities. Excludes pending and rejected reports.
                 </p>
               </div>
 
@@ -158,7 +160,7 @@ export const AuditExport: React.FC = () => {
                 className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-setu-green hover:bg-setu-green-dark text-white text-xs font-bold shadow-xs transition-colors disabled:opacity-50"
               >
                 <Download className="w-4 h-4" />
-                <span>Download Planner-Approved CSV</span>
+                <span>Download Approved Mapping CSV</span>
               </button>
             </div>
 
@@ -213,10 +215,10 @@ export const AuditExport: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-setu-slate-900">
-                  Immutable Planner Decision Audit Trail ({logs.length} entries)
+                  Append-only Planner Audit Trail ({logs.length} entries)
                 </h2>
                 <p className="text-xs text-setu-slate-500">
-                  Regulatory decision log recording every accept, remap, and reject action with planner notes.
+                  Decision history for accept, remap, reject, requeue, and validation override actions.
                 </p>
               </div>
             </div>
@@ -282,21 +284,38 @@ export const AuditExport: React.FC = () => {
             </div>
           )}
 
-          {/* Section 3: Domain Dictionary & Institutional Memory */}
-          <div className="bg-white rounded-xl border border-setu-slate-200 p-6 shadow-xs space-y-4">
+          <button
+            type="button"
+            onClick={() => setShowAliasGovernance((current) => !current)}
+            className="flex w-full items-center justify-between border border-setu-slate-200 bg-white px-5 py-4 text-left text-sm font-bold text-setu-slate-800 hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+            aria-expanded={showAliasGovernance}
+          >
+            <span className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-setu-teal" />
+              Alias governance
+              <span className="font-mono text-[11px] font-medium text-setu-slate-500">{aliases.length} entries</span>
+            </span>
+            <span className="flex items-center gap-2 text-xs font-medium text-setu-slate-500">
+              Secondary control
+              <ChevronDown className={`h-4 w-4 transition-transform ${showAliasGovernance ? 'rotate-180' : ''}`} />
+            </span>
+          </button>
+
+          {/* Secondary section: governed domain aliases */}
+          <div className={`${showAliasGovernance ? 'block' : 'hidden'} bg-white rounded-xl border border-setu-slate-200 p-6 shadow-xs space-y-4`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center space-x-2">
                   <BookOpen className="w-4 h-4 text-setu-teal" />
                   <h2 className="text-sm font-bold text-setu-slate-900">
-                    Domain Dictionary & Institutional Memory
+                    Domain Alias Governance
                   </h2>
                   <span className="text-[11px] px-2 py-0.5 rounded-full bg-setu-slate-100 text-setu-slate-600 font-bold font-mono">
                     {aliases.length} total
                   </span>
                 </div>
                 <p className="text-xs text-setu-slate-500 mt-0.5">
-                  Human-in-the-loop dictionary management. Planners propose aliases during remapping; once approved, they are hot-reloaded into the matching engine.
+                  Review proposed field-language aliases. Only verified aliases can affect later matching runs.
                 </p>
               </div>
 
@@ -317,7 +336,7 @@ export const AuditExport: React.FC = () => {
             <div className="p-3 rounded-lg bg-indigo-50/70 border border-indigo-200 text-xs text-indigo-950 flex items-start gap-2.5">
               <ShieldCheck className="w-4 h-4 text-indigo-700 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <strong>Reviewed Knowledge Loop:</strong> Proposed aliases remain quarantined and do not affect scoring until approved by a planner. Once approved, the matching worker hot-reloads them without recomputing schedule embeddings.
+                <strong>Reviewed alias loop:</strong> Proposed aliases remain quarantined and do not affect scoring until a planner approves them. Verified aliases are then available to the matching worker.
               </div>
             </div>
 

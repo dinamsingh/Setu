@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Search, Check, Sparkles, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { extractCandidateTerms } from '../../lib/aliasProposer';
+import { canRemapToActivity } from '../../lib/plannerWorkspace';
 import type { FieldUpdate, ScheduleActivity } from '../../types';
 
 interface RemapModalProps {
@@ -10,7 +11,7 @@ interface RemapModalProps {
   activities: ScheduleActivity[];
   plannerName: string;
   onClose: () => void;
-  onConfirmRemap: (update: FieldUpdate, newActivityId: string, remarks: string) => Promise<void>;
+  onConfirmRemap: (update: FieldUpdate, newActivityId: string, remarks: string) => Promise<boolean>;
 }
 
 type RemapModalContentProps = Omit<RemapModalProps, 'isOpen' | 'update'> & {
@@ -31,15 +32,13 @@ const RemapModalContent: React.FC<RemapModalContentProps> = ({
   onConfirmRemap,
 }) => {
   const [search, setSearch] = useState('');
-  const [selectedActId, setSelectedActId] = useState<string>(
-    update.matched_activity_id || activities[0]?.activity_id || ''
-  );
+  const [selectedActId, setSelectedActId] = useState<string>('');
   const [remarks, setRemarks] = useState(
     update.planner_remarks || `Remapped by ${plannerName}`
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Institutional Memory State
+  // Optional governed alias proposal state
   const [proposeAlias, setProposeAlias] = useState(false);
   const [proposedFieldTerm, setProposedFieldTerm] = useState('');
   const [proposedStandardTerm, setProposedStandardTerm] = useState('');
@@ -56,18 +55,22 @@ const RemapModalContent: React.FC<RemapModalContentProps> = ({
       selectedActivity.activity_name,
       selectedActivity.discipline
     );
-  }, [update?.field_text, selectedActivity]);
+  }, [update.field_text, selectedActivity]);
 
-  useEffect(() => {
-    if (proposeAlias && candidateProposals.length > 0 && !proposedFieldTerm) {
-      setProposedFieldTerm(candidateProposals[0].field_term);
-      setProposedStandardTerm(candidateProposals[0].standard_term);
-      setProposedDiscipline(candidateProposals[0].discipline);
-    } else if (selectedActivity && !proposedStandardTerm) {
+  const handleAliasToggle = (checked: boolean) => {
+    setProposeAlias(checked);
+    if (!checked || proposedFieldTerm) return;
+
+    const proposal = candidateProposals[0];
+    if (proposal) {
+      setProposedFieldTerm(proposal.field_term);
+      setProposedStandardTerm(proposal.standard_term);
+      setProposedDiscipline(proposal.discipline);
+    } else if (selectedActivity) {
       setProposedStandardTerm(selectedActivity.activity_name);
       setProposedDiscipline(selectedActivity.discipline || 'General');
     }
-  }, [proposeAlias, candidateProposals, selectedActivity]);
+  };
 
   const filteredActivities = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -84,7 +87,7 @@ const RemapModalContent: React.FC<RemapModalContentProps> = ({
   const candidates = Array.isArray(update.candidate_matches) ? update.candidate_matches : [];
 
   const handleConfirm = async () => {
-    if (!selectedActId) return;
+    if (!canRemapToActivity(update.matched_activity_id, selectedActId)) return;
     setIsSubmitting(true);
     try {
       if (proposeAlias && proposedFieldTerm.trim()) {
@@ -100,8 +103,8 @@ const RemapModalContent: React.FC<RemapModalContentProps> = ({
           },
         ]);
       }
-      await onConfirmRemap(update, selectedActId, remarks);
-      onClose();
+      const remapped = await onConfirmRemap(update, selectedActId, remarks);
+      if (remapped) onClose();
     } catch (err: any) {
       console.error('Error confirming remap or proposing alias:', err);
     } finally {
@@ -147,24 +150,33 @@ const RemapModalContent: React.FC<RemapModalContentProps> = ({
                 Suggested Candidates from Matching Engine:
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {candidates.slice(0, 3).map((c, i) => (
+                {candidates.slice(0, 3).map((c, i) => {
+                  const isCurrentActivity = c.activity_id === update.matched_activity_id;
+                  return (
                   <button
                     key={i}
                     type="button"
+                    disabled={isCurrentActivity}
                     onClick={() => setSelectedActId(c.activity_id)}
                     className={`text-left p-2.5 rounded-lg border text-xs transition-all ${
                       selectedActId === c.activity_id
                         ? 'border-purple-600 bg-purple-50 text-purple-900 font-semibold ring-1 ring-purple-600'
+                        : isCurrentActivity
+                        ? 'border-setu-slate-200 bg-setu-slate-100 text-setu-slate-400 cursor-not-allowed'
                         : 'border-setu-slate-200 bg-setu-slate-50 hover:bg-white text-setu-slate-700'
                     }`}
                   >
-                    <div className="font-mono text-[11px] font-bold text-setu-navy">{c.activity_id}</div>
+                    <div className="flex items-center justify-between gap-2 font-mono text-[11px] font-bold text-setu-navy">
+                      <span>{c.activity_id}</span>
+                      {isCurrentActivity && <span className="font-sans text-[9px] uppercase text-setu-slate-500">Current</span>}
+                    </div>
                     <div className="truncate text-[11px] mt-0.5">{c.activity_name}</div>
                     <div className="text-[10px] text-setu-teal mt-0.5">
                       Score: {c.combined_score ? (Number(c.combined_score) * 100).toFixed(1) + '%' : '—'}
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -199,46 +211,50 @@ const RemapModalContent: React.FC<RemapModalContentProps> = ({
               ) : (
                 filteredActivities.map((act) => {
                   const isSelected = selectedActId === act.activity_id;
+                  const isCurrentActivity = act.activity_id === update.matched_activity_id;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={act.activity_id}
+                      disabled={isCurrentActivity}
                       onClick={() => setSelectedActId(act.activity_id)}
-                      className={`p-2.5 text-xs flex items-center justify-between cursor-pointer transition-colors ${
+                      className={`w-full p-2.5 text-left text-xs flex items-center justify-between transition-colors ${
                         isSelected ? 'bg-purple-50 text-purple-900 font-semibold' : 'hover:bg-setu-slate-50'
-                      }`}
+                      } ${isCurrentActivity ? 'cursor-not-allowed bg-setu-slate-100 text-setu-slate-400 hover:bg-setu-slate-100' : ''}`}
                     >
                       <div className="min-w-0 flex-1 pr-2">
                         <div className="flex items-center gap-1.5 font-mono">
                           <span className="font-bold text-setu-navy">{act.activity_id}</span>
                           <span className="text-setu-teal font-sans text-[10px]">[{act.discipline}]</span>
                           <span className="text-setu-slate-400 text-[10px]">WBS: {act.wbs_code}</span>
+                          {isCurrentActivity && <span className="text-[9px] font-bold uppercase text-setu-slate-500">Current activity</span>}
                         </div>
                         <p className="truncate text-setu-slate-800 text-[11px] mt-0.5">{act.activity_name}</p>
                       </div>
                       {isSelected && (
                         <Check className="w-4 h-4 text-purple-600 shrink-0" />
                       )}
-                    </div>
+                    </button>
                   );
                 })
               )}
             </div>
           </div>
 
-          {/* Institutional Memory: Propose Domain Alias */}
+          {/* Optional governed domain alias proposal */}
           <div className="p-3.5 rounded-xl border border-purple-200 bg-purple-50/40 space-y-3">
             <label className="flex items-start gap-2.5 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={proposeAlias}
-                onChange={(e) => setProposeAlias(e.target.checked)}
+                onChange={(e) => handleAliasToggle(e.target.checked)}
                 className="mt-0.5 w-4 h-4 rounded border-setu-slate-300 text-purple-600 focus:ring-purple-500"
               />
               <div className="flex-1">
                 <div className="flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-purple-600" />
                   <span className="text-xs font-bold text-setu-slate-900">
-                    Propose New Domain Alias (Institutional Memory)
+                    Propose a Governed Domain Alias
                   </span>
                 </div>
                 <span className="text-[11px] text-setu-slate-500 block mt-0.5">
@@ -315,6 +331,10 @@ const RemapModalContent: React.FC<RemapModalContentProps> = ({
           </div>
 
           {/* Remarks input */}
+          <div className="border-l-4 border-amber-500 bg-amber-50 px-3 py-2.5 text-[11px] leading-5 text-amber-950">
+            This phase records the selected remap through the existing governance RPC. Validation is not rerun against the new activity; post-remap revalidation requires Phase 0.9B backend work.
+          </div>
+
           <div>
             <label className="text-xs font-bold text-setu-slate-700 block mb-1">
               Remap Justification / Planner Remarks:
@@ -340,11 +360,11 @@ const RemapModalContent: React.FC<RemapModalContentProps> = ({
           </button>
           <button
             type="button"
-            disabled={!selectedActId || isSubmitting}
+            disabled={!canRemapToActivity(update.matched_activity_id, selectedActId) || isSubmitting}
             onClick={handleConfirm}
             className="px-4 py-2 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-colors disabled:opacity-50"
           >
-            Confirm Remap to [{selectedActId}]
+            {selectedActId ? `Confirm remap to [${selectedActId}]` : 'Select a different activity'}
           </button>
         </div>
       </div>

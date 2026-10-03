@@ -1,72 +1,93 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  CheckCircle2, 
-  AlertTriangle, 
-  HelpCircle, 
-  TrendingUp, 
-  ArrowRight, 
-  ShieldCheck, 
-  FileCheck2,
-  Clock
+import {
+  AlertOctagon,
+  ArrowRight,
+  CalendarClock,
+  CircleDashed,
+  ClipboardCheck,
+  FileQuestion,
+  History,
+  ListChecks,
+  RefreshCw,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { Sidebar } from '../../components/common/Sidebar';
-import { KpiCard } from '../../components/common/KpiCard';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 import { useScheduleData } from '../../hooks/useScheduleData';
 import { useAuditLogs } from '../../hooks/useAuditLogs';
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
-  ResponsiveContainer, 
-  Tooltip as RechartsTooltip,
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid 
-} from 'recharts';
+import {
+  computeOperationalCounts,
+  describeAuditActivityChange,
+  humanizeAuditAction,
+} from '../../lib/plannerWorkspace';
 
 export const CommandCenter: React.FC = () => {
   const navigate = useNavigate();
-  const { updates, kpis, loading: updatesLoading, error: updatesError } = useFieldUpdates();
-  const { activities, activitiesMap, disciplines, loading: scheduleLoading, error: scheduleError } = useScheduleData();
+  const {
+    updates,
+    loading: updatesLoading,
+    error: updatesError,
+    refetch,
+  } = useFieldUpdates();
+  const {
+    activities,
+    activitiesMap,
+    disciplines,
+    loading: scheduleLoading,
+    error: scheduleError,
+  } = useScheduleData();
   const { logs, error: auditError } = useAuditLogs();
 
   const loading = updatesLoading || scheduleLoading;
+  const counts = useMemo(
+    () => computeOperationalCounts(updates, activitiesMap),
+    [updates, activitiesMap]
+  );
 
-  const awaitingCount = kpis.awaiting || 0;
-
-  // Compute confidence chart data
-  const confidenceChartData = useMemo(() => {
-    const data = [
-      { name: 'High Confidence (>=0.82)', value: kpis.high, color: '#219469' },
-      { name: 'Medium Confidence (0.55-0.81)', value: kpis.medium, color: '#C47814' },
-      { name: 'Low Confidence (<0.55)', value: kpis.low, color: '#C43C3C' },
-    ];
-    if (awaitingCount > 0) {
-      data.push({ name: 'Awaiting Matching', value: awaitingCount, color: '#64748B' });
-    }
-    return data;
-  }, [kpis, awaitingCount]);
-
-  // Compute discipline chart data
-  const disciplineChartData = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const u of updates) {
-      const act = u.matched_activity_id ? activitiesMap.get(u.matched_activity_id) : undefined;
-      const disc = act?.discipline || (Array.isArray(u.candidate_matches) && u.candidate_matches[0]?.discipline) || 'General';
-      counts[disc] = (counts[disc] || 0) + 1;
-    }
-    return Object.entries(counts)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [updates, activitiesMap]);
-
-  const pendingAttentionCount = kpis.medium + kpis.low;
+  const metrics = [
+    {
+      label: 'Pending review',
+      value: counts.pendingReview,
+      detail: 'Pending reports with matching complete',
+      icon: ListChecks,
+      view: 'unresolved',
+      tone: 'border-setu-blue bg-blue-50/50 text-setu-blue-dark',
+    },
+    {
+      label: 'Blocked',
+      value: counts.blocked,
+      detail: 'Project-controls block, no override',
+      icon: AlertOctagon,
+      view: 'blocked',
+      tone: 'border-setu-red bg-rose-50/60 text-setu-red-dark',
+    },
+    {
+      label: 'Low confidence',
+      value: counts.lowConfidence,
+      detail: 'Pending reports in Low confidence tier',
+      icon: FileQuestion,
+      view: 'low',
+      tone: 'border-setu-amber bg-amber-50/60 text-setu-amber-dark',
+    },
+    {
+      label: 'Unmatched',
+      value: counts.unmatched,
+      detail: 'Matching complete, no valid activity',
+      icon: CircleDashed,
+      view: 'unmatched',
+      tone: 'border-setu-slate-400 bg-setu-slate-50 text-setu-slate-800',
+    },
+    {
+      label: 'Awaiting AI',
+      value: counts.awaitingAi,
+      detail: 'Submitted and waiting for matching worker',
+      icon: RefreshCw,
+      view: 'awaiting',
+      tone: 'border-setu-teal bg-teal-50/60 text-setu-teal-dark',
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-setu-slate-100 flex flex-col">
@@ -75,52 +96,44 @@ export const CommandCenter: React.FC = () => {
       <div className="flex-1 flex flex-col md:flex-row">
         <Sidebar />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl">
-          {/* Executive Baseline Banner */}
-          <div className="bg-setu-navy text-white rounded-2xl p-5 sm:p-6 border border-setu-slate-700 shadow-md">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-5 max-w-[90rem]">
+          <section className="border-l-4 border-setu-blue bg-white px-5 py-5 sm:px-6 sm:py-6 shadow-xs">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <div className="flex items-center space-x-2 text-xs font-semibold text-setu-blue-light uppercase tracking-wider">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Executive Project Control Dashboard</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1">
-                  Planner Command Center
+                <p className="text-xs font-semibold tracking-[0.14em] text-setu-blue uppercase">
+                  Planner workspace
+                </p>
+                <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight text-setu-slate-900">
+                  Control Room
                 </h1>
-                <p className="text-xs sm:text-sm text-setu-slate-300 mt-1">
-                  {scheduleLoading ? (
-                    'Loading schedule baselineâ€¦'
-                  ) : scheduleError ? (
-                    'Schedule baseline unavailable'
-                  ) : (
-                    <><strong className="text-white">{activities.length} activities indexed</strong> &middot; {disciplines.length} engineering disciplines &middot; {updates.length} field reports visible</>
-                  )}
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-setu-slate-600">
+                  Operational view of field evidence waiting for planner control.
                 </p>
               </div>
-
-              <button
-                onClick={() => navigate('/planner/review')}
-                className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-setu-blue hover:bg-setu-blue-light text-white text-xs font-bold shadow-xs transition-colors self-start sm:self-center"
-              >
-                <span>Open Review Queue</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="inline-flex items-center gap-2 border border-setu-slate-300 bg-white px-3 py-2 text-xs font-semibold text-setu-slate-700 transition-colors hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Refresh data
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/planner/review')}
+                  className="inline-flex items-center gap-2 bg-setu-blue px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-setu-blue-dark focus:outline-none focus:ring-2 focus:ring-setu-blue/40"
+                >
+                  Open review queue
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
-          </div>
-
-          {/* Prototype Disclaimer Banner */}
-          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="font-bold uppercase text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">
-                Notice
-              </span>
-              <span>Synthetic prototype routing output — not pilot results. Real-time metrics computed directly from Supabase.</span>
-            </div>
-          </div>
+          </section>
 
           {(updatesError || scheduleError || auditError) && (
-            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-900 text-xs">
-              <strong>Live data unavailable:</strong>{' '}
+            <div className="border-l-4 border-setu-red bg-rose-50 px-4 py-3 text-xs text-rose-900" role="alert">
+              <strong>Data unavailable:</strong>{' '}
               {[updatesError, scheduleError, auditError].filter(Boolean).join(' ')}
             </div>
           )}
@@ -129,223 +142,127 @@ export const CommandCenter: React.FC = () => {
             <LoadingSkeleton rows={3} />
           ) : (
             <>
-              {/* KPI Stat Cards Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-                <KpiCard
-                  label="Total Ingested"
-                  value={kpis.total}
-                  subtitle="Field reports in database"
-                  variant="default"
-                  icon={TrendingUp}
-                  onClick={() => navigate('/planner/review')}
-                />
-                <KpiCard
-                  label="Suggested Links"
-                  value={kpis.high}
-                  subtitle="High confidence (>=82%)"
-                  variant="high"
-                  icon={CheckCircle2}
-                  onClick={() => navigate('/planner/review?confidence=High')}
-                />
-                <KpiCard
-                  label="Review Required"
-                  value={kpis.medium}
-                  subtitle="Medium confidence (55-81%)"
-                  variant="medium"
-                  icon={AlertTriangle}
-                  onClick={() => navigate('/planner/review?confidence=Medium')}
-                />
-                <KpiCard
-                  label="Clarification Needed"
-                  value={kpis.low}
-                  subtitle="Low / Unmatched (<55%)"
-                  variant="low"
-                  icon={HelpCircle}
-                  onClick={() => navigate('/planner/review?confidence=Low')}
-                />
-                <KpiCard
-                  label="Planner Decisions"
-                  value={kpis.approved + kpis.remapped}
-                  subtitle={`${kpis.approved} Approved · ${kpis.remapped} Remapped`}
-                  variant="blue"
-                  icon={FileCheck2}
-                  onClick={() => navigate('/planner/audit-export')}
-                />
-              </div>
-
-              {/* Awaiting Matching Worker Notice Banner */}
-              {awaitingCount > 0 && (
-                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-center justify-between shadow-2xs">
-                  <div className="flex items-center space-x-2.5">
-                    <span className="font-bold uppercase text-[10px] px-2 py-0.5 rounded bg-blue-200 text-blue-950 font-mono">
-                      {awaitingCount} Awaiting
-                    </span>
-                    <span>
-                      {awaitingCount} submitted report(s) are awaiting the matching worker. They will be linked automatically when the worker runs.
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => navigate('/planner/review?confidence=Pending')}
-                    className="inline-flex items-center space-x-1 text-xs font-bold text-setu-blue hover:underline shrink-0 ml-2"
-                  >
-                    <span>View in Queue</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-
-              {/* Attention Required Panel */}
-              <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-5 shadow-xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <AlertTriangle className="w-4 h-4 text-setu-amber-dark" />
-                      <h3 className="text-sm font-bold text-amber-950">
-                        Attention Required: {pendingAttentionCount} Reports Awaiting Review or Remapping
-                      </h3>
-                    </div>
-                    <p className="text-xs text-amber-800">
-                      {kpis.medium} Medium-confidence reports require candidate selection, and {kpis.low} Low-confidence reports are flagged for planner remapping. 
-                      <strong className="text-emerald-800 ml-1">100% of field updates are retained; 0 updates silently dropped.</strong>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => navigate('/planner/review?status=pending')}
-                    className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-setu-amber hover:bg-setu-amber-dark text-white text-xs font-bold shadow-xs transition-colors self-start sm:self-center shrink-0"
-                  >
-                    <span>Filter Pending in Queue</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Visual Charts Grid (Recharts) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Confidence Routing Donut Chart */}
-                <div className="rounded-xl border border-setu-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+              <section aria-labelledby="attention-heading" className="space-y-3">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <h3 className="text-sm font-bold text-setu-slate-800">
-                      Confidence Routing Tier Distribution
-                    </h3>
-                    <p className="text-xs text-setu-slate-500 mt-0.5">
-                      Routing breakdown by ensemble confidence threshold.
+                    <h2 id="attention-heading" className="text-sm font-bold text-setu-slate-900">
+                      Work requiring attention
+                    </h2>
+                    <p className="text-xs text-setu-slate-500">
+                      Counts come from currently visible Supabase records.
                     </p>
                   </div>
-                  <div className="h-64 my-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={confidenceChartData}
-                          innerRadius={60}
-                          outerRadius={85}
-                          paddingAngle={3}
-                          dataKey="value"
-                        >
-                          {confidenceChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip
-                          formatter={(val: any) => [`${val} reports`, 'Count']}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium border-t border-setu-slate-100 pt-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-full bg-[#219469]" />
-                      <span>High ({kpis.high})</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-full bg-[#C47814]" />
-                      <span>Medium ({kpis.medium})</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-full bg-[#C43C3C]" />
-                      <span>Low ({kpis.low})</span>
-                    </div>
-                    {awaitingCount > 0 && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full bg-[#64748B]" />
-                        <span>Awaiting ({awaitingCount})</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Discipline Workload Bar Chart */}
-                <div className="rounded-xl border border-setu-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-sm font-bold text-setu-slate-800">
-                      Discipline-Wise Update Breakdown
-                    </h3>
-                    <p className="text-xs text-setu-slate-500 mt-0.5">
-                      Active field evidence volume mapped across engineering disciplines.
-                    </p>
-                  </div>
-                  <div className="h-64 my-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={disciplineChartData} margin={{ top: 20, right: 10, left: -20, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} interval={0} angle={-15} textAnchor="end" />
-                        <YAxis tick={{ fontSize: 11, fill: '#64748B' }} allowDecimals={false} />
-                        <RechartsTooltip />
-                        <Bar dataKey="count" fill="#1E63B7" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="text-center text-[11px] text-setu-slate-400 border-t border-setu-slate-100 pt-3 font-medium">
-                    Auto-categorized by detected domain terms and Primavera WBS codes.
-                  </div>
-                </div>
-              </div>
-
-              {/* Recent Activity Audit Feed */}
-              <div className="rounded-xl border border-setu-slate-200 bg-white p-5 shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="w-4 h-4 text-setu-slate-500" />
-                    <h3 className="text-sm font-bold text-setu-slate-800">
-                      Recent Planner Decisions & Audit Trail
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => navigate('/planner/audit-export')}
-                    className="text-xs font-bold text-setu-blue hover:underline"
-                  >
-                    View Full Audit Log
-                  </button>
-                </div>
-
-                {logs.length === 0 ? (
-                  <p className="text-xs text-setu-slate-500 py-3 italic">
-                    No planner decisions recorded yet. Accept or Remap reports in the Review Queue to populate the audit trail.
+                  <p className="text-[11px] text-setu-slate-500">
+                    Attention views overlap; do not add these counts together.
                   </p>
-                ) : (
-                  <div className="divide-y divide-setu-slate-100">
-                    {logs.slice(0, 4).map((l) => (
-                      <div key={l.id} className="py-2.5 flex items-center justify-between text-xs">
-                        <div className="flex items-center space-x-2.5">
-                          <span className={`px-2 py-0.5 rounded font-extrabold text-[10px] uppercase ${
-                            l.action === 'accept' ? 'bg-emerald-100 text-emerald-800' :
-                            l.action === 'remap' ? 'bg-purple-100 text-purple-800' : 'bg-rose-100 text-rose-800'
-                          }`}>
-                            {l.action}
-                          </span>
-                          <span className="font-mono text-setu-slate-700">
-                            {l.previous_activity_id || '—'} &rarr; <strong className="text-setu-navy">{l.new_activity_id || '—'}</strong>
-                          </span>
-                          <span className="text-setu-slate-500 hidden sm:inline truncate max-w-xs">
-                            "{l.remarks}"
-                          </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+                  {metrics.map((metric) => {
+                    const Icon = metric.icon;
+                    return (
+                      <button
+                        key={metric.label}
+                        type="button"
+                        onClick={() => navigate(`/planner/review?view=${metric.view}`)}
+                        className={`group min-h-36 border-l-4 border-y border-r border-y-setu-slate-200 border-r-setu-slate-200 p-4 text-left transition-colors hover:bg-white focus:outline-none focus:ring-2 focus:ring-setu-blue/30 ${metric.tone}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-xs font-bold text-setu-slate-700">{metric.label}</span>
+                          <Icon className="h-4 w-4 shrink-0" />
                         </div>
-                        <span className="text-setu-slate-400 font-mono text-[11px]">
-                          {l.created_at ? l.created_at.slice(0, 19).replace('T', ' ') : 'Just now'}
-                        </span>
-                      </div>
-                    ))}
+                        <div className="mt-4 font-mono text-3xl font-extrabold tabular-nums">
+                          {metric.value}
+                        </div>
+                        <p className="mt-2 text-[11px] leading-4 text-setu-slate-600">
+                          {metric.detail}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.5fr_1fr]">
+                <div className="border border-setu-slate-200 bg-white">
+                  <div className="flex items-center justify-between border-b border-setu-slate-200 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <History className="h-4 w-4 text-setu-slate-500" />
+                      <h2 className="text-sm font-bold text-setu-slate-900">Recent planner actions</h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/planner/audit-export')}
+                      className="text-xs font-semibold text-setu-blue hover:underline focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+                    >
+                      Open audit trail
+                    </button>
                   </div>
-                )}
+
+                  {logs.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-xs text-setu-slate-500">
+                      No planner actions recorded.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-setu-slate-100">
+                      {logs.slice(0, 6).map((log) => (
+                        <div key={log.id} className="grid gap-2 px-4 py-3 text-xs sm:grid-cols-[7rem_1fr_auto] sm:items-center">
+                          <span className="font-bold text-setu-slate-700">
+                            {humanizeAuditAction(log.action)}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-setu-slate-700">
+                              {describeAuditActivityChange(
+                                log.previous_activity_id,
+                                log.new_activity_id
+                              )}
+                            </p>
+                            {log.remarks && (
+                              <p className="mt-0.5 truncate text-[11px] text-setu-slate-500">{log.remarks}</p>
+                            )}
+                          </div>
+                          <time className="font-mono text-[10px] text-setu-slate-400">
+                            {log.created_at ? log.created_at.slice(0, 16).replace('T', ' ') : '—'}
+                          </time>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <aside className="border border-setu-slate-200 bg-setu-navy px-5 py-5 text-white">
+                  <p className="text-[11px] font-semibold tracking-[0.12em] text-setu-blue-light uppercase">
+                    Schedule baseline
+                  </p>
+                  <div className="mt-3 grid grid-cols-2 gap-4 border-y border-setu-slate-700 py-4">
+                    <div>
+                      <div className="font-mono text-2xl font-bold tabular-nums">{activities.length}</div>
+                      <div className="text-[11px] text-setu-slate-300">Indexed activities</div>
+                    </div>
+                    <div>
+                      <div className="font-mono text-2xl font-bold tabular-nums">{disciplines.length}</div>
+                      <div className="text-[11px] text-setu-slate-300">Disciplines</div>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-xs leading-5 text-setu-slate-300">
+                    Baseline remains read-only. Review indexed activities or validate a local CSV structure in project setup.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/planner/onboarding')}
+                    className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-white hover:text-setu-blue-light focus:outline-none focus:ring-2 focus:ring-setu-blue-light/40"
+                  >
+                    <CalendarClock className="h-4 w-4" />
+                    Baseline index / CSV preview
+                  </button>
+                </aside>
+              </section>
+
+              <div className="flex items-start gap-2 border border-setu-slate-200 bg-setu-slate-50 px-4 py-3 text-[11px] text-setu-slate-600">
+                <ClipboardCheck className="mt-0.5 h-4 w-4 shrink-0 text-setu-teal" />
+                <p>
+                  SETU does not write to Primavera. Only finalized planner mappings are available for controlled export.
+                </p>
               </div>
             </>
           )}

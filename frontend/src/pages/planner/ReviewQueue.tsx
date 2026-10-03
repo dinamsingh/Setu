@@ -1,16 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { 
-  Filter, 
-  Search, 
-  CheckSquare, 
-  UserCircle, 
-  RefreshCw, 
-  CheckCircle2
+import {
+  AlertCircle,
+  CheckCircle2,
+  Filter,
+  History,
+  RefreshCw,
+  Search,
+  UserCircle,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { Sidebar } from '../../components/common/Sidebar';
 import { ReviewCard } from '../../components/planner/ReviewCard';
+import { ReviewQueueItem } from '../../components/planner/ReviewQueueItem';
 import { RemapModal } from '../../components/planner/RemapModal';
 import { OverrideModal } from '../../components/planner/OverrideModal';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -18,388 +20,397 @@ import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 import { useScheduleData } from '../../hooks/useScheduleData';
 import { useAuth } from '../../lib/AuthContext';
+import {
+  actionErrorMessage,
+  computeOperationalCounts,
+  filterAndSortPlannerUpdates,
+  type ReviewView,
+} from '../../lib/plannerWorkspace';
 import type { FieldUpdate } from '../../types';
+
+type Toast = { message: string; tone: 'success' | 'error' };
+
+const reviewViews: ReviewView[] = [
+  'unresolved',
+  'blocked',
+  'unmatched',
+  'low',
+  'awaiting',
+  'history',
+  'all',
+];
 
 export const ReviewQueue: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { updates, loading: updatesLoading, refetch, submitPlannerDecision, requeueForRematching, overrideValidation } = useFieldUpdates();
-  const { activities, activitiesMap, disciplines, loading: scheduleLoading } = useScheduleData();
+  const {
+    updates,
+    loading: updatesLoading,
+    error: updatesError,
+    refetch,
+    submitPlannerDecision,
+    requeueForRematching,
+    overrideValidation,
+  } = useFieldUpdates();
+  const {
+    activities,
+    activitiesMap,
+    disciplines,
+    loading: scheduleLoading,
+    error: scheduleError,
+  } = useScheduleData();
   const { role } = useAuth();
 
   const plannerName = role === 'admin' ? 'Authenticated Administrator' : 'Authenticated Planner';
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [remapTarget, setRemapTarget] = useState<FieldUpdate | null>(null);
   const [overrideTarget, setOverrideTarget] = useState<FieldUpdate | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
 
-  // Read filter params from URL
-  const confidenceFilter = searchParams.get('confidence') || 'All';
-  const statusFilter = searchParams.get('status') || 'All';
-  const disciplineFilter = searchParams.get('discipline') || 'All';
-  const validationFilter = searchParams.get('validation') || 'All';
-  const searchQuery = searchParams.get('q') || '';
+  const requestedView = searchParams.get('view') as ReviewView | null;
+  const view = requestedView && reviewViews.includes(requestedView) ? requestedView : 'unresolved';
+  const confidence = searchParams.get('confidence') || 'All';
+  const status = searchParams.get('status') || 'All';
+  const discipline = searchParams.get('discipline') || 'All';
+  const validation = searchParams.get('validation') || 'All';
+  const search = searchParams.get('q') || '';
 
-  const setFilter = (key: string, val: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (val === 'All' || !val) {
-      newParams.delete(key);
-    } else {
-      newParams.set(key, val);
-    }
-    setSearchParams(newParams);
+  const setFilter = (key: string, value: string) => {
+    const next = new URLSearchParams(searchParams);
+    const isDefaultView = key === 'view' && value === 'unresolved';
+    if (!value || value === 'All' || isDefaultView) next.delete(key);
+    else next.set(key, value);
+    setSearchParams(next);
   };
 
-  const filteredUpdates = useMemo(() => {
-    return updates.filter((u) => {
-      // 1. Confidence filter
-      if (confidenceFilter !== 'All') {
-        const uConf = (u.confidence_level || 'pending').toLowerCase();
-        if (uConf !== confidenceFilter.toLowerCase()) {
-          return false;
-        }
-      }
+  const filteredUpdates = useMemo(
+    () =>
+      filterAndSortPlannerUpdates(updates, activitiesMap, {
+        view,
+        confidence,
+        status,
+        discipline,
+        validation,
+        search,
+      }),
+    [updates, activitiesMap, view, confidence, status, discipline, validation, search]
+  );
 
-      // 2. Status filter
-      if (statusFilter !== 'All' && u.status.toLowerCase() !== statusFilter.toLowerCase()) {
-        return false;
-      }
+  const counts = useMemo(
+    () => computeOperationalCounts(updates, activitiesMap),
+    [updates, activitiesMap]
+  );
+  const historyCount = updates.filter((update) => update.status !== 'pending').length;
 
-      // 3. Discipline filter
-      if (disciplineFilter !== 'All') {
-        const act = u.matched_activity_id ? activitiesMap.get(u.matched_activity_id) : undefined;
-        const disc = act?.discipline || (Array.isArray(u.candidate_matches) && u.candidate_matches[0]?.discipline) || 'Unassigned';
-        if (disc.toLowerCase() !== disciplineFilter.toLowerCase()) {
-          return false;
-        }
-      }
+  const effectiveSelectedId = filteredUpdates.some((update) => update.id === selectedId)
+    ? selectedId
+    : filteredUpdates[0]?.id || null;
+  const selectedUpdate =
+    filteredUpdates.find((update) => update.id === effectiveSelectedId) || null;
+  const selectedActivity = selectedUpdate?.matched_activity_id
+    ? activitiesMap.get(selectedUpdate.matched_activity_id)
+    : undefined;
 
-      // 4. Validation filter
-      if (validationFilter !== 'All') {
-        if (validationFilter.toLowerCase() === 'overridden') {
-          if (!u.validation_overridden) {
-            return false;
-          }
-        } else {
-          const uVal = (u.validation_status || 'pass').toLowerCase();
-          if (uVal !== validationFilter.toLowerCase()) {
-            return false;
-          }
-        }
-      }
-
-      // 5. Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const act = u.matched_activity_id ? activitiesMap.get(u.matched_activity_id) : undefined;
-        const haystack = `${u.update_id} ${u.field_text} ${u.site_location || ''} ${u.reported_by || ''} ${u.matched_activity_id || ''} ${act?.activity_name || ''}`.toLowerCase();
-        if (!haystack.includes(q)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [updates, confidenceFilter, statusFilter, disciplineFilter, validationFilter, searchQuery, activitiesMap]);
+  const showToast = (message: string, tone: Toast['tone'] = 'success') => {
+    setToast({ message, tone });
+    window.setTimeout(() => setToast(null), 5000);
+  };
 
   const handleAccept = async (update: FieldUpdate, remarks: string) => {
-    if (['approved', 'rejected', 'remapped'].includes(update.status)) {
-      showToast(`Update ${update.update_id} is already finalized and read-only.`);
+    if (update.status !== 'pending') {
+      showToast(`Update ${update.update_id} is finalized and read-only.`, 'error');
       return;
     }
     if (update.validation_status === 'block' && !update.validation_overridden) {
-      showToast('A documented validation override is required before approval.');
+      showToast('A documented validation override is required before approval.', 'error');
       return;
     }
     if (!update.matched_activity_id || !activitiesMap.has(update.matched_activity_id)) {
-      showToast('Select a valid schedule activity through Remap before approval.');
+      showToast('Select a valid schedule activity through Remap before approval.', 'error');
       return;
     }
-    const res = await submitPlannerDecision({
+
+    const result = await submitPlannerDecision({
       updateUuid: update.id,
       action: 'accept',
       targetActivityId: null,
       remarks,
     });
-    if (res.success) {
-      showToast(`Update ${update.update_id} approved and logged in audit trail.`);
-    }
+    const error = actionErrorMessage(result, 'Failed to approve mapping.');
+    if (error) showToast(error, 'error');
+    else showToast(`Update ${update.update_id} approved and recorded in the audit trail.`);
   };
 
   const handleReject = async (update: FieldUpdate, remarks: string) => {
-    if (['approved', 'rejected', 'remapped'].includes(update.status)) {
-      showToast(`Update ${update.update_id} is already finalized and read-only.`);
+    if (update.status !== 'pending') {
+      showToast(`Update ${update.update_id} is finalized and read-only.`, 'error');
       return;
     }
-    const res = await submitPlannerDecision({
+    const result = await submitPlannerDecision({
       updateUuid: update.id,
       action: 'reject',
       targetActivityId: null,
       remarks,
     });
-    if (res.success) {
-      showToast(`Update ${update.update_id} marked as rejected.`);
-    }
+    const error = actionErrorMessage(result, 'Failed to reject report.');
+    if (error) showToast(error, 'error');
+    else showToast(`Update ${update.update_id} moved to terminal rejected status.`);
   };
 
-  const handleConfirmRemap = async (update: FieldUpdate, newActivityId: string, remarks: string) => {
-    if (['approved', 'rejected', 'remapped'].includes(update.status)) {
-      showToast(`Update ${update.update_id} is already finalized and read-only.`);
-      return;
+  const handleConfirmRemap = async (
+    update: FieldUpdate,
+    newActivityId: string,
+    remarks: string
+  ) => {
+    if (update.status !== 'pending') {
+      showToast(`Update ${update.update_id} is finalized and read-only.`, 'error');
+      return false;
     }
     if (update.validation_status === 'block' && !update.validation_overridden) {
-      showToast('A documented validation override is required before final remapping.');
-      return;
+      showToast('A documented validation override is required before final remapping.', 'error');
+      return false;
     }
     if (!activitiesMap.has(newActivityId)) {
-      showToast('Choose a valid schedule activity before confirming the remap.');
-      return;
+      showToast('Choose a valid schedule activity before confirming the remap.', 'error');
+      return false;
     }
-    const res = await submitPlannerDecision({
+    if (newActivityId === update.matched_activity_id) {
+      showToast('Choose a different activity. The current activity is not a remap.', 'error');
+      return false;
+    }
+
+    const result = await submitPlannerDecision({
       updateUuid: update.id,
       action: 'remap',
       targetActivityId: newActivityId,
       remarks,
     });
-    if (res.success) {
-      showToast(`Update ${update.update_id} successfully remapped to [${newActivityId}].`);
+    const error = actionErrorMessage(result, 'Failed to remap report.');
+    if (error) {
+      showToast(error, 'error');
+      return false;
     }
+    showToast(`Update ${update.update_id} remapped to ${newActivityId}.`);
+    return true;
   };
 
   const handleRequeue = async (update: FieldUpdate, remarks?: string) => {
-    const res = await requeueForRematching({
-      updateUuid: update.id,
-      remarks,
-    });
-    if (res.success) {
-      showToast(`Report ${update.update_id} re-queued for AI matching worker.`);
-    } else {
-      showToast(res.error || 'Failed to re-queue update');
-    }
+    const result = await requeueForRematching({ updateUuid: update.id, remarks });
+    const error = actionErrorMessage(result, 'Failed to requeue report.');
+    if (error) showToast(error, 'error');
+    else showToast(`Report ${update.update_id} requeued for the matching worker.`);
   };
 
   const handleConfirmOverride = async (update: FieldUpdate, reason: string) => {
-    const res = await overrideValidation({
-      updateUuid: update.id,
-      reason,
-    });
-    if (res.success) {
-      showToast(`Validation override recorded for ${update.update_id}.`);
-      setOverrideTarget(null);
-    } else {
-      showToast(res.error || 'Failed to record validation override');
+    const result = await overrideValidation({ updateUuid: update.id, reason });
+    const error = actionErrorMessage(result, 'Failed to record validation override.');
+    if (error) {
+      showToast(error, 'error');
+      return false;
     }
+    showToast(`Validation override recorded for ${update.update_id}.`);
+    return true;
   };
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 4000);
-  };
-
+  const clearFilters = () => setSearchParams(new URLSearchParams());
   const loading = updatesLoading || scheduleLoading;
+  const hasSecondaryFilters =
+    confidence !== 'All' ||
+    status !== 'All' ||
+    discipline !== 'All' ||
+    validation !== 'All' ||
+    Boolean(search);
+
+  const viewOptions: Array<{ value: ReviewView; label: string; count: number }> = [
+    { value: 'unresolved', label: 'Unresolved', count: updates.filter((update) => update.status === 'pending').length },
+    { value: 'blocked', label: 'Blocked', count: counts.blocked },
+    { value: 'unmatched', label: 'Unmatched', count: counts.unmatched },
+    { value: 'low', label: 'Low confidence', count: counts.lowConfidence },
+    { value: 'awaiting', label: 'Awaiting AI', count: counts.awaitingAi },
+    { value: 'history', label: 'Finalized history', count: historyCount },
+  ];
 
   return (
     <div className="min-h-screen bg-setu-slate-100 flex flex-col">
       <Header currentRole="planner" />
-
       <div className="flex-1 flex flex-col md:flex-row">
         <Sidebar />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl">
-          {/* Toast Alert */}
-          {toastMessage && (
-            <div className="fixed bottom-5 right-5 z-50 p-4 rounded-xl bg-setu-navy text-white shadow-xl border border-setu-slate-700 flex items-center space-x-2.5 animate-fadeIn">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-              <span className="text-xs font-semibold">{toastMessage}</span>
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-4 max-w-[100rem]">
+          {toast && (
+            <div
+              role="alert"
+              className={`fixed bottom-5 right-5 z-50 flex max-w-md items-start gap-2.5 border px-4 py-3 text-xs font-semibold shadow-xl ${
+                toast.tone === 'error'
+                  ? 'border-rose-300 bg-rose-950 text-white'
+                  : 'border-setu-slate-700 bg-setu-navy text-white'
+              }`}
+            >
+              {toast.tone === 'error' ? (
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-300" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+              )}
+              <span>{toast.message}</span>
             </div>
           )}
 
-          {/* Header & Planner Info Strip */}
-          <div className="bg-white rounded-2xl border border-setu-slate-200 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center space-x-2 text-xs font-bold text-setu-teal uppercase tracking-wider">
-                <CheckSquare className="w-4 h-4" />
-                <span>Planner Review Queue &middot; Human-in-the-Loop</span>
+          <section className="border-l-4 border-setu-blue bg-white px-5 py-4 shadow-xs">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-setu-blue">Human-controlled linking</p>
+                <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-setu-slate-900">Review Queue</h1>
+                <p className="mt-1 text-xs text-setu-slate-500">
+                  Field evidence → AI suggestion → project-controls validation → planner decision
+                </p>
               </div>
-              <h1 className="text-2xl font-extrabold text-setu-slate-900 mt-1">
-                Progress Linking Review Queue
-              </h1>
-              <p className="text-xs text-setu-slate-500 mt-1">
-                Validate AI-suggested links between unstructured site evidence and formal Primavera activities.
-              </p>
-            </div>
-
-            {/* Authenticated actor display; database audit identity comes from auth.uid(). */}
-            <div className="flex items-center space-x-2 bg-setu-slate-50 px-3 py-1.5 rounded-xl border border-setu-slate-200 text-xs self-start sm:self-center">
-              <UserCircle className="w-4 h-4 text-setu-blue shrink-0" />
-              <div className="flex flex-col">
-                <span className="text-[10px] text-setu-slate-400 font-bold uppercase">Acting Planner:</span>
-                <span className="font-bold text-setu-navy text-xs">{plannerName}</span>
+              <div className="flex items-center gap-2 border border-setu-slate-200 bg-setu-slate-50 px-3 py-2 text-xs">
+                <UserCircle className="h-4 w-4 text-setu-blue" />
+                <span className="text-setu-slate-500">Acting role</span>
+                <strong className="text-setu-navy">{plannerName}</strong>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Filter Bar */}
-          <div className="bg-white rounded-xl border border-setu-slate-200 p-4 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-xs font-bold text-setu-slate-700">
-                <Filter className="w-3.5 h-3.5 text-setu-blue" />
-                <span>Filter & Search Queue</span>
-              </div>
-              <button
-                onClick={() => refetch()}
-                className="inline-flex items-center space-x-1 text-xs text-setu-blue hover:text-setu-blue-dark font-semibold"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Refresh</span>
-              </button>
+          {(updatesError || scheduleError) && (
+            <div className="border-l-4 border-setu-red bg-rose-50 px-4 py-3 text-xs text-rose-900" role="alert">
+              <strong>Queue data unavailable:</strong> {[updatesError, scheduleError].filter(Boolean).join(' ')}
             </div>
+          )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              {/* Confidence Filter */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-setu-slate-500 mb-1">
-                  Confidence Tier
-                </label>
-                <select
-                  value={confidenceFilter}
-                  onChange={(e) => setFilter('confidence', e.target.value)}
-                  className="w-full text-xs p-2 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-setu-blue bg-white font-medium"
-                >
-                  <option value="All">All Tiers</option>
-                  <option value="High">High Confidence (&ge;82%)</option>
-                  <option value="Medium">Medium Review (55-81%)</option>
-                  <option value="Low">Low / Flagged (&lt;55%)</option>
-                  <option value="Pending">Awaiting Matching</option>
-                </select>
-              </div>
-
-              {/* Status Filter */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-setu-slate-500 mb-1">
-                  Review Status
-                </label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setFilter('status', e.target.value)}
-                  className="w-full text-xs p-2 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-setu-blue bg-white font-medium"
-                >
-                  <option value="All">All Statuses</option>
-                  <option value="pending">Pending Review</option>
-                  <option value="approved">Approved</option>
-                  <option value="remapped">Remapped</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-              </div>
-
-              {/* Discipline Filter */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-setu-slate-500 mb-1">
-                  Discipline
-                </label>
-                <select
-                  value={disciplineFilter}
-                  onChange={(e) => setFilter('discipline', e.target.value)}
-                  className="w-full text-xs p-2 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-setu-blue bg-white font-medium"
-                >
-                  <option value="All">All Disciplines</option>
-                  {disciplines.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Validation Filter */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-setu-slate-500 mb-1">
-                  Validation Status
-                </label>
-                <select
-                  value={validationFilter}
-                  onChange={(e) => setFilter('validation', e.target.value)}
-                  className="w-full text-xs p-2 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-setu-blue bg-white font-medium"
-                >
-                  <option value="All">All Validations</option>
-                  <option value="pass">Validated (Pass)</option>
-                  <option value="warn">Warning</option>
-                  <option value="block">Blocked</option>
-                  <option value="overridden">Overridden</option>
-                </select>
-              </div>
-
-              {/* Free-text Search */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-setu-slate-500 mb-1">
-                  Search Narrative
-                </label>
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-setu-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search text, task ID, foreman..."
-                    value={searchQuery}
-                    onChange={(e) => setFilter('q', e.target.value)}
-                    className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-setu-blue"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Filter Summary */}
-            <div className="text-[11px] text-setu-slate-500 flex items-center justify-between pt-1">
-              <span>
-                Showing <strong>{filteredUpdates.length}</strong> of {updates.length} total field reports
-              </span>
-              {(confidenceFilter !== 'All' || statusFilter !== 'All' || disciplineFilter !== 'All' || validationFilter !== 'All' || searchQuery) && (
+          <section className="border border-setu-slate-200 bg-white">
+            <div className="flex flex-wrap items-center gap-1 border-b border-setu-slate-200 px-3 py-2">
+              {viewOptions.map((option) => (
                 <button
-                  onClick={() => setSearchParams(new URLSearchParams())}
-                  className="text-setu-blue hover:underline font-semibold"
+                  key={option.value}
+                  type="button"
+                  onClick={() => setFilter('view', option.value)}
+                  className={`px-3 py-2 text-xs font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-setu-blue/30 ${
+                    view === option.value
+                      ? 'bg-setu-navy text-white'
+                      : 'text-setu-slate-600 hover:bg-setu-slate-100 hover:text-setu-slate-900'
+                  }`}
                 >
-                  Clear All Filters
+                  {option.label} <span className="font-mono opacity-75">{option.count}</span>
                 </button>
-              )}
+              ))}
             </div>
-          </div>
 
-          {/* Cards List */}
+            <div className="grid grid-cols-1 gap-3 px-3 py-3 sm:grid-cols-2 xl:grid-cols-[minmax(15rem,1.5fr)_repeat(3,minmax(9rem,0.75fr))_auto]">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-setu-slate-400" />
+                <input
+                  type="search"
+                  aria-label="Search field evidence"
+                  placeholder="Search evidence, report, activity, reporter"
+                  value={search}
+                  onChange={(event) => setFilter('q', event.target.value)}
+                  className="w-full border border-setu-slate-300 py-2 pl-8 pr-3 text-xs focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+                />
+              </div>
+              <select
+                aria-label="Filter by discipline"
+                value={discipline}
+                onChange={(event) => setFilter('discipline', event.target.value)}
+                className="border border-setu-slate-300 bg-white px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+              >
+                <option value="All">All disciplines</option>
+                {disciplines.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+              <select
+                aria-label="Filter by validation"
+                value={validation}
+                onChange={(event) => setFilter('validation', event.target.value)}
+                className="border border-setu-slate-300 bg-white px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+              >
+                <option value="All">All validation states</option>
+                <option value="pass">Passed</option>
+                <option value="warn">Warning</option>
+                <option value="block">Blocked</option>
+                <option value="overridden">Overridden</option>
+                <option value="unvalidated">Not yet validated</option>
+              </select>
+              <select
+                aria-label="Filter by confidence"
+                value={confidence}
+                onChange={(event) => setFilter('confidence', event.target.value)}
+                className="border border-setu-slate-300 bg-white px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+              >
+                <option value="All">All confidence tiers</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+                <option value="Pending">Awaiting AI</option>
+              </select>
+              <div className="flex items-center justify-end gap-2">
+                {hasSecondaryFilters && (
+                  <button type="button" onClick={clearFilters} className="text-xs font-semibold text-setu-blue hover:underline focus:outline-none focus:ring-2 focus:ring-setu-blue/30">
+                    Clear filters
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="inline-flex items-center gap-1.5 border border-setu-slate-300 px-3 py-2 text-xs font-semibold text-setu-slate-700 hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Refresh
+                </button>
+              </div>
+            </div>
+          </section>
+
           {loading ? (
             <LoadingSkeleton rows={4} />
           ) : filteredUpdates.length === 0 ? (
             <EmptyState
-              title="No field reports match this filter criteria"
-              description="Adjust the confidence tier, status, or search query above to view pending items."
+              title="No reports in this view"
+              description="Change the work view or remove filters. Finalized reports remain available under Finalized history."
               actionButton={
-                <button
-                  onClick={() => setSearchParams(new URLSearchParams())}
-                  className="px-3 py-1.5 rounded-lg bg-setu-blue text-white text-xs font-bold"
-                >
-                  Reset Filters
+                <button type="button" onClick={clearFilters} className="bg-setu-blue px-3 py-2 text-xs font-bold text-white">
+                  Return to unresolved
                 </button>
               }
             />
           ) : (
-            <div className="space-y-4">
-              {filteredUpdates.map((item) => {
-                const matchedAct = item.matched_activity_id
-                  ? activitiesMap.get(item.matched_activity_id)
-                  : undefined;
+            <section className="grid min-h-[42rem] grid-cols-1 gap-4 lg:grid-cols-[minmax(19rem,0.85fr)_minmax(0,2fr)]">
+              <aside className="border border-setu-slate-200 bg-white lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
+                <div className="sticky top-0 z-10 flex items-center justify-between border-b border-setu-slate-200 bg-setu-slate-50 px-4 py-2.5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-setu-slate-700">
+                    {view === 'history' ? <History className="h-3.5 w-3.5" /> : <Filter className="h-3.5 w-3.5" />}
+                    {view === 'history' ? 'Finalized history' : 'Prioritized queue'}
+                  </div>
+                  <span className="font-mono text-[11px] text-setu-slate-500">{filteredUpdates.length}</span>
+                </div>
+                <div className="divide-y divide-setu-slate-100">
+                  {filteredUpdates.map((update) => (
+                    <ReviewQueueItem
+                      key={update.id}
+                      update={update}
+                      matchedActivity={update.matched_activity_id ? activitiesMap.get(update.matched_activity_id) : undefined}
+                      selected={effectiveSelectedId === update.id}
+                      onSelect={() => setSelectedId(update.id)}
+                    />
+                  ))}
+                </div>
+              </aside>
 
-                return (
+              <div className="min-w-0">
+                {selectedUpdate && (
                   <ReviewCard
-                    key={item.id}
-                    update={item}
-                    matchedActivity={matchedAct}
+                    key={selectedUpdate.id}
+                    update={selectedUpdate}
+                    matchedActivity={selectedActivity}
                     plannerName={plannerName}
                     onAccept={handleAccept}
                     onReject={handleReject}
-                    onOpenRemap={(u) => setRemapTarget(u)}
-                    onOpenOverride={(u) => setOverrideTarget(u)}
+                    onOpenRemap={setRemapTarget}
+                    onOpenOverride={setOverrideTarget}
                     onRequeue={handleRequeue}
                   />
-                );
-              })}
-            </div>
+                )}
+              </div>
+            </section>
           )}
 
-          {/* Remap Activity Modal */}
           <RemapModal
             isOpen={remapTarget !== null}
             update={remapTarget}
@@ -409,7 +420,6 @@ export const ReviewQueue: React.FC = () => {
             onConfirmRemap={handleConfirmRemap}
           />
 
-          {/* Override Validation Modal */}
           <OverrideModal
             isOpen={overrideTarget !== null}
             update={overrideTarget}

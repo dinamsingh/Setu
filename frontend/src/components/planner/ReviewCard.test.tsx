@@ -75,14 +75,19 @@ function renderReview(
 describe('ReviewCard planner governance states', () => {
   it('offers approval for a pending High, valid, passing link', () => {
     const html = renderReview();
-    expect(html).toContain('Approve Link');
-    expect(html).toContain('Remap Activity');
+    expect(html).toContain('data-testid="decision-status-bar"');
+    expect(html).toContain('sticky top-16');
+    expect(html).toContain('Ready for decision');
+    expect(html).toContain('Accept mapping');
+    expect(html).toContain('Remap activity');
+    expect(html).toContain('More actions');
+    expect(html).not.toContain('Decision note');
   });
 
   it('keeps review and remap available for a pending Medium link', () => {
     const html = renderReview({ confidence_level: 'Medium', confidence_score: 0.7 });
-    expect(html).toContain('Approve Link');
-    expect(html).toContain('Remap Activity');
+    expect(html).toContain('Accept mapping');
+    expect(html).toContain('Remap activity');
   });
 
   it('requires an unlinked Low report to be remapped or rejected', () => {
@@ -90,9 +95,9 @@ describe('ReviewCard planner governance states', () => {
       { confidence_level: 'Low', confidence_score: 0.3, matched_activity_id: null },
       undefined
     );
-    expect(html).not.toContain('Approve Link');
-    expect(html).toContain('Remap Activity');
-    expect(html).toContain('direct approval is unavailable');
+    expect(html).not.toContain('Accept mapping');
+    expect(html).toContain('Remap activity');
+    expect(html).toContain('No valid schedule activity is linked');
   });
 
   it('locks approval and final remap for a non-overridden validation block', () => {
@@ -100,9 +105,16 @@ describe('ReviewCard planner governance states', () => {
       validation_status: 'block',
       validation_results: validationResults,
     });
-    expect(html).toContain('Override Validation...');
-    expect(html).not.toContain('Approve Link');
-    expect(html).not.toContain('Remap Activity');
+    expect(html).toContain('Blocked by validation');
+    expect(html).toContain(
+      '1 validation control failed. Review failed checks before taking an exceptional action.'
+    );
+    expect(html).toContain('Review failed checks');
+    expect(html).toContain('Exceptional: override validation');
+    expect(html).toContain('Normal decision controls are locked');
+    expect(html).not.toContain('Accept mapping');
+    expect(html).not.toContain('Remap activity');
+    expect(html).not.toContain('Decision note');
   });
 
   it('restores normal planner actions after a documented override', () => {
@@ -112,21 +124,47 @@ describe('ReviewCard planner governance states', () => {
       validation_overridden: true,
       override_reason: 'Verified against the signed site log.',
     });
-    expect(html).toContain('Approve (Overridden)');
-    expect(html).toContain('Remap Activity');
+    expect(html).toContain('Accept mapping');
+    expect(html).toContain('Remap activity');
   });
 
   it.each(['approved', 'rejected', 'remapped'] as const)(
     'renders a %s row as finalized and read-only',
     (status) => {
       const html = renderReview({ status });
+      expect(html).toContain('Finalized / read-only');
       expect(html).toContain('Finalized planner decision');
-      expect(html).not.toContain('Approve Link');
-      expect(html).not.toContain('Remap Activity');
-      expect(html).not.toContain('>Reject<');
-      expect(html).not.toContain('>Re-queue<');
+      expect(html).toContain('Read-only');
+      expect(html).not.toContain('Accept mapping');
+      expect(html).not.toContain('Remap activity');
+      expect(html).not.toContain('Reject report (terminal)');
+      expect(html).not.toContain('Requeue matching');
+      expect(html).not.toContain('More actions');
     }
   );
+
+  it('shows matching progress without planner decision controls while awaiting AI', () => {
+    const html = renderReview(
+      {
+        confidence_level: 'Pending',
+        confidence_score: 0,
+        matched_activity_id: null,
+        validation_status: null,
+      },
+      undefined
+    );
+
+    expect(html).toContain('Awaiting AI');
+    expect(html).toContain('Matching in progress');
+    expect(html).toContain(
+      'Planner decision controls are unavailable until AI matching and validation complete.'
+    );
+    expect(html).not.toContain('Accept mapping');
+    expect(html).not.toContain('Remap activity');
+    expect(html).not.toContain('Requeue matching');
+    expect(html).not.toContain('Reject report');
+    expect(html).not.toContain('More actions');
+  });
 
   it('renders the stored validation names, outcomes, messages, and evidence', () => {
     const html = renderReview({

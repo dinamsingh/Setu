@@ -1,27 +1,29 @@
-import React, { useState } from 'react';
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  CheckCircle2, 
-  XCircle, 
-  ArrowRightLeft, 
-  MapPin, 
-  Calendar, 
-  User, 
-  FileText, 
-  Sparkles,
-  RotateCcw,
-  ShieldCheck,
-  ShieldAlert,
+import React, { useRef, useState } from 'react';
+import {
   AlertTriangle,
-  Unlock,
+  ArrowRightLeft,
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  CircleDashed,
   Clock,
-  Layers
+  FileText,
+  LockKeyhole,
+  LoaderCircle,
+  MapPin,
+  MoreHorizontal,
+  RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
+  Unlock,
+  User,
+  XCircle,
 } from 'lucide-react';
-import type { FieldUpdate, ScheduleActivity } from '../../types';
+import type { FieldUpdate, ScheduleActivity, ValidationCheckResult } from '../../types';
 import { ConfidenceBadge } from '../common/ConfidenceBadge';
 import { StatusBadge } from '../common/StatusBadge';
 import { parseValidationResults } from '../../lib/utils';
+import { isMatchingPending } from '../../lib/plannerWorkspace';
 
 interface ReviewCardProps {
   update: FieldUpdate;
@@ -34,6 +36,66 @@ interface ReviewCardProps {
   onRequeue?: (update: FieldUpdate, remarks?: string) => Promise<void>;
 }
 
+const supportedChecks = new Set([
+  'date_plausibility',
+  'candidate_ambiguity',
+  'location_consistency',
+  'duplicate_detection',
+  'reporter_discipline',
+  'sequence_plausibility',
+]);
+
+function ValidationCheck({ check }: { check: ValidationCheckResult }) {
+  const outcome = check.outcome || check.status;
+  const Icon =
+    outcome === 'fail' ? XCircle : outcome === 'warn' ? AlertTriangle : CheckCircle2;
+  const tone =
+    outcome === 'fail'
+      ? 'border-rose-200 bg-rose-50 text-rose-900'
+      : outcome === 'warn'
+      ? 'border-amber-200 bg-amber-50 text-amber-950'
+      : 'border-emerald-200 bg-emerald-50 text-emerald-900';
+
+  return (
+    <div className={`border px-3 py-2.5 ${tone}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2">
+          <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <div>
+            <p className="text-[11px] font-bold">{check.name}</p>
+            <p className="mt-0.5 text-[11px] leading-4 opacity-85">
+              {check.message || check.reason || 'No validation message was stored.'}
+            </p>
+          </div>
+        </div>
+        <span className="shrink-0 font-mono text-[10px] font-bold uppercase">
+          {outcome === 'fail' ? 'BLOCK' : (outcome || 'Unknown').toUpperCase()}
+        </span>
+      </div>
+      {check.evidence && Object.keys(check.evidence).length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1 border-t border-current/10 pt-2 font-mono text-[9px] opacity-75">
+          {Object.entries(check.evidence).map(([key, value]) => (
+            <span key={key}>
+              {key}: {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SectionLabel = ({ number, children }: { number: number; children: React.ReactNode }) => (
+  <div className="mb-3 flex items-center gap-2 border-b border-setu-slate-200 pb-2">
+    <span className="flex h-5 w-5 items-center justify-center bg-setu-navy font-mono text-[10px] font-bold text-white">
+      {number}
+    </span>
+    <h2 className="text-xs font-extrabold uppercase tracking-[0.12em] text-setu-slate-700">
+      {children}
+    </h2>
+  </div>
+);
+
 export const ReviewCard: React.FC<ReviewCardProps> = ({
   update,
   matchedActivity,
@@ -44,470 +106,574 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   onOpenOverride,
   onRequeue,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isValidationExpanded, setIsValidationExpanded] = useState(
-    update.validation_status === 'block' || update.validation_status === 'warn'
-  );
-  const [remarks, setRemarks] = useState(update.planner_remarks || '');
+  const [pendingAction, setPendingAction] = useState<'accept' | 'reject' | 'requeue' | null>(null);
+  const [actionNote, setActionNote] = useState(update.planner_remarks || '');
+  const [showMoreActions, setShowMoreActions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const validationRef = useRef<HTMLElement>(null);
+  const decisionRef = useRef<HTMLElement>(null);
+  const actionNoteRef = useRef<HTMLTextAreaElement>(null);
 
-  const isAwaiting = !update.confidence_level || update.confidence_level.toLowerCase() === 'pending';
-  const actId = update.matched_activity_id;
-  const actName = isAwaiting
-    ? 'Matching in progress — awaiting AI schedule analysis...'
-    : matchedActivity
-    ? matchedActivity.activity_name
-    : 'No Auto-Matched Activity (Requires Manual Linking)';
-  const discipline = isAwaiting ? 'Awaiting Worker' : matchedActivity ? matchedActivity.discipline : 'General / Unassigned';
-  const wbs = matchedActivity?.wbs_code || '—';
-
+  const awaiting = isMatchingPending(update);
   const candidates = Array.isArray(update.candidate_matches) ? update.candidate_matches : [];
-  const validationResults = parseValidationResults(update.validation_results);
-  const supportedValidationResults = validationResults.filter((check) =>
-    [
-      'date_plausibility',
-      'candidate_ambiguity',
-      'location_consistency',
-      'duplicate_detection',
-      'reporter_discipline',
-      'sequence_plausibility',
-    ].includes(check.check)
+  const validationResults = parseValidationResults(update.validation_results).filter((check) =>
+    supportedChecks.has(check.check)
   );
-  const isReviewed = ['approved', 'rejected', 'remapped'].includes((update.status || '').toLowerCase());
+  const failedChecks = validationResults.filter(
+    (check) => (check.outcome || check.status) === 'fail'
+  );
+  const remainingChecks = validationResults.filter(
+    (check) => (check.outcome || check.status) !== 'fail'
+  );
+  const isReviewed = ['approved', 'rejected', 'remapped'].includes(
+    (update.status || '').toLowerCase()
+  );
   const isBlocked = update.validation_status === 'block' && !update.validation_overridden;
-  const hasValidMatchedActivity = Boolean(update.matched_activity_id && matchedActivity);
+  const hasValidMatch = Boolean(update.matched_activity_id && matchedActivity);
+  const failedControlCount = Math.max(failedChecks.length, isBlocked ? 1 : 0);
 
-  const handleAccept = async () => {
+  const runAction = async (action: () => Promise<void>) => {
     setIsSubmitting(true);
     try {
-      await onAccept(update, remarks || `Approved by ${plannerName}`);
+      await action();
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleReject = async () => {
-    setIsSubmitting(true);
-    try {
-      await onReject(update, remarks || `Rejected by ${plannerName}`);
-    } finally {
-      setIsSubmitting(false);
+  const activityName = awaiting
+    ? 'Matching worker has not completed analysis.'
+    : matchedActivity?.activity_name || 'No valid activity is linked.';
+
+  const scrollToValidation = () => {
+    validationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    validationRef.current?.focus({ preventScroll: true });
+  };
+
+  const openDecisionAction = (action: 'accept' | 'reject' | 'requeue') => {
+    setPendingAction(action);
+    if (action !== 'accept') setShowMoreActions(true);
+    decisionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.requestAnimationFrame(() => actionNoteRef.current?.focus());
+  };
+
+  const openMoreActions = () => {
+    setShowMoreActions(true);
+    decisionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const submitPendingAction = async () => {
+    if (pendingAction === 'accept') {
+      await onAccept(update, actionNote.trim() || `Approved by ${plannerName}`);
+    } else if (pendingAction === 'reject') {
+      await onReject(update, actionNote.trim() || `Rejected by ${plannerName}`);
+    } else if (pendingAction === 'requeue' && onRequeue) {
+      await onRequeue(update, actionNote.trim() || `Re-queued for re-matching by ${plannerName}`);
     }
   };
 
-  const handleRequeue = async () => {
-    if (!onRequeue) return;
-    setIsSubmitting(true);
-    try {
-      await onRequeue(update, remarks || `Re-queued for re-matching with updated domain dictionary by ${plannerName}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const pendingActionCopy =
+    pendingAction === 'accept'
+      ? {
+          heading: 'Accept AI mapping',
+          label: 'Acceptance note (optional)',
+          placeholder: 'Add planner evidence or decision context',
+          confirm: 'Confirm accept',
+          tone: 'border-emerald-200 bg-emerald-50/50',
+          button: 'bg-setu-green hover:bg-setu-green-dark',
+        }
+      : pendingAction === 'reject'
+      ? {
+          heading: 'Reject report',
+          label: 'Rejection note (optional)',
+          placeholder: 'Record why this report is being rejected',
+          confirm: 'Confirm rejection',
+          tone: 'border-rose-200 bg-rose-50/50',
+          button: 'bg-setu-red hover:bg-setu-red-dark',
+        }
+      : pendingAction === 'requeue'
+      ? {
+          heading: 'Requeue matching',
+          label: 'Requeue note (optional)',
+          placeholder: 'Record why another matching attempt is needed',
+          confirm: 'Confirm requeue',
+          tone: 'border-amber-200 bg-amber-50/50',
+          button: 'bg-setu-amber hover:bg-setu-amber-dark',
+        }
+      : null;
+
+  const decisionState = isReviewed
+    ? {
+        label: 'Finalized / read-only',
+        detail: 'Planner decision recorded. No further actions are available.',
+        icon: LockKeyhole,
+        tone: 'border-setu-slate-400 bg-setu-slate-100 text-setu-slate-800',
+      }
+    : awaiting
+    ? {
+        label: 'Awaiting AI',
+        detail: 'Matching is in progress. Planner actions unlock when analysis completes.',
+        icon: LoaderCircle,
+        tone: 'border-setu-blue bg-blue-50 text-setu-blue-dark',
+      }
+    : isBlocked
+    ? {
+        label: 'Blocked by validation',
+        detail: `${failedControlCount} validation control${failedControlCount === 1 ? '' : 's'} failed.`,
+        icon: ShieldAlert,
+        tone: 'border-setu-red bg-rose-50 text-rose-900',
+      }
+    : {
+        label: 'Ready for decision',
+        detail: hasValidMatch
+          ? 'Review the evidence, suggestion, and controls before deciding.'
+          : 'No valid activity is linked. Remap is required before acceptance.',
+        icon: CheckCircle2,
+        tone: 'border-setu-green bg-emerald-50 text-emerald-900',
+      };
+  const DecisionStateIcon = decisionState.icon;
 
   return (
-    <div className="bg-white rounded-xl border border-setu-slate-200 shadow-xs hover:border-setu-slate-300 transition-all overflow-hidden">
-      {/* Card Header */}
-      <div className="p-4 sm:p-5 border-b border-setu-slate-100 bg-setu-slate-50/50">
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <div className="flex items-center space-x-2.5">
-            <span className="font-mono font-bold text-sm text-setu-navy bg-white px-2 py-1 rounded border border-setu-slate-200">
-              {update.update_id}
-            </span>
-            <span className="text-xs px-2 py-0.5 rounded bg-setu-slate-100 text-setu-slate-600 font-medium capitalize border border-setu-slate-200 flex items-center gap-1">
-              <FileText className="w-3 h-3" />
-              {update.source_type}
-            </span>
-            <span className="text-xs text-setu-slate-500 flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-setu-slate-400" />
-              {update.reported_date || 'Today'}
-            </span>
-            {update.site_location && (
-              <span className="text-xs text-setu-slate-500 hidden sm:flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-setu-slate-400" />
-                {update.site_location}
-              </span>
-            )}
+    <article className="border border-setu-slate-200 bg-white">
+      <header className="border-b border-setu-slate-200 bg-setu-slate-50 px-4 py-3 sm:px-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-sm font-bold text-setu-navy">{update.update_id}</span>
+              <StatusBadge status={update.status} />
+              {isReviewed && (
+                <span className="text-[10px] font-bold uppercase text-setu-slate-500">Read-only</span>
+              )}
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-setu-slate-500">
+              <span className="flex items-center gap-1"><FileText className="h-3 w-3" />{update.source_type}</span>
+              <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{update.reported_date || 'No date'}</span>
+              <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{update.site_location || 'No location'}</span>
+              <span className="flex items-center gap-1"><User className="h-3 w-3" />{update.reported_by || 'Reporter not supplied'}</span>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            {update.validation_overridden ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200">
-                <Unlock className="w-3 h-3 text-purple-600" />
-                <span>Overridden</span>
-              </span>
-            ) : update.validation_status === 'block' ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
-                <ShieldAlert className="w-3 h-3 text-rose-600" />
-                <span>Blocked</span>
-              </span>
-            ) : update.validation_status === 'warn' ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
-                <AlertTriangle className="w-3 h-3 text-amber-600" />
-                <span>Warning</span>
-              </span>
-            ) : update.validation_status === 'pass' ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
-                <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                <span>Validated</span>
-              </span>
-            ) : null}
-            <ConfidenceBadge level={update.confidence_level} score={update.confidence_score} />
-            <StatusBadge status={update.status} />
-          </div>
+          {update.validation_overridden && (
+            <span className="inline-flex items-center gap-1.5 border border-purple-200 bg-purple-50 px-2 py-1 text-[11px] font-bold text-purple-800">
+              <Unlock className="h-3.5 w-3.5" /> Governed override recorded
+            </span>
+          )}
         </div>
-      </div>
+      </header>
 
-      {/* Card Body */}
-      <div className="p-4 sm:p-5 space-y-4">
-        {/* Blocked Validation Warning Banner */}
-        {update.validation_status === 'block' && !update.validation_overridden && (
-          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 flex items-start gap-2.5">
-            <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-            <div className="text-xs">
-              <p className="font-bold text-rose-900">Auto-link suggestion blocked by Project Controls</p>
-              <p className="text-rose-700 mt-0.5">
-                One or more project-control checks failed. Approval and final remapping are locked until a planner records a validation override with mandatory justification.
+      <div
+        data-testid="decision-status-bar"
+        className={`sticky top-16 z-20 border-b border-l-4 px-4 py-2.5 shadow-sm sm:px-5 ${decisionState.tone}`}
+      >
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-2">
+            <DecisionStateIcon
+              className={`mt-0.5 h-4 w-4 shrink-0 ${awaiting ? 'animate-spin' : ''}`}
+            />
+            <div className="min-w-0">
+              <p data-testid="decision-state" className="text-xs font-extrabold">
+                {decisionState.label}
               </p>
+              <p className="truncate text-[10px] opacity-80">{decisionState.detail}</p>
             </div>
           </div>
-        )}
 
-        {/* Validation Overridden Banner */}
-        {update.validation_overridden && (
-          <div className="p-3 rounded-lg bg-purple-50 border border-purple-200 flex items-start gap-2.5">
-            <Unlock className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-            <div className="text-xs">
-              <p className="font-bold text-purple-900">Validation Overridden by {update.override_by || 'Planner'}</p>
-              <p className="text-purple-700 mt-0.5 italic">"{update.override_reason}"</p>
-              {update.override_at && (
-                <span className="text-[10px] text-purple-500 font-mono">
-                  Recorded at {new Date(update.override_at).toLocaleString()}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Raw Field Evidence Narrative */}
-        <div className="rounded-lg bg-setu-slate-900 text-white p-3.5 sm:p-4 border border-setu-slate-800">
-          <div className="flex items-center justify-between text-xs text-setu-slate-400 font-medium mb-1.5">
-            <span className="uppercase tracking-wider text-[10px] font-bold text-setu-blue-light">
-              Raw Field Evidence Narrative
-            </span>
-            {update.reported_by && (
-              <span className="flex items-center gap-1">
-                <User className="w-3 h-3" />
-                {update.reported_by}
-              </span>
-            )}
-          </div>
-          <p className="text-sm font-medium leading-relaxed text-setu-slate-100 italic">
-            "{update.field_text}"
-          </p>
-        </div>
-
-        {/* Suggested Target Activity Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-setu-slate-50 border border-setu-slate-200">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-xs font-semibold text-setu-slate-500">
-              <span>Target Schedule Activity:</span>
-              {isAwaiting ? (
-                <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[11px]">
-                  AWAITING MATCHING
-                </span>
-              ) : actId ? (
-                <span className="font-mono px-1.5 py-0.5 rounded bg-setu-blue text-white font-bold text-[11px]">
-                  {actId}
-                </span>
+          {!isReviewed && !awaiting && (
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+              {isBlocked ? (
+                <button
+                  type="button"
+                  onClick={scrollToValidation}
+                  className="border border-current/30 bg-white px-2.5 py-1.5 text-[11px] font-bold transition-colors hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-current/30"
+                >
+                  Review failed checks
+                </button>
               ) : (
-                <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold text-[11px]">
-                  UNLINKED
-                </span>
-              )}
-              {!isAwaiting && (
                 <>
-                  <span className="text-setu-teal font-medium">[{discipline}]</span>
-                  <span className="text-setu-slate-400 font-mono text-[11px]">WBS: {wbs}</span>
+                  {hasValidMatch && (
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => openDecisionAction('accept')}
+                      className="bg-setu-green px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-setu-green-dark focus:outline-none focus:ring-2 focus:ring-setu-green/40 disabled:opacity-50"
+                    >
+                      Accept
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => onOpenRemap(update)}
+                    className="border border-setu-blue bg-white px-2.5 py-1.5 text-[11px] font-bold text-setu-blue hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-50"
+                  >
+                    Remap
+                  </button>
                 </>
               )}
-            </div>
-            <p className="text-sm font-bold text-setu-slate-900 truncate mt-0.5">
-              {actName}
-            </p>
-          </div>
-        </div>
-
-        {/* Explainability Accordion Button */}
-        <button
-          type="button"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center justify-between w-full py-1.5 px-2 rounded text-xs font-semibold text-setu-blue hover:text-setu-blue-dark hover:bg-blue-50/50 transition-colors"
-        >
-          <span className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-setu-amber" />
-            <span>Why this match? (Explainable AI Audit)</span>
-          </span>
-          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
-
-        {/* Explainability Details */}
-        {isExpanded && (
-          <div className="p-4 rounded-lg bg-setu-slate-50 border border-setu-slate-200 space-y-3 text-xs animate-fadeIn">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pb-3 border-b border-setu-slate-200">
-              <div>
-                <span className="text-setu-slate-500 block text-[11px]">Match Confidence Score</span>
-                <span className="text-base font-extrabold font-mono text-setu-navy">
-                  {isAwaiting ? 'Awaiting matching' : update.confidence_score ? (Number(update.confidence_score) * 100).toFixed(1) + '%' : 'N/A'}
-                </span>
-              </div>
-              <div>
-                <span className="text-setu-slate-500 block text-[11px]">Matched Pipeline Layer</span>
-                <span className="text-sm font-bold capitalize text-setu-teal">
-                  {isAwaiting ? 'Pending worker' : update.matched_layer || 'Unmatched'}
-                </span>
-              </div>
-              <div>
-                <span className="text-setu-slate-500 block text-[11px]">Routing Classification</span>
-                <span className="text-sm font-bold text-setu-slate-800">
-                  {isAwaiting ? 'Awaiting Matching' : `${update.confidence_level} Tier`}
-                </span>
-              </div>
-            </div>
-
-            {update.expanded_text && update.expanded_text !== update.field_text && (
-              <div>
-                <span className="font-semibold text-setu-slate-700 block mb-1">
-                  Domain Jargon Normalization:
-                </span>
-                <p className="p-2 rounded bg-white border border-setu-slate-200 text-setu-slate-800 font-mono text-[11px]">
-                  {update.expanded_text}
-                </p>
-              </div>
-            )}
-
-            {candidates.length > 0 && (
-              <div>
-                <span className="font-semibold text-setu-slate-700 block mb-1.5">
-                  Top 3 Candidate Activities Evaluated:
-                </span>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-left border-collapse text-[11px]">
-                    <thead>
-                      <tr className="border-b border-setu-slate-200 text-setu-slate-500">
-                        <th className="py-1 px-2 font-bold">Rank</th>
-                        <th className="py-1 px-2 font-bold">Activity ID</th>
-                        <th className="py-1 px-2 font-bold">Activity Name</th>
-                        <th className="py-1 px-2 font-bold">Discipline</th>
-                        <th className="py-1 px-2 font-bold">Confidence</th>
-                        <th className="py-1 px-2 font-bold">Matching Rationale</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-setu-slate-100">
-                      {candidates.slice(0, 3).map((c, idx) => {
-                        const candScore = c.combined_score ?? c.final_score ?? c.score ?? 0;
-                        return (
-                          <tr key={idx} className="hover:bg-white/60">
-                            <td className="py-1.5 px-2 font-bold text-setu-slate-600">#{idx + 1}</td>
-                            <td className="py-1.5 px-2 font-mono font-bold text-setu-navy">{c.activity_id}</td>
-                            <td className="py-1.5 px-2 text-setu-slate-800 font-medium">{c.activity_name}</td>
-                            <td className="py-1.5 px-2 text-setu-teal">{c.discipline || '—'}</td>
-                            <td className="py-1.5 px-2 font-mono font-bold">{(Number(candScore) * 100).toFixed(1)}%</td>
-                            <td className="py-1.5 px-2 text-setu-slate-500">{c.rationale || 'Score ensemble'}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Project Controls Validation Accordion Button */}
-        {update.validation_status && (
-          <button
-            type="button"
-            onClick={() => setIsValidationExpanded(!isValidationExpanded)}
-            className="flex items-center justify-between w-full py-1.5 px-2 rounded text-xs font-semibold text-setu-teal hover:text-teal-700 hover:bg-teal-50/50 transition-colors"
-          >
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-setu-teal" />
-              <span>Project Controls Validation</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                update.validation_overridden
-                  ? 'bg-purple-100 text-purple-800'
-                  : update.validation_status === 'block'
-                  ? 'bg-rose-100 text-rose-800'
-                  : update.validation_status === 'warn'
-                  ? 'bg-amber-100 text-amber-800'
-                  : 'bg-emerald-100 text-emerald-800'
-              }`}>
-                {update.validation_overridden ? 'Overridden' : update.validation_status}
-              </span>
-            </span>
-            {isValidationExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-        )}
-
-        {/* Validation Details */}
-        {isValidationExpanded && (
-          <div className="p-3.5 rounded-lg bg-setu-slate-50 border border-setu-slate-200 space-y-2.5 text-xs animate-fadeIn">
-            {supportedValidationResults.length === 0 ? (
-              <p className="rounded-lg border border-setu-slate-200 bg-white p-3 text-setu-slate-600">
-                No detailed validation check results are stored for this report.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {supportedValidationResults.map((check) => {
-                const iconByCheck = {
-                  date_plausibility: Clock,
-                  candidate_ambiguity: Layers,
-                  location_consistency: MapPin,
-                  duplicate_detection: RotateCcw,
-                  reporter_discipline: User,
-                  sequence_plausibility: Sparkles,
-                } as const;
-                const Icon = iconByCheck[check.check as keyof typeof iconByCheck] || ShieldCheck;
-                const outcome = check.outcome || check.status;
-                return (
-                  <div key={check.check} className="p-2.5 rounded-lg bg-white border border-setu-slate-200 flex flex-col justify-between gap-1.5 shadow-2xs">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-setu-slate-800 flex items-center gap-1.5 text-[11px]">
-                        <Icon className="w-3.5 h-3.5 text-setu-slate-500" />
-                        {check.name}
-                      </span>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase flex items-center gap-1 ${
-                        outcome === 'fail' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
-                        outcome === 'warn' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                        outcome === 'pass' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                        'bg-setu-slate-100 text-setu-slate-700 border border-setu-slate-200'
-                      }`}>
-                        {outcome === 'fail' ? <XCircle className="w-2.5 h-2.5" /> :
-                         outcome === 'warn' ? <AlertTriangle className="w-2.5 h-2.5" /> :
-                         outcome === 'pass' ? <CheckCircle2 className="w-2.5 h-2.5" /> :
-                         <ShieldAlert className="w-2.5 h-2.5" />}
-                        {outcome === 'fail' ? 'BLOCK' : (outcome || 'unknown').toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-setu-slate-600 leading-snug">
-                      {check.message || check.reason || 'No validation message was stored.'}
-                    </p>
-                    {check.evidence && Object.keys(check.evidence).length > 0 && (
-                      <div className="mt-1 pt-1 border-t border-setu-slate-100 flex flex-wrap gap-1 text-[10px] font-mono text-setu-slate-500">
-                        {Object.entries(check.evidence).map(([k, v]) => (
-                          <span key={k} className="bg-setu-slate-50 px-1.5 py-0.5 rounded border border-setu-slate-200">
-                            <strong className="text-setu-slate-700">{k}:</strong> {typeof v === 'object' ? JSON.stringify(v) : String(v)}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Planner Decision Control Strip */}
-        {isReviewed ? (
-          <div className="pt-3 border-t border-setu-slate-100">
-            <div className="rounded-lg border border-setu-slate-200 bg-setu-slate-50 px-3 py-2.5 text-xs text-setu-slate-700 flex items-start gap-2">
-              <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-setu-teal" />
-              <div>
-                <p className="font-bold">Finalized planner decision — this report is read-only.</p>
-                {update.planner_remarks && <p className="mt-0.5 text-setu-slate-600">{update.planner_remarks}</p>}
-              </div>
-            </div>
-          </div>
-        ) : (
-        <div className="pt-3 border-t border-setu-slate-100 flex flex-col gap-3">
-          {!hasValidMatchedActivity && !isAwaiting && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              This report has no valid linked schedule activity. Remap it to an activity or reject it; direct approval is unavailable.
+              <button
+                type="button"
+                onClick={openMoreActions}
+                className="inline-flex items-center gap-1 border border-current/30 bg-white px-2.5 py-1.5 text-[11px] font-bold hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-current/30"
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+                More actions
+              </button>
             </div>
           )}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Planner remarks or DPR validation notes..."
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              className="w-full text-xs px-3 py-2 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-setu-blue focus:border-setu-blue placeholder:text-setu-slate-400"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {isBlocked ? (
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => onOpenOverride && onOpenOverride(update)}
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition-colors"
-                title="Validation checks failed. Overriding requires documented planner justification."
-              >
-                <ShieldAlert className="w-3.5 h-3.5" />
-                <span>Override Validation...</span>
-              </button>
-            ) : hasValidMatchedActivity && !isAwaiting ? (
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={handleAccept}
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-setu-green hover:bg-setu-green-dark text-white shadow-xs transition-colors disabled:opacity-50"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{update.validation_overridden ? 'Approve (Overridden)' : 'Approve Link'}</span>
-              </button>
-            ) : null}
-
-            {!isBlocked && (
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => onOpenRemap(update)}
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-colors disabled:opacity-50"
-              >
-                <ArrowRightLeft className="w-3.5 h-3.5" />
-                <span>Remap Activity</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={handleReject}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-setu-red hover:bg-setu-red-dark text-white shadow-xs transition-colors disabled:opacity-50"
-            >
-              <XCircle className="w-3.5 h-3.5" />
-              <span>Reject</span>
-            </button>
-
-            {onRequeue && (
-              <button
-                type="button"
-                disabled={isSubmitting || isReviewed || isAwaiting}
-                onClick={handleRequeue}
-                title={
-                  isReviewed
-                    ? 'Already reviewed — cannot re-queue'
-                    : isAwaiting
-                    ? 'Matching in progress'
-                    : 'Re-queue for AI matching worker'
-                }
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Re-queue</span>
-              </button>
-            )}
-          </div>
-          </div>
         </div>
-        )}
       </div>
-    </div>
+
+      <div className="divide-y divide-setu-slate-200">
+        <section className="px-4 py-5 sm:px-5" aria-labelledby={`evidence-${update.id}`}>
+          <SectionLabel number={1}>Field evidence</SectionLabel>
+          <blockquote className="border-l-4 border-setu-slate-500 bg-setu-slate-50 px-4 py-3 text-sm font-medium leading-6 text-setu-slate-900">
+            “{update.field_text}”
+          </blockquote>
+        </section>
+
+        <section className="px-4 py-5 sm:px-5" aria-labelledby={`suggestion-${update.id}`}>
+          <SectionLabel number={2}>AI suggestion</SectionLabel>
+          <div className="flex flex-col gap-3 border border-setu-slate-200 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                {awaiting ? (
+                  <span className="bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-800">Awaiting matching</span>
+                ) : update.matched_activity_id ? (
+                  <span className="bg-setu-navy px-2 py-0.5 font-mono text-[10px] font-bold text-white">{update.matched_activity_id}</span>
+                ) : (
+                  <span className="bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-900">Unmatched</span>
+                )}
+                {matchedActivity && (
+                  <span className="text-[11px] font-semibold text-setu-teal">
+                    {matchedActivity.discipline} · WBS {matchedActivity.wbs_code}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1.5 text-sm font-bold text-setu-slate-900">{activityName}</p>
+            </div>
+            <div className="shrink-0">
+              <ConfidenceBadge level={update.confidence_level} score={update.confidence_score} />
+            </div>
+          </div>
+
+          {!awaiting && (
+            <details className="mt-3 border border-setu-slate-200 bg-setu-slate-50">
+              <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-bold text-setu-blue focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">
+                <span>Why suggested?</span>
+                <ChevronDown className="h-4 w-4" />
+              </summary>
+              <div className="space-y-3 border-t border-setu-slate-200 px-3 py-3 text-xs">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="border border-setu-slate-200 bg-white px-3 py-2">
+                    <span className="text-[10px] text-setu-slate-500">Matching layer</span>
+                    <p className="mt-0.5 font-mono font-bold text-setu-slate-800">{update.matched_layer || 'Unmatched'}</p>
+                  </div>
+                  <div className="border border-setu-slate-200 bg-white px-3 py-2">
+                    <span className="text-[10px] text-setu-slate-500">Candidate count retained</span>
+                    <p className="mt-0.5 font-mono font-bold text-setu-slate-800">{candidates.length}</p>
+                  </div>
+                </div>
+
+                {update.expanded_text && update.expanded_text !== update.field_text && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-setu-slate-500">Normalized field text</p>
+                    <p className="mt-1 border-l-2 border-setu-teal pl-3 font-mono text-[11px] leading-5 text-setu-slate-700">{update.expanded_text}</p>
+                  </div>
+                )}
+
+                {candidates.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse text-left text-[11px]">
+                      <thead className="border-b border-setu-slate-200 text-setu-slate-500">
+                        <tr>
+                          <th className="px-2 py-1.5 font-bold">Rank</th>
+                          <th className="px-2 py-1.5 font-bold">Activity</th>
+                          <th className="px-2 py-1.5 font-bold">Discipline</th>
+                          <th className="px-2 py-1.5 font-bold">Score</th>
+                          <th className="px-2 py-1.5 font-bold">Rationale</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-setu-slate-100">
+                        {candidates.slice(0, 3).map((candidate, index) => {
+                          const score = candidate.combined_score ?? candidate.final_score ?? candidate.score ?? 0;
+                          return (
+                            <tr key={`${candidate.activity_id}-${index}`}>
+                              <td className="px-2 py-2 font-mono">#{index + 1}</td>
+                              <td className="px-2 py-2">
+                                <p className="font-mono font-bold text-setu-navy">{candidate.activity_id}</p>
+                                <p className="max-w-xs truncate text-setu-slate-700">{candidate.activity_name}</p>
+                              </td>
+                              <td className="px-2 py-2 text-setu-teal">{candidate.discipline || '—'}</td>
+                              <td className="px-2 py-2 font-mono font-bold">{(Number(score) * 100).toFixed(1)}%</td>
+                              <td className="px-2 py-2 text-setu-slate-500">{candidate.rationale || 'Ensemble score'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </details>
+          )}
+        </section>
+
+        <section
+          ref={validationRef}
+          tabIndex={-1}
+          className="scroll-mt-32 px-4 py-5 focus:outline-none sm:px-5"
+          aria-labelledby={`validation-${update.id}`}
+        >
+          <SectionLabel number={3}>Project-controls validation</SectionLabel>
+
+          {isBlocked ? (
+            <div className="space-y-3">
+              <div className="border-l-4 border-setu-red bg-rose-50 px-4 py-3 text-xs text-rose-900">
+                <div className="flex items-start gap-2">
+                  <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <p className="font-bold">Blocked by project-controls validation</p>
+                    <p className="mt-1 leading-5 text-rose-800">
+                      {failedControlCount} validation control{failedControlCount === 1 ? '' : 's'} failed. Review failed checks before taking an exceptional action.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {failedChecks.length > 0 ? (
+                <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+                  {failedChecks.map((check) => <ValidationCheck key={check.check} check={check} />)}
+                </div>
+              ) : (
+                <p className="border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
+                  Validation is blocked, but detailed failed checks were not stored.
+                </p>
+              )}
+              {remainingChecks.length > 0 && (
+                <details className="border border-setu-slate-200">
+                  <summary className="cursor-pointer px-3 py-2 text-xs font-bold text-setu-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">
+                    Review remaining checks ({remainingChecks.length})
+                  </summary>
+                  <div className="grid grid-cols-1 gap-2 border-t border-setu-slate-200 p-3 xl:grid-cols-2">
+                    {remainingChecks.map((check) => <ValidationCheck key={check.check} check={check} />)}
+                  </div>
+                </details>
+              )}
+            </div>
+          ) : update.validation_status ? (
+            <div>
+              <div className={`flex items-start gap-2 border-l-4 px-4 py-3 text-xs ${
+                update.validation_overridden
+                  ? 'border-purple-500 bg-purple-50 text-purple-900'
+                  : update.validation_status === 'warn'
+                  ? 'border-setu-amber bg-amber-50 text-amber-950'
+                  : 'border-setu-green bg-emerald-50 text-emerald-900'
+              }`}>
+                {update.validation_overridden ? <Unlock className="mt-0.5 h-4 w-4 shrink-0" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />}
+                <div>
+                  <p className="font-bold">
+                    {update.validation_overridden
+                      ? 'Validation block overridden under planner governance'
+                      : update.validation_status === 'warn'
+                      ? 'Validation completed with warnings'
+                      : 'Validation checks passed'}
+                  </p>
+                  {update.validation_overridden && update.override_reason && (
+                    <p className="mt-1 leading-5">{update.override_reason}</p>
+                  )}
+                </div>
+              </div>
+              {validationResults.length > 0 && (
+                <details className="mt-3 border border-setu-slate-200">
+                  <summary className="cursor-pointer px-3 py-2 text-xs font-bold text-setu-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">
+                    Review all validation checks ({validationResults.length})
+                  </summary>
+                  <div className="grid grid-cols-1 gap-2 border-t border-setu-slate-200 p-3 xl:grid-cols-2">
+                    {validationResults.map((check) => <ValidationCheck key={check.check} check={check} />)}
+                  </div>
+                </details>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 border border-setu-slate-200 bg-setu-slate-50 px-3 py-3 text-xs text-setu-slate-600">
+              <Clock className="h-4 w-4" />
+              Validation results are not available yet.
+            </div>
+          )}
+        </section>
+
+        <section
+          ref={decisionRef}
+          className="scroll-mt-32 px-4 py-5 sm:px-5"
+          aria-labelledby={`decision-${update.id}`}
+        >
+          <SectionLabel number={4}>Planner decision</SectionLabel>
+
+          {isReviewed ? (
+            <div className="border-l-4 border-setu-slate-500 bg-setu-slate-50 px-4 py-3 text-xs text-setu-slate-700">
+              <p className="font-bold">Finalized planner decision. This report is read-only.</p>
+              {update.planner_remarks && <p className="mt-1 leading-5">{update.planner_remarks}</p>}
+            </div>
+          ) : awaiting ? (
+            <div className="flex items-start gap-3 border-l-4 border-setu-blue bg-blue-50 px-4 py-3 text-xs text-setu-blue-dark">
+              <LoaderCircle className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+              <div>
+                <p className="font-bold">Matching in progress</p>
+                <p className="mt-1 leading-5">
+                  Planner decision controls are unavailable until AI matching and validation complete.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {!hasValidMatch && !awaiting && !isBlocked && (
+                <div className="flex items-start gap-2 border-l-4 border-setu-amber bg-amber-50 px-4 py-3 text-xs text-amber-950">
+                  <CircleDashed className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>No valid schedule activity is linked. Remap this report or use an existing terminal action.</p>
+                </div>
+              )}
+
+              {isBlocked ? (
+                <div className="border border-rose-200 bg-rose-50/50 px-4 py-4">
+                  <p className="text-xs font-bold text-rose-900">Normal decision controls are locked</p>
+                  <p className="mt-1 text-[11px] leading-5 text-rose-800">
+                    {failedControlCount} validation control{failedControlCount === 1 ? '' : 's'} failed. Review failed checks before taking an exceptional action.
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={scrollToValidation}
+                      className="border border-rose-300 bg-white px-3 py-2 text-xs font-bold text-rose-900 transition-colors hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-400/40"
+                    >
+                      Review failed checks
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => onOpenOverride?.(update)}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-800 underline decoration-rose-300 underline-offset-4 hover:text-rose-950 focus:outline-none focus:ring-2 focus:ring-rose-400/40 disabled:opacity-50"
+                    >
+                      <ShieldAlert className="h-3.5 w-3.5" />
+                      Exceptional: override validation
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  {hasValidMatch && !awaiting && (
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => openDecisionAction('accept')}
+                      className="inline-flex items-center gap-2 bg-setu-green px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-setu-green-dark focus:outline-none focus:ring-2 focus:ring-setu-green/40 disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Accept mapping
+                    </button>
+                  )}
+                  {!awaiting && (
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => onOpenRemap(update)}
+                      className="inline-flex items-center gap-2 border border-setu-blue bg-white px-4 py-2.5 text-xs font-bold text-setu-blue transition-colors hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-50"
+                    >
+                      <ArrowRightLeft className="h-4 w-4" />
+                      Remap activity
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {pendingActionCopy && (
+                <div className={`border px-4 py-3 ${pendingActionCopy.tone}`}>
+                  <p className="text-xs font-bold text-setu-slate-900">{pendingActionCopy.heading}</p>
+                  <label
+                    htmlFor={`action-note-${update.id}`}
+                    className="mt-2 block text-[11px] font-bold text-setu-slate-700"
+                  >
+                    {pendingActionCopy.label}
+                  </label>
+                  <textarea
+                    ref={actionNoteRef}
+                    id={`action-note-${update.id}`}
+                    rows={2}
+                    value={actionNote}
+                    onChange={(event) => setActionNote(event.target.value)}
+                    placeholder={pendingActionCopy.placeholder}
+                    className="mt-1 w-full border border-setu-slate-300 bg-white px-3 py-2 text-xs leading-5 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+                  />
+                  <p className="mt-1 text-[10px] text-setu-slate-500">
+                    The note is saved as the existing planner remarks when this action completes.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => runAction(submitPendingAction)}
+                      className={`px-3 py-2 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-50 ${pendingActionCopy.button}`}
+                    >
+                      {isSubmitting ? 'Submitting…' : pendingActionCopy.confirm}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => setPendingAction(null)}
+                      className="border border-setu-slate-300 bg-white px-3 py-2 text-xs font-bold text-setu-slate-700 hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t border-setu-slate-200 pt-3">
+                <button
+                  type="button"
+                  aria-expanded={showMoreActions}
+                  onClick={() => setShowMoreActions((current) => !current)}
+                  className="inline-flex items-center gap-2 border border-setu-slate-300 bg-white px-3 py-2 text-xs font-bold text-setu-slate-700 hover:border-setu-slate-400 hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                  More actions
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showMoreActions ? 'rotate-180' : ''}`} />
+                </button>
+                {showMoreActions && (
+                  <div className="mt-3 border-l-2 border-setu-slate-300 bg-setu-slate-50 px-3 py-3">
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-setu-slate-500">
+                      Technical or terminal options
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                    {onRequeue && (
+                      <button
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => openDecisionAction('requeue')}
+                        className="inline-flex items-center gap-1.5 border border-setu-amber bg-white px-3 py-2 text-xs font-bold text-setu-amber-dark hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-setu-amber/30 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Requeue matching
+                    </button>
+                  )}
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => openDecisionAction('reject')}
+                      className="inline-flex items-center gap-1.5 border border-setu-red bg-white px-3 py-2 text-xs font-bold text-setu-red-dark hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-setu-red/30 disabled:opacity-50"
+                    title="Uses the existing terminal rejected status"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                      Reject report (terminal)
+                    </button>
+                    </div>
+                    <p className="mt-2 text-[10px] leading-4 text-setu-slate-500">
+                      Requeue restarts matching. Reject records the existing terminal rejected status.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+    </article>
   );
 };

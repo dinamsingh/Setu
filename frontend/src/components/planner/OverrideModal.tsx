@@ -8,7 +8,7 @@ interface OverrideModalProps {
   update: FieldUpdate | null;
   plannerName: string;
   onClose: () => void;
-  onConfirmOverride: (update: FieldUpdate, reason: string) => Promise<void>;
+  onConfirmOverride: (update: FieldUpdate, reason: string) => Promise<boolean>;
 }
 
 type OverrideModalContentProps = Omit<OverrideModalProps, 'isOpen' | 'update'> & {
@@ -39,8 +39,8 @@ const OverrideModalContent: React.FC<OverrideModalContentProps> = ({
     if (!reason.trim()) return;
     setIsSubmitting(true);
     try {
-      await onConfirmOverride(update, reason.trim());
-      onClose();
+      const overridden = await onConfirmOverride(update, reason.trim());
+      if (overridden) onClose();
     } finally {
       setIsSubmitting(false);
     }
@@ -143,7 +143,7 @@ const OverrideModalContent: React.FC<OverrideModalContentProps> = ({
               className="w-full text-xs p-2.5 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 placeholder:text-setu-slate-400"
             />
             <p className="text-[11px] text-setu-slate-500 mt-1">
-              This justification will be permanently recorded for <strong>{plannerName}</strong> in the immutable audit log. Authenticated account identity is authoritative.
+              This justification will be recorded for <strong>{plannerName}</strong> in the append-only audit trail. Authenticated account identity is authoritative.
             </p>
           </div>
         </div>
