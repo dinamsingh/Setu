@@ -73,6 +73,12 @@ function renderReview(
 }
 
 describe('ReviewCard planner governance states', () => {
+  it('never presents old AI confidence as finalized manual-target confidence, even without loaded proposals', () => {
+    const html = renderReview({ status: 'remapped', confidence_score: 0.987 });
+    expect(html).toContain('Planner-selected activity');
+    expect(html).not.toContain('98.7');
+    expect(html).not.toContain('HIGH CONFIDENCE');
+  });
   it('offers approval for a pending High, valid, passing link', () => {
     const html = renderReview();
     expect(html).toContain('data-testid="decision-status-bar"');

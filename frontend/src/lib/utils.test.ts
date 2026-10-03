@@ -65,6 +65,7 @@ describe('approved schedule export safety', () => {
     const activities = new Map([[activity.activity_id, activity]]);
     const updates = [
       makeUpdate({ id: 'valid' }),
+      makeUpdate({ id: 'remapped', status: 'remapped' }),
       makeUpdate({ id: 'unlinked', matched_activity_id: null }),
       makeUpdate({ id: 'unknown', matched_activity_id: 'ACT-MISSING' }),
       makeUpdate({ id: 'rejected', status: 'rejected' }),
@@ -72,8 +73,13 @@ describe('approved schedule export safety', () => {
 
     const exported = buildExportData(updates, activities);
 
-    expect(exported).toHaveLength(1);
+    expect(exported).toHaveLength(2);
     expect(exported[0]['Activity ID']).toBe('ACT-001');
     expect(exported[0]['Activity Name']).toBe('Approved Schedule Activity');
+    expect(exported[0]['Mapping Source']).toBe('AI suggestion accepted by planner');
+    expect(exported[0]['AI Suggestion Confidence Score']).toBe('0.900');
+    expect(exported[1]['Mapping Source']).toBe('Planner-selected validated remap');
+    expect(exported[1]['AI Suggestion Confidence Score']).toBe('');
+    expect(exported[1]).not.toHaveProperty('Confidence Score');
   });
 });

@@ -38,14 +38,41 @@ def test_minimal_additive_orchestration_and_legacy_compatibility():
     ('override_field_update_remap_proposal', 'uuid, text, bigint', 'authenticated'),
     ('cancel_field_update_remap_proposal', 'uuid, text, bigint', 'authenticated'),
     ('finalize_field_update_remap', 'uuid, text, bigint', 'authenticated'),
+    ('accept_current_field_update', 'uuid, text, bigint', 'authenticated'),
+    ('override_current_field_update_validation', 'uuid, text, bigint', 'authenticated'),
+    ('requeue_current_field_update', 'uuid, text, bigint', 'authenticated'),
 ])
 def test_scoped_execute_safe_path(name, signature, role):
     header = SQL.split(f'function public.{name}(', 1)[1].split('as $$', 1)[0]
     assert "security definer set search_path = ''" in header
-    assert f'revoke all on function public.{name}({signature}) from public, anon, authenticated;' in COMPACT
+    revoked_roles = 'public, anon, authenticated, service_role' if '_current_field_update' in name else 'public, anon, authenticated'
+    assert f'revoke all on function public.{name}({signature}) from {revoked_roles};' in COMPACT
     assert f'grant execute on function public.{name}({signature}) to {role};' in COMPACT
     if role == 'authenticated':
-        assert 'public._lock_' in body(name) and 'public._append_workflow_audit' in body(name)
+        assert 'public._lock_' in body(name)
+        if '_current_field_update' not in name:
+            assert 'public._append_workflow_audit' in body(name)
+
+
+@pytest.mark.parametrize('name,delegate', [
+    ('accept_current_field_update', "public.review_field_update(p_field_update_id, 'accept', null, p_remarks)"),
+    ('override_current_field_update_validation', 'public.override_field_update_validation(p_field_update_id, p_reason)'),
+    ('requeue_current_field_update', 'public.requeue_field_update(p_field_update_id, p_remarks)'),
+])
+def test_new_client_revision_guard_locks_before_single_governed_delegate(name, delegate):
+    wrapper = body(name)
+    assert "p_expected_workflow_revision is null" in wrapper
+    lock = 'public._lock_pending_workflow_report(p_field_update_id, p_expected_workflow_revision)'
+    assert wrapper.index(lock) < wrapper.index(delegate)
+    assert wrapper.count(delegate) == 1
+    assert 'update public.field_updates' not in wrapper
+    assert '_append_workflow_audit' not in wrapper
+    assert 'exception when' not in wrapper  # Never swallow stale revisions/rollback.
+
+
+def test_legacy_signatures_are_not_redefined_or_repermissioned_in_009():
+    for name in ('review_field_update', 'override_field_update_validation', 'requeue_field_update'):
+        assert not re.search(rf'(?:create|revoke|grant).*?function public\.{name}\(', SQL)
 
 
 def test_processing_cas_and_intent_guard():

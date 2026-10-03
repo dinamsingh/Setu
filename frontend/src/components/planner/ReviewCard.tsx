@@ -362,7 +362,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               <p className="mt-1.5 text-sm font-bold text-setu-slate-900">{activityName}</p>
             </div>
             <div className="shrink-0">
-              {manualMapping ? <p className="text-xs font-bold text-setu-slate-600">Planner-selected activity</p>
+              {manualMapping || update.status === 'remapped' ? <p className="text-xs font-bold text-setu-slate-600">Planner-selected activity</p>
                 : <ConfidenceBadge level={update.confidence_level} score={update.confidence_score} />}
             </div>
           </div>

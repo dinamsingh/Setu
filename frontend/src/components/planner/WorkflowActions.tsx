@@ -37,11 +37,10 @@ export function ClarificationHistory({ rounds }: { rounds: Clarification[] }) {
 interface Props {
   update: FieldUpdate; rounds: Clarification[]; proposals: RemapProposal[];
   activities: ScheduleActivity[]; act: WorkflowAction; available: boolean;
-  onAccept: (update: FieldUpdate, remarks: string) => Promise<void>;
   onRemap: (update: FieldUpdate) => void;
 }
 
-export function WorkflowActions({ update, rounds, proposals, activities, act, available, onAccept, onRemap }: Props) {
+export function WorkflowActions({ update, rounds, proposals, activities, act, available, onRemap }: Props) {
   const [mode, setMode] = useState('');
   const [question, setQuestion] = useState('');
   const [response, setResponse] = useState('');
@@ -58,6 +57,7 @@ export function WorkflowActions({ update, rounds, proposals, activities, act, av
   const base = { p_field_update_id: update.id, p_expected_workflow_revision: update.workflow_revision ?? 0 };
   const proposalBase = { p_proposal_id: proposal?.id, p_expected_workflow_revision: update.workflow_revision ?? 0 };
   const locked = !available || busy;
+  const processing = state === 'Awaiting AI' || state === 'Reprocessing Evidence';
 
   async function run(name: string, params: Record<string, unknown>, nextMode = '') {
     if (busy) return;
@@ -72,6 +72,7 @@ export function WorkflowActions({ update, rounds, proposals, activities, act, av
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (locked || (processing && mode !== 'close')) return;
     if (mode === 'resolve') void run('resolve_field_update_clarification_now', { ...base,
       p_question: question.trim(), p_communication_method: method.trim(), p_response: response.trim(),
       p_supplied_by: supplier.trim(), p_impact: impact });
@@ -81,12 +82,11 @@ export function WorkflowActions({ update, rounds, proposals, activities, act, av
       p_expected_workflow_revision: update.workflow_revision ?? 0 });
     if (mode === 'close') void run('close_field_update_as_invalid', { ...base, p_reason: note.trim() });
     if (mode === 'overrideProposal') void run('override_field_update_remap_proposal', { ...proposalBase, p_reason: note.trim() });
-    if (mode === 'override') void run('override_field_update_validation', { p_field_update_id: update.id, p_reason: note.trim() });
-    if (mode === 'requeue') void run('requeue_field_update', { p_field_update_id: update.id, p_remarks: note.trim() || null });
-    if (mode === 'accept') {
-      setBusy(true); setError(null);
-      void onAccept(update, note.trim()).catch(err => setError(String(err))).finally(() => setBusy(false));
-    }
+    // Polling may advance the report while a form is open. Do not submit normal
+    // actions during processing; the server also checks the displayed revision.
+    if (mode === 'override') void run('override_current_field_update_validation', { ...base, p_reason: note.trim() });
+    if (mode === 'requeue') void run('requeue_current_field_update', { ...base, p_remarks: note.trim() || null });
+    if (mode === 'accept') void run('accept_current_field_update', { ...base, p_remarks: note.trim() || null });
   }
 
   if (state === 'Finalized') return <p className="border-l-4 border-setu-slate-500 bg-setu-slate-50 px-4 py-3 text-xs">Finalized planner decision. This report is read-only. {update.planner_remarks}</p>;
@@ -112,25 +112,25 @@ export function WorkflowActions({ update, rounds, proposals, activities, act, av
       </div>)}
       {proposal.validation_overridden && <p className="text-rose-900">Exceptional proposal override: {proposal.override_reason}</p>}
       <div className="flex flex-wrap gap-2">
-        <button disabled={locked || !proposalReady(proposal, update)} className={buttonClass} onClick={() => void run('finalize_field_update_remap', { ...proposalBase, p_remarks: note.trim() || null })}>Confirm Remap</button>
+        <button disabled={locked || !proposalReady(proposal, update)} className={buttonClass} onClick={() => void run('finalize_field_update_remap', { ...proposalBase, p_remarks: null })}>Confirm Remap</button>
         <button disabled={locked} className={buttonClass} onClick={() => void run('cancel_field_update_remap_proposal', { ...proposalBase, p_reason: 'Planner cancelled to select another target' })}>Cancel proposal / choose another target</button>
         <button disabled={locked} className={buttonClass} onClick={() => void run('cancel_field_update_remap_proposal', { ...proposalBase, p_reason: 'Planner needs clarification' }, 'clarify')}>Cancel proposal &amp; Clarify</button>
         {proposal.status === 'blocked' && !proposal.validation_overridden && <button disabled={locked} className="text-rose-800 underline disabled:opacity-40" onClick={() => setMode('overrideProposal')}>Exceptional: override selected-target validation</button>}
       </div>
     </div>}
-    {!round && !proposal && <div className="flex flex-wrap gap-2">
+    {!round && !proposal && !processing && <div className="flex flex-wrap gap-2">
       <button disabled={locked || !canAccept(update, rounds, proposals)} className="border border-setu-green bg-setu-green px-3 py-2 text-xs font-bold text-white hover:bg-setu-green-dark focus:outline-none focus:ring-2 focus:ring-setu-green/30 disabled:opacity-40" onClick={() => setMode('accept')}>Accept</button>
       <button disabled={locked} className={buttonClass} onClick={() => onRemap(update)}>Remap</button>
       <button disabled={locked} className={buttonClass} onClick={() => setMode('clarify')}>Clarify</button>
     </div>}
-    {mode === 'clarify' && <div className="border border-setu-slate-300 px-3 py-3 space-y-2">
+    {mode === 'clarify' && !processing && <div className="border border-setu-slate-300 px-3 py-3 space-y-2">
       <p className="font-bold">Clarify field evidence</p><p>Record direct coordination now, or ask the original submitter to respond in SETU.</p>
       <div className="flex gap-2"><button disabled={locked} className={buttonClass} onClick={() => { setImpact(''); setMode('resolve'); }}>Resolve Now</button>
         <button disabled={locked || !update.submitted_by_user_id} className={buttonClass} onClick={() => setMode('request')}>Request Response</button></div>
       {!update.submitted_by_user_id && <p>Original submitter unavailable. Use Resolve Now.</p>}
       <button className={buttonClass} onClick={() => setMode('')}>Cancel</button>
     </div>}
-    {mode && mode !== 'clarify' && <form onSubmit={submit} className="border border-setu-slate-300 px-3 py-3 space-y-3">
+    {mode && mode !== 'clarify' && (!processing || mode === 'close') && <form onSubmit={submit} className="border border-setu-slate-300 px-3 py-3 space-y-3">
       <p className="font-bold">{{ resolve: 'Resolve Now', request: 'Request Response', triage: 'Classify response', close: 'Close as Invalid', overrideProposal: 'Exceptional selected-target override', override: 'Exceptional validation override', requeue: 'Technical requeue', accept: 'Accept mapping' }[mode]}</p>
       {['resolve', 'request'].includes(mode) && <label className="block">Why is clarification needed?<textarea required aria-label="Clarification question" value={question} onChange={e => setQuestion(e.target.value)} className={inputClass} /></label>}
       {mode === 'resolve' && <>
@@ -153,7 +153,7 @@ export function WorkflowActions({ update, rounds, proposals, activities, act, av
       <summary className="cursor-pointer font-bold">More Actions</summary>
       <div className="mt-2 flex flex-wrap gap-3">
         <button disabled={locked} className={buttonClass} onClick={() => setMode('close')}>Close as Invalid</button>
-        {!round && !proposal && <button disabled={locked || state === 'Reprocessing Evidence'} className={buttonClass} onClick={() => setMode('requeue')}>Technical Requeue</button>}
+        {!round && !proposal && !processing && <button disabled={locked} className={buttonClass} onClick={() => setMode('requeue')}>Technical Requeue</button>}
         {!round && !proposal && state === 'Validation Blocked' && <button disabled={locked} className="text-rose-800 underline disabled:opacity-40" onClick={() => setMode('override')}>Exceptional: override validation</button>}
       </div>
     </details>

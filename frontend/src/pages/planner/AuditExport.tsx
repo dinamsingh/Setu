@@ -152,6 +152,7 @@ export const AuditExport: React.FC = () => {
                 <p className="text-xs text-setu-slate-500">
                   Contains approved and remapped field evidence linked to loaded schedule activities. Excludes pending and rejected reports.
                 </p>
+                <p className="text-xs text-setu-slate-500">AI suggestion confidence is not assigned to planner-selected remaps.</p>
               </div>
 
               <button
@@ -179,7 +180,8 @@ export const AuditExport: React.FC = () => {
                       <th className="py-2 px-3 font-bold">Date</th>
                       <th className="py-2 px-3 font-bold">Location</th>
                       <th className="py-2 px-3 font-bold">Field Evidence</th>
-                      <th className="py-2 px-3 font-bold">Score</th>
+                      <th className="py-2 px-3 font-bold">Mapping Source</th>
+                      <th className="py-2 px-3 font-bold">AI Suggestion Confidence Score</th>
                       <th className="py-2 px-3 font-bold">Status</th>
                       <th className="py-2 px-3 font-bold">Planner Remarks</th>
                     </tr>
@@ -194,7 +196,8 @@ export const AuditExport: React.FC = () => {
                         <td className="py-2 px-3 text-setu-slate-700 italic max-w-xs truncate" title={row['Field Evidence']}>
                           "{row['Field Evidence']}"
                         </td>
-                        <td className="py-2 px-3 font-mono font-bold text-setu-teal">{row['Confidence Score']}</td>
+                        <td className="py-2 px-3 text-setu-slate-600">{row['Mapping Source']}</td>
+                        <td className="py-2 px-3 font-mono font-bold text-setu-teal">{row['AI Suggestion Confidence Score'] || 'N/A'}</td>
                         <td className="py-2 px-3">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             row['Planner Status'] === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'

@@ -2,6 +2,45 @@
 -- No new columns: freshness is derived from the B1 revisions and resolved history.
 begin;
 
+-- B3 decisions require the revision actually displayed to the planner. The
+-- parent lock remains held during the nested 008 RPC in this same transaction.
+-- Only that governed RPC mutates the report and appends its single audit record.
+create function public.accept_current_field_update(
+    p_field_update_id uuid, p_remarks text default null,
+    p_expected_workflow_revision bigint default null
+)
+returns public.field_updates language plpgsql security definer set search_path = '' as $$
+begin
+    if p_expected_workflow_revision is null then raise exception 'Expected workflow revision is required'; end if;
+    perform public._lock_pending_workflow_report(p_field_update_id, p_expected_workflow_revision);
+    return public.review_field_update(p_field_update_id, 'accept', null, p_remarks);
+end;
+$$;
+
+create function public.override_current_field_update_validation(
+    p_field_update_id uuid, p_reason text,
+    p_expected_workflow_revision bigint default null
+)
+returns public.field_updates language plpgsql security definer set search_path = '' as $$
+begin
+    if p_expected_workflow_revision is null then raise exception 'Expected workflow revision is required'; end if;
+    perform public._lock_pending_workflow_report(p_field_update_id, p_expected_workflow_revision);
+    return public.override_field_update_validation(p_field_update_id, p_reason);
+end;
+$$;
+
+create function public.requeue_current_field_update(
+    p_field_update_id uuid, p_remarks text default null,
+    p_expected_workflow_revision bigint default null
+)
+returns public.field_updates language plpgsql security definer set search_path = '' as $$
+begin
+    if p_expected_workflow_revision is null then raise exception 'Expected workflow revision is required'; end if;
+    perform public._lock_pending_workflow_report(p_field_update_id, p_expected_workflow_revision);
+    return public.requeue_field_update(p_field_update_id, p_remarks);
+end;
+$$;
+
 create function public._field_update_processing_intent(p_update public.field_updates)
 returns text language sql stable security invoker set search_path = '' as $$
     select case
@@ -233,6 +272,12 @@ end;
 $$;
 
 revoke all on function public._field_update_processing_intent(public.field_updates) from public, anon, authenticated, service_role;
+revoke all on function public.accept_current_field_update(uuid, text, bigint) from public, anon, authenticated, service_role;
+revoke all on function public.override_current_field_update_validation(uuid, text, bigint) from public, anon, authenticated, service_role;
+revoke all on function public.requeue_current_field_update(uuid, text, bigint) from public, anon, authenticated, service_role;
+grant execute on function public.accept_current_field_update(uuid, text, bigint) to authenticated;
+grant execute on function public.override_current_field_update_validation(uuid, text, bigint) to authenticated;
+grant execute on function public.requeue_current_field_update(uuid, text, bigint) to authenticated;
 revoke all on function public._lock_current_remap_proposal(uuid, bigint) from public, anon, authenticated, service_role;
 revoke all on function public.complete_field_update_processing(uuid, bigint, bigint, text, jsonb) from public, anon, authenticated;
 revoke all on function public.complete_field_update_remap_validation(uuid, text, bigint, bigint, bigint, jsonb) from public, anon, authenticated;

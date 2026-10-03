@@ -141,6 +141,7 @@ export const ReviewQueue: React.FC = () => {
     const result = await submitPlannerDecision({
       updateUuid: update.id,
       action: 'accept',
+      expectedWorkflowRevision: update.workflow_revision ?? 0,
       targetActivityId: null,
       remarks,
     });
@@ -198,14 +199,14 @@ export const ReviewQueue: React.FC = () => {
   };
 
   const handleRequeue = async (update: FieldUpdate, remarks?: string) => {
-    const result = await requeueForRematching({ updateUuid: update.id, remarks });
+    const result = await requeueForRematching({ updateUuid: update.id, remarks, expectedWorkflowRevision: update.workflow_revision ?? 0 });
     const error = actionErrorMessage(result, 'Failed to requeue report.');
     if (error) showToast(error, 'error');
     else showToast(`Report ${update.update_id} requeued for the matching worker.`);
   };
 
   const handleConfirmOverride = async (update: FieldUpdate, reason: string) => {
-    const result = await overrideValidation({ updateUuid: update.id, reason });
+    const result = await overrideValidation({ updateUuid: update.id, reason, expectedWorkflowRevision: update.workflow_revision ?? 0 });
     const error = actionErrorMessage(result, 'Failed to record validation override.');
     if (error) {
       showToast(error, 'error');
@@ -419,7 +420,7 @@ export const ReviewQueue: React.FC = () => {
                     evidenceHistory={<ClarificationHistory rounds={workflow.rounds.filter(c => c.field_update_id === selectedUpdate.id)} />}
                     decisionContent={<WorkflowActions update={selectedUpdate} rounds={workflow.rounds} proposals={workflow.proposals}
                       activities={activities} act={workflow.act} available={!workflow.loading && !workflow.error}
-                      onAccept={handleAccept} onRemap={setRemapTarget} />}
+                      onRemap={setRemapTarget} />}
                   />
                 )}
               </div>

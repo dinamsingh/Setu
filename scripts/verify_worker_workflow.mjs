@@ -24,20 +24,105 @@ export async function verifyWorkerWorkflow({ db, read, actor, rpc, seed, report,
   };
   const propose = async id => { await actor('planner'); return rpc('propose_field_update_remap', [id, 'ACT-B']); };
   const functions = ['complete_field_update_processing', 'complete_field_update_remap_validation',
-    'propose_field_update_remap', 'override_field_update_remap_proposal', 'cancel_field_update_remap_proposal', 'finalize_field_update_remap'];
+    'propose_field_update_remap', 'override_field_update_remap_proposal', 'cancel_field_update_remap_proposal', 'finalize_field_update_remap',
+    'accept_current_field_update', 'override_current_field_update_validation', 'requeue_current_field_update'];
   const grants = (await db.query(`select proname, prosecdef, proconfig,
     has_function_privilege('anon', oid, 'EXECUTE') as anon,
     has_function_privilege('authenticated', oid, 'EXECUTE') as browser,
     has_function_privilege('service_role', oid, 'EXECUTE') as server
     from pg_proc where proname = any($1::text[])`, [functions])).rows;
-  assert.equal(grants.length, 6);
+  assert.equal(grants.length, 9);
   for (const g of grants) {
     assert.equal(g.anon, false);
     assert.equal(g.browser, !g.proname.startsWith('complete_'));
     if (g.proname.startsWith('complete_')) assert.equal(g.server, true);
-    assert.ok(g.prosecdef && g.proconfig.some(c => c.startsWith('search_path=')));
+    if (g.proname.includes('_current_field_update')) assert.equal(g.server, false);
+    assert.ok(g.prosecdef && g.proconfig.some(c => c.replaceAll('"', '') === 'search_path='));
     checks += 4;
   }
+  const wrappers = ['accept_current_field_update', 'override_current_field_update_validation', 'requeue_current_field_update'];
+  const logs = async id => {
+    await actor('owner');
+    return (await db.query('select * from public.planner_audit_logs where field_update_id=$1 order by id', [id])).rows;
+  };
+  const prepare = async name => {
+    const id = await seed();
+    if (name === 'override_current_field_update_validation') {
+      await actor('owner'); await db.query("update public.field_updates set validation_status='block' where id=$1", [id]);
+    }
+    return id;
+  };
+  for (const name of wrappers) {
+    const id = await prepare(name);
+    await actor('planner');
+    await reject(() => rpc(name, [id, 'Reviewed note']), /Expected workflow revision is required/);
+    await reject(() => rpc(name, [id, 'Reviewed note', null]), /Expected workflow revision is required/);
+    // Another planner advances the report after the original browser displayed revision zero.
+    await actor('admin');
+    await rpc('resolve_field_update_clarification_now', [id, 'Context?', 'phone', 'Confirmed', 'Supervisor', 'confirm_only', 0]);
+    const before = await report(id); const auditBefore = await logs(id);
+    await actor('planner');
+    await assert.rejects(() => rpc(name, [id, 'Reviewed note', 0]), error => {
+      assert.equal(error.code, '40001'); assert.match(error.message, /Workflow changed; refresh before acting/); return true;
+    });
+    assert.deepEqual(await report(id), before); assert.deepEqual(await logs(id), auditBefore);
+    await actor('planner'); const current = await rpc(name, [id, 'Reviewed note', before.workflow_revision]);
+    assert.equal(Number(current.workflow_revision), 2);
+    if (name.startsWith('accept_')) assert.equal(current.status, 'approved');
+    if (name.startsWith('override_')) {
+      assert.equal(current.validation_overridden, true); assert.equal(current.override_activity_id, 'ACT-A');
+      assert.equal(Number(current.override_evidence_revision), Number(current.evidence_revision));
+    }
+    if (name.startsWith('requeue_')) {
+      assert.equal(current.confidence_level, 'Pending'); assert.equal(current.validation_status, null);
+      assert.equal(current.matched_activity_id, null);
+    }
+    const afterLogs = await logs(id);
+    assert.equal(afterLogs.length, auditBefore.length + 1);
+    const decision = afterLogs.find(log => log.action === ({
+      accept_current_field_update: 'accept', override_current_field_update_validation: 'override', requeue_current_field_update: 'requeue',
+    })[name]);
+    assert.equal(decision.actor_user_id, users.planner);
+    assert.equal(decision.previous_activity_id, 'ACT-A');
+    assert.equal(decision.new_activity_id, name.startsWith('requeue_') ? null : 'ACT-A');
+    checks += 10;
+    for (const who of ['site', 'engineer', 'anon']) {
+      const denied = await prepare(name); await actor(who);
+      await reject(() => rpc(name, [denied, 'Reviewed note', 0]), who === 'anon' ? /permission denied/ : /Planner or administrator/);
+    }
+    const adminId = await prepare(name); await actor('admin');
+    assert.equal(Number((await rpc(name, [adminId, 'Admin reviewed', 0])).workflow_revision), 1); checks++;
+    // A delegated audit failure rolls the entire nested decision back.
+    const rollbackId = await prepare(name); const original = await report(rollbackId);
+    await db.query("select set_config('test.fail_audit', 'on', false)"); await actor('planner');
+    await reject(() => rpc(name, [rollbackId, 'Reviewed note', 0]), /test audit failure/);
+    assert.deepEqual(await report(rollbackId), original); assert.equal((await logs(rollbackId)).length, 0);
+    await db.query("select set_config('test.fail_audit', 'off', false)"); checks += 2;
+  }
+  // PUBLIC must not confer EXECUTE; old client signatures/grants remain present.
+  await actor('owner');
+  const publicGrants = (await db.query(`select count(*)::integer as count from pg_proc p,
+    lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+    where p.proname = any($1::text[]) and a.grantee=0 and a.privilege_type='EXECUTE'`, [wrappers])).rows[0];
+  assert.equal(publicGrants.count, 0); checks++;
+  for (const signature of ['review_field_update(uuid,text,text,text)', 'override_field_update_validation(uuid,text)', 'requeue_field_update(uuid,text)']) {
+    const permission = (await db.query("select has_function_privilege('authenticated', $1, 'EXECUTE') as allowed", [`public.${signature}`])).rows[0];
+    assert.equal(permission.allowed, true); checks++;
+  }
+  // Two decisions using the same displayed revision cannot silently compose.
+  const conflict = await prepare('override_current_field_update_validation'); await actor('planner');
+  await rpc('override_current_field_update_validation', [conflict, 'Signed exception', 0]);
+  const afterOverride = await report(conflict); await actor('admin');
+  await reject(() => rpc('requeue_current_field_update', [conflict, 'Older browser', 0]), /Workflow changed/);
+  assert.deepEqual(await report(conflict), afterOverride); await actor('admin');
+  await rpc('requeue_current_field_update', [conflict, 'Refreshed browser', 1]); checks++;
+  // A worker completion also invalidates the planner's older displayed revision.
+  const workerRace = await seed(); await actor('planner'); await rpc('requeue_current_field_update', [workerRace, null, 0]);
+  const workerSnapshot = await report(workerRace); assert.equal(await complete(workerRace, workerSnapshot), true);
+  const workerCurrent = await report(workerRace); await actor('planner');
+  await reject(() => rpc('accept_current_field_update', [workerRace, null, workerSnapshot.workflow_revision]), /Workflow changed/);
+  assert.deepEqual(await report(workerRace), workerCurrent); await actor('planner');
+  assert.equal((await rpc('accept_current_field_update', [workerRace, null, workerCurrent.workflow_revision])).status, 'approved'); checks += 3;
   // Each planner/field mutation makes the original computation obsolete.
   for (const mutation of ['clarification', 'finalize', 'requeue', 'evidence', 'proposal']) {
     const id = await seed();
