@@ -106,6 +106,11 @@ class LocalMockQueryBuilder:
                 if existing_idx is not None:
                     rows[existing_idx].update(item)
                 else:
+                    # PostgreSQL assigns report UUIDs on INSERT/UPSERT. Match
+                    # that identity contract for the worker's UUID-based CAS.
+                    if self.table_name == 'field_updates' and 'id' not in item:
+                        from uuid import uuid4
+                        item['id'] = str(uuid4())
                     rows.append(item)
             self.db.save()
             return LocalMockResponse(self._payload)
@@ -209,11 +214,14 @@ class LocalMockDatabase:
     def table(self, table_name: str) -> LocalMockQueryBuilder:
         return LocalMockQueryBuilder(table_name, self)
 
-    def rpc(self, name: str, params: Dict, *, actor_user_id: Optional[str] = None):
+    def rpc(self, name: str, params: Dict, *, actor_user_id: Optional[str] = None, server_role: bool = False):
         """Emulate governed RPCs using an explicit test identity, never secrets.
 
         actor_user_id is mock-only; real Supabase derives identity from its JWT.
         """
+        from database.worker_workflow_mock import LocalOrchestrationRPC, RPC_NAMES
+        if name in RPC_NAMES:
+            return LocalOrchestrationRPC(self, name, params, actor_user_id, server_role)
         from database.workflow_mock import LocalWorkflowRPC
         return LocalWorkflowRPC(self, name, params, actor_user_id)
 

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { FieldUpdate } from '../types';
 import { useAuth } from '../lib/AuthContext';
 import { computeKpis, parseCandidates } from '../lib/utils';
+import { createFieldUpdateId } from '../lib/fieldUpdateId';
 
 export function useFieldUpdates() {
   const [updates, setUpdates] = useState<FieldUpdate[]>([]);
@@ -73,8 +74,7 @@ export function useFieldUpdates() {
   }) => {
     try {
       if (!user) throw new Error('You must be signed in to submit a field update.');
-      const nextNum = updates.length + 1;
-      const nextId = `UPD-2026-${String(nextNum).padStart(3, '0')}`;
+      const nextId = createFieldUpdateId();
       const nowIso = new Date().toISOString().split('T')[0];
 
       const payload = {
@@ -114,14 +114,21 @@ export function useFieldUpdates() {
     action,
     targetActivityId,
     remarks,
+    expectedWorkflowRevision,
   }: {
     updateUuid: string;
     action: 'accept' | 'reject' | 'remap';
     targetActivityId?: string | null;
     remarks: string;
+    expectedWorkflowRevision?: number;
   }) => {
     try {
-      const { error: rpcError } = await supabase.rpc('review_field_update', {
+      if (action === 'accept' && expectedWorkflowRevision == null) throw new Error('Expected workflow revision is required');
+      const { error: rpcError } = await supabase.rpc(action === 'accept' ? 'accept_current_field_update' : 'review_field_update', action === 'accept' ? {
+        p_field_update_id: updateUuid,
+        p_remarks: remarks || null,
+        p_expected_workflow_revision: expectedWorkflowRevision,
+      } : {
         p_field_update_id: updateUuid,
         p_action: action,
         p_target_activity_id: targetActivityId ?? null,
@@ -141,9 +148,11 @@ export function useFieldUpdates() {
   const requeueForRematching = async ({
     updateUuid,
     remarks,
+    expectedWorkflowRevision,
   }: {
     updateUuid: string;
     remarks?: string;
+    expectedWorkflowRevision: number;
   }) => {
     try {
       const row = updates.find((u) => u.id === updateUuid || u.update_id === updateUuid);
@@ -156,9 +165,10 @@ export function useFieldUpdates() {
         );
       }
 
-      const { error: rpcError } = await supabase.rpc('requeue_field_update', {
+      const { error: rpcError } = await supabase.rpc('requeue_current_field_update', {
         p_field_update_id: row.id,
         p_remarks: remarks || null,
+        p_expected_workflow_revision: expectedWorkflowRevision,
       });
 
       if (rpcError) throw rpcError;
@@ -174,9 +184,11 @@ export function useFieldUpdates() {
   const overrideValidation = async ({
     updateUuid,
     reason,
+    expectedWorkflowRevision,
   }: {
     updateUuid: string;
     reason: string;
+    expectedWorkflowRevision: number;
   }) => {
     try {
       if (!reason || !reason.trim()) {
@@ -186,9 +198,10 @@ export function useFieldUpdates() {
       const row = updates.find((u) => u.id === updateUuid || u.update_id === updateUuid);
       if (!row) throw new Error(`Field update ${updateUuid} not found.`);
 
-      const { error: rpcError } = await supabase.rpc('override_field_update_validation', {
+      const { error: rpcError } = await supabase.rpc('override_current_field_update_validation', {
         p_field_update_id: row.id,
         p_reason: reason.trim(),
+        p_expected_workflow_revision: expectedWorkflowRevision,
       });
 
       if (rpcError) throw rpcError;

@@ -176,8 +176,10 @@ def test_requeue_clears_derived_match_state_while_preserving_audit_history():
 
 
 def test_frontend_uses_rpcs_instead_of_separate_table_mutations():
-    assert "supabase.rpc('review_field_update'" in HOOK
-    assert "supabase.rpc('override_field_update_validation'" in HOOK
-    assert "supabase.rpc('requeue_field_update'" in HOOK
+    assert "'accept_current_field_update'" in HOOK
+    assert "'review_field_update'" in HOOK  # Legacy compatibility, not B3 Accept.
+    assert "supabase.rpc('override_current_field_update_validation'" in HOOK
+    assert "supabase.rpc('requeue_current_field_update'" in HOOK
+    assert HOOK.count('p_expected_workflow_revision: expectedWorkflowRevision') == 3
     assert ".from('planner_audit_logs')" not in HOOK
     assert ".from('field_updates')\n        .update(" not in HOOK

@@ -129,7 +129,8 @@ export function buildExportData(
         'Reported Date': u.reported_date || '',
         'Site Location': u.site_location || '',
         'Field Evidence': u.field_text || '',
-        'Confidence Score': scoreNum,
+        'Mapping Source': u.status === 'remapped' ? 'Planner-selected validated remap' : 'AI suggestion accepted by planner',
+        'AI Suggestion Confidence Score': u.status === 'remapped' ? '' : scoreNum,
         'Planner Status': u.status.charAt(0).toUpperCase() + u.status.slice(1),
         'Planner Remarks': u.planner_remarks || '',
       };

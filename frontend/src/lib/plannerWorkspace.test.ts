@@ -75,6 +75,7 @@ describe('planner operational counts', () => {
       lowConfidence: 1,
       unmatched: 2,
       awaitingAi: 1,
+      awaitingResponse: 0, needsTriage: 0, reprocessing: 0, remapPending: 0, readyToConfirm: 0,
     });
   });
 });

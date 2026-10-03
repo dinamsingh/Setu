@@ -34,6 +34,10 @@ interface ReviewCardProps {
   onOpenRemap: (update: FieldUpdate) => void;
   onOpenOverride?: (update: FieldUpdate) => void;
   onRequeue?: (update: FieldUpdate, remarks?: string) => Promise<void>;
+  workflowLabel?: string;
+  decisionContent?: React.ReactNode;
+  evidenceHistory?: React.ReactNode;
+  manualMapping?: boolean;
 }
 
 const supportedChecks = new Set([
@@ -105,6 +109,10 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   onOpenRemap,
   onOpenOverride,
   onRequeue,
+  workflowLabel,
+  decisionContent,
+  evidenceHistory,
+  manualMapping,
 }) => {
   const [pendingAction, setPendingAction] = useState<'accept' | 'reject' | 'requeue' | null>(null);
   const [actionNote, setActionNote] = useState(update.planner_remarks || '');
@@ -114,7 +122,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const decisionRef = useRef<HTMLElement>(null);
   const actionNoteRef = useRef<HTMLTextAreaElement>(null);
 
-  const awaiting = isMatchingPending(update);
+  const awaiting = !manualMapping && isMatchingPending(update);
   const candidates = Array.isArray(update.candidate_matches) ? update.candidate_matches : [];
   const validationResults = parseValidationResults(update.validation_results).filter((check) =>
     supportedChecks.has(check.check)
@@ -271,13 +279,14 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             />
             <div className="min-w-0">
               <p data-testid="decision-state" className="text-xs font-extrabold">
-                {decisionState.label}
+                {workflowLabel || decisionState.label}
               </p>
-              <p className="truncate text-[10px] opacity-80">{decisionState.detail}</p>
+              <p className="text-[10px] opacity-80">{decisionContent
+                ? 'Review the current workflow below before recording a decision.' : decisionState.detail}</p>
             </div>
           </div>
 
-          {!isReviewed && !awaiting && (
+          {!decisionContent && !isReviewed && !awaiting && (
             <div className="flex shrink-0 flex-wrap items-center gap-1.5">
               {isBlocked ? (
                 <button
@@ -328,10 +337,12 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           <blockquote className="border-l-4 border-setu-slate-500 bg-setu-slate-50 px-4 py-3 text-sm font-medium leading-6 text-setu-slate-900">
             “{update.field_text}”
           </blockquote>
+          {evidenceHistory}
         </section>
 
         <section className="px-4 py-5 sm:px-5" aria-labelledby={`suggestion-${update.id}`}>
           <SectionLabel number={2}>AI suggestion</SectionLabel>
+          {workflowLabel === 'Reprocessing Evidence' && <p className="mb-2 text-xs text-amber-900">Previous suggestion shown for context only. Current clarified evidence is being processed.</p>}
           <div className="flex flex-col gap-3 border border-setu-slate-200 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -351,7 +362,8 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               <p className="mt-1.5 text-sm font-bold text-setu-slate-900">{activityName}</p>
             </div>
             <div className="shrink-0">
-              <ConfidenceBadge level={update.confidence_level} score={update.confidence_score} />
+              {manualMapping || update.status === 'remapped' ? <p className="text-xs font-bold text-setu-slate-600">Planner-selected activity</p>
+                : <ConfidenceBadge level={update.confidence_level} score={update.confidence_score} />}
             </div>
           </div>
 
@@ -507,7 +519,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
         >
           <SectionLabel number={4}>Planner decision</SectionLabel>
 
-          {isReviewed ? (
+          {decisionContent || (isReviewed ? (
             <div className="border-l-4 border-setu-slate-500 bg-setu-slate-50 px-4 py-3 text-xs text-setu-slate-700">
               <p className="font-bold">Finalized planner decision. This report is read-only.</p>
               {update.planner_remarks && <p className="mt-1 leading-5">{update.planner_remarks}</p>}
@@ -671,7 +683,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 )}
               </div>
             </div>
-          )}
+          ))}
         </section>
       </div>
     </article>
