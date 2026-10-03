@@ -10,7 +10,7 @@ type AuthContextValue = {
   user: User | null;
   role: AppRole | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; userId: string | null }>;
   signOut: () => Promise<{ error: Error | null }>;
   refreshRole: (userId?: string) => Promise<AppRole | null>;
 };
@@ -80,8 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role,
     loading,
     signIn: async (email, password) => {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      return { error: error ? new Error(error.message) : null };
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      return { error: error ? new Error(error.message) : null, userId: data?.user?.id ?? null };
     },
     signOut: async () => {
       const { error } = await supabase.auth.signOut();
