@@ -91,6 +91,7 @@ export interface PlannerAuditLog {
   previous_activity_id: string | null;
   new_activity_id: string | null;
   planner_name: string;
+  actor_user_id?: string | null;
   remarks: string | null;
   created_at: string;
 }

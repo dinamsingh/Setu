@@ -1,8 +1,8 @@
 """Deterministic authorization model used only by the local mock/test layer.
 
-The real production enforcement lives in Supabase PostgreSQL RLS policies in
-database/schema.sql. This module mirrors the intended matrix so offline tests
-can verify application behaviour without a live Supabase project.
+The real production enforcement lives in Supabase PostgreSQL RLS policies and
+forward migrations under database/migrations. This module mirrors the intended
+matrix so offline tests can verify application behaviour without a live project.
 """
 
 from typing import Literal
@@ -12,7 +12,7 @@ Role = Literal["site", "engineer", "planner", "admin"]
 
 def can(role: Role, resource: str, action: str, *, own: bool = False) -> bool:
     if resource == "schedule_activities":
-        return action == "select" or (role in ("planner", "admin") and action in {"insert", "update", "delete"})
+        return action == "select"
 
     if resource == "field_updates":
         if action == "insert":
@@ -20,7 +20,7 @@ def can(role: Role, resource: str, action: str, *, own: bool = False) -> bool:
         if action == "select":
             return own or role in ("planner", "admin")
         if action == "update":
-            return role in ("planner", "admin")
+            return False
         return False
 
     if resource == "domain_aliases":
@@ -34,11 +34,18 @@ def can(role: Role, resource: str, action: str, *, own: bool = False) -> bool:
 
     if resource == "planner_audit_logs":
         if action == "insert":
-            return True
+            return False
         if action == "select":
             return role in ("planner", "admin")
         # Append-only browser model.
         return False
+
+    if resource in {
+        "planner_decision_rpc",
+        "validation_override_rpc",
+        "planner_requeue_rpc",
+    }:
+        return action == "execute" and role in ("planner", "admin")
 
     if resource == "user_roles":
         if action == "select":

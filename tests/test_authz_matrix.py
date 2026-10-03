@@ -71,15 +71,18 @@ def test_8_audit_logs_cannot_be_deleted():
 
 # 9. planner can perform planner actions
 def test_9_planner_can_perform_planner_actions():
-    """Planner can review field updates, review aliases, view logs, and update schedules."""
-    assert can("planner", "field_updates", "update") is True
+    """Planner uses governance RPCs; direct governed-table writes remain closed."""
+    assert can("planner", "field_updates", "update") is False
     assert can("planner", "field_updates", "select", own=False) is True
     assert can("planner", "domain_aliases", "update") is True
     assert can("planner", "domain_aliases", "select") is True
     assert can("planner", "schedule_activities", "select") is True
-    assert can("planner", "schedule_activities", "update") is True
-    assert can("planner", "planner_audit_logs", "insert") is True
+    assert can("planner", "schedule_activities", "update") is False
+    assert can("planner", "planner_audit_logs", "insert") is False
     assert can("planner", "planner_audit_logs", "select") is True
+    assert can("planner", "planner_decision_rpc", "execute") is True
+    assert can("planner", "validation_override_rpc", "execute") is True
+    assert can("planner", "planner_requeue_rpc", "execute") is True
 
 
 # 10. admin can perform admin actions
@@ -89,10 +92,12 @@ def test_10_admin_can_perform_admin_actions():
     assert can("admin", "user_roles", "update") is True
     assert can("admin", "user_roles", "delete") is True
     assert can("admin", "user_roles", "select") is True
-    assert can("admin", "field_updates", "update") is True
+    assert can("admin", "field_updates", "update") is False
     assert can("admin", "domain_aliases", "update") is True
-    assert can("admin", "schedule_activities", "update") is True
+    assert can("admin", "schedule_activities", "update") is False
     assert can("admin", "planner_audit_logs", "select") is True
+    assert can("admin", "planner_decision_rpc", "execute") is True
+    assert can("admin", "validation_override_rpc", "execute") is True
 
 
 # 11. site can perform allowed field-update actions
@@ -115,4 +120,12 @@ def test_12_engineer_can_perform_allowed_field_update_actions():
     assert can("engineer", "field_updates", "select", own=False) is False
     assert can("engineer", "domain_aliases", "select") is True
     assert can("engineer", "domain_aliases", "insert", own=True) is True
+
+
+def test_13_non_planners_cannot_execute_governance_rpcs():
+    """Site and engineer roles cannot execute planner governance operations."""
+    for role in ("site", "engineer"):
+        assert can(role, "planner_decision_rpc", "execute") is False
+        assert can(role, "validation_override_rpc", "execute") is False
+        assert can(role, "planner_requeue_rpc", "execute") is False
 

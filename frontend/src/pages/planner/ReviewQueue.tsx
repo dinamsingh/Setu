@@ -17,14 +17,16 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 import { useScheduleData } from '../../hooks/useScheduleData';
+import { useAuth } from '../../lib/AuthContext';
 import type { FieldUpdate } from '../../types';
 
 export const ReviewQueue: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { updates, loading: updatesLoading, refetch, updateStatusAndAudit, requeueForRematching, overrideValidation } = useFieldUpdates();
+  const { updates, loading: updatesLoading, refetch, submitPlannerDecision, requeueForRematching, overrideValidation } = useFieldUpdates();
   const { activities, activitiesMap, disciplines, loading: scheduleLoading } = useScheduleData();
+  const { role } = useAuth();
 
-  const [plannerName, setPlannerName] = useState('Lead Project Planner');
+  const plannerName = role === 'admin' ? 'Authenticated Administrator' : 'Authenticated Planner';
   const [remapTarget, setRemapTarget] = useState<FieldUpdate | null>(null);
   const [overrideTarget, setOverrideTarget] = useState<FieldUpdate | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -111,12 +113,10 @@ export const ReviewQueue: React.FC = () => {
       showToast('Select a valid schedule activity through Remap before approval.');
       return;
     }
-    const res = await updateStatusAndAudit({
+    const res = await submitPlannerDecision({
       updateUuid: update.id,
       action: 'accept',
-      previousActId: update.matched_activity_id,
-      newActId: update.matched_activity_id,
-      plannerName,
+      targetActivityId: null,
       remarks,
     });
     if (res.success) {
@@ -129,12 +129,10 @@ export const ReviewQueue: React.FC = () => {
       showToast(`Update ${update.update_id} is already finalized and read-only.`);
       return;
     }
-    const res = await updateStatusAndAudit({
+    const res = await submitPlannerDecision({
       updateUuid: update.id,
       action: 'reject',
-      previousActId: update.matched_activity_id,
-      newActId: null,
-      plannerName,
+      targetActivityId: null,
       remarks,
     });
     if (res.success) {
@@ -155,12 +153,10 @@ export const ReviewQueue: React.FC = () => {
       showToast('Choose a valid schedule activity before confirming the remap.');
       return;
     }
-    const res = await updateStatusAndAudit({
+    const res = await submitPlannerDecision({
       updateUuid: update.id,
       action: 'remap',
-      previousActId: update.matched_activity_id,
-      newActId: newActivityId,
-      plannerName,
+      targetActivityId: newActivityId,
       remarks,
     });
     if (res.success) {
@@ -171,7 +167,6 @@ export const ReviewQueue: React.FC = () => {
   const handleRequeue = async (update: FieldUpdate, remarks?: string) => {
     const res = await requeueForRematching({
       updateUuid: update.id,
-      plannerName,
       remarks,
     });
     if (res.success) {
@@ -184,7 +179,6 @@ export const ReviewQueue: React.FC = () => {
   const handleConfirmOverride = async (update: FieldUpdate, reason: string) => {
     const res = await overrideValidation({
       updateUuid: update.id,
-      plannerName,
       reason,
     });
     if (res.success) {
@@ -233,17 +227,12 @@ export const ReviewQueue: React.FC = () => {
               </p>
             </div>
 
-            {/* Editable Planner Name Input */}
+            {/* Authenticated actor display; database audit identity comes from auth.uid(). */}
             <div className="flex items-center space-x-2 bg-setu-slate-50 px-3 py-1.5 rounded-xl border border-setu-slate-200 text-xs self-start sm:self-center">
               <UserCircle className="w-4 h-4 text-setu-blue shrink-0" />
               <div className="flex flex-col">
                 <span className="text-[10px] text-setu-slate-400 font-bold uppercase">Acting Planner:</span>
-                <input
-                  type="text"
-                  value={plannerName}
-                  onChange={(e) => setPlannerName(e.target.value)}
-                  className="font-bold text-setu-navy bg-transparent focus:outline-none text-xs"
-                />
+                <span className="font-bold text-setu-navy text-xs">{plannerName}</span>
               </div>
             </div>
           </div>

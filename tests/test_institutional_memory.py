@@ -21,6 +21,7 @@ from database.supabase_client import (
     propose_domain_alias,
     review_domain_alias,
     requeue_field_update_for_rematch,
+    override_field_update_validation,
 )
 from database.import_data import (
     import_schedule_activities,
@@ -31,6 +32,7 @@ from engine.alias_expander import DomainAliasExpander
 from engine.alias_proposer import extract_candidate_terms
 from engine.ensemble_matcher import EnsembleMatcher
 from engine.run_supabase_matching import run_supabase_matching
+from engine.match_worker import is_unmatched_row, match_single_update
 
 
 @pytest.fixture(scope="module")
@@ -206,20 +208,59 @@ def test_requeue_refuses_reviewed_rows(db_client):
     # Run initial matching
     run_supabase_matching(client=db_client)
     updates = fetch_field_updates(db_client)
-    first_upd = updates[0]
+    first_upd = next(u for u in updates if u.get("matched_activity_id"))
     upd_id = first_upd["update_id"]
+    previous_activity_id = first_upd["matched_activity_id"]
 
-    # Test 1: Can re-queue a pending row
+    # Test 1: Block, override, then requeue a pending row.
     assert first_upd.get("status") == "pending"
+    db_client.table("field_updates").update({
+        "validation_status": "block",
+        "validation_results": [{"check": "test", "outcome": "fail"}],
+    }).eq("update_id", upd_id).execute()
+    override_field_update_validation(
+        db_client,
+        update_id=upd_id,
+        planner_name="Test Planner",
+        reason="Reviewed exception",
+    )
     requeue_field_update_for_rematch(db_client, update_id=upd_id, remarks="Testing pending requeue")
 
     rechecked = db_client.table("field_updates").select("*").eq("update_id", upd_id).execute().data[0]
     assert rechecked["confidence_level"] == "Pending"
     assert rechecked["confidence_score"] is None
+    assert rechecked["validation_status"] is None
+    assert rechecked["validation_results"] == []
+    assert rechecked["validation_overridden"] is False
+    assert rechecked["override_reason"] is None
+    assert rechecked["override_by"] is None
+    assert rechecked["override_at"] is None
+    assert rechecked["matched_activity_id"] is None
+    assert rechecked["matched_layer"] is None
+    assert rechecked["candidate_matches"] == []
+    assert rechecked["expanded_text"] is None
+    assert is_unmatched_row(rechecked) is True
 
     # Check that a requeue audit record was logged
     audit_logs = db_client.table("planner_audit_logs").select("*").eq("action", "requeue").execute().data
     assert len(audit_logs) >= 1
+    requeue_audit = audit_logs[-1]
+    assert requeue_audit["previous_activity_id"] == previous_activity_id
+    assert requeue_audit["new_activity_id"] is None
+
+    # Worker can rematch from immutable source fields and repopulates derived state.
+    matcher = EnsembleMatcher(
+        activities=fetch_schedule_activities(db_client),
+        alias_expander=DomainAliasExpander(aliases=fetch_verified_domain_aliases(db_client)),
+    )
+    match_single_update(matcher, db_client, rechecked, all_reports=fetch_field_updates(db_client))
+    rematched = db_client.table("field_updates").select("*").eq("update_id", upd_id).execute().data[0]
+    assert rematched["confidence_level"] in ("High", "Medium", "Low")
+    assert rematched["validation_status"] in ("pass", "warn", "block")
+    assert rematched["validation_results"]
+    assert rematched["expanded_text"]
+    assert rematched["candidate_matches"]
+    assert rematched["validation_overridden"] is False
 
     # Test 2: Cannot re-queue an approved row
     db_client.table("field_updates").update({"status": "approved"}).eq("update_id", upd_id).execute()

@@ -337,7 +337,7 @@ def requeue_field_update_for_rematch(
     remarks: str = "Re-queued for re-matching with updated domain dictionary"
 ) -> None:
     """
-    Re-queues a field update row for matching by resetting confidence_level to 'Pending'.
+    Re-queues a field update row by clearing derived match, validation, and override state.
     Strictly refuses to touch already-reviewed rows (status in 'approved', 'rejected', 'remapped').
     Enforced in data access layer.
     """
@@ -355,6 +355,16 @@ def requeue_field_update_for_rematch(
     update_payload = {
         "confidence_level": "Pending",
         "confidence_score": None,
+        "matched_activity_id": None,
+        "matched_layer": None,
+        "candidate_matches": [],
+        "expanded_text": None,
+        "validation_status": None,
+        "validation_results": [],
+        "validation_overridden": False,
+        "override_reason": None,
+        "override_by": None,
+        "override_at": None,
     }
     client.table("field_updates").update(update_payload).eq("update_id", update_id).execute()
 

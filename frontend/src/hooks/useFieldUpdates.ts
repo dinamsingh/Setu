@@ -109,58 +109,26 @@ export function useFieldUpdates() {
     }
   };
 
-  const updateStatusAndAudit = async ({
+  const submitPlannerDecision = async ({
     updateUuid,
     action,
-    previousActId,
-    newActId,
-    plannerName,
+    targetActivityId,
     remarks,
   }: {
     updateUuid: string;
     action: 'accept' | 'reject' | 'remap';
-    previousActId: string | null;
-    newActId: string | null;
-    plannerName: string;
+    targetActivityId?: string | null;
     remarks: string;
   }) => {
     try {
-      const statusMap = {
-        accept: 'approved',
-        reject: 'rejected',
-        remap: 'remapped',
-      } as const;
-      const newStatus = statusMap[action];
-      const finalMatchedAct = action === 'reject' ? previousActId : (newActId || previousActId);
+      const { error: rpcError } = await supabase.rpc('review_field_update', {
+        p_field_update_id: updateUuid,
+        p_action: action,
+        p_target_activity_id: targetActivityId ?? null,
+        p_remarks: remarks || null,
+      });
 
-      // 1. Update field_updates
-      const { error: updError } = await supabase
-        .from('field_updates')
-        .update({
-          status: newStatus,
-          matched_activity_id: finalMatchedAct,
-          planner_remarks: remarks || `Action: ${action} confirmed by ${plannerName}`,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', updateUuid);
-
-      if (updError) throw updError;
-
-      // 2. Insert into planner_audit_logs
-      const { error: auditError } = await supabase
-        .from('planner_audit_logs')
-        .insert([
-          {
-            field_update_id: updateUuid,
-            action,
-            previous_activity_id: previousActId,
-            new_activity_id: finalMatchedAct,
-            planner_name: plannerName || 'Lead Project Planner',
-            remarks: remarks || `Action: ${action} confirmed.`,
-          },
-        ]);
-
-      if (auditError) throw auditError;
+      if (rpcError) throw rpcError;
 
       await fetchUpdates();
       return { success: true };
@@ -172,11 +140,9 @@ export function useFieldUpdates() {
 
   const requeueForRematching = async ({
     updateUuid,
-    plannerName,
     remarks,
   }: {
     updateUuid: string;
-    plannerName: string;
     remarks?: string;
   }) => {
     try {
@@ -190,33 +156,12 @@ export function useFieldUpdates() {
         );
       }
 
-      // 1. Reset confidence to Pending
-      const { error: updError } = await supabase
-        .from('field_updates')
-        .update({
-          confidence_level: 'Pending',
-          confidence_score: 0,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', row.id);
+      const { error: rpcError } = await supabase.rpc('requeue_field_update', {
+        p_field_update_id: row.id,
+        p_remarks: remarks || null,
+      });
 
-      if (updError) throw updError;
-
-      // 2. Insert into planner_audit_logs
-      const { error: auditError } = await supabase
-        .from('planner_audit_logs')
-        .insert([
-          {
-            field_update_id: row.id,
-            action: 'requeue',
-            previous_activity_id: row.matched_activity_id,
-            new_activity_id: null,
-            planner_name: plannerName || 'Lead Project Planner',
-            remarks: remarks || 'Re-queued for re-matching with updated domain dictionary.',
-          },
-        ]);
-
-      if (auditError) throw auditError;
+      if (rpcError) throw rpcError;
 
       await fetchUpdates();
       return { success: true };
@@ -228,11 +173,9 @@ export function useFieldUpdates() {
 
   const overrideValidation = async ({
     updateUuid,
-    plannerName,
     reason,
   }: {
     updateUuid: string;
-    plannerName: string;
     reason: string;
   }) => {
     try {
@@ -243,37 +186,12 @@ export function useFieldUpdates() {
       const row = updates.find((u) => u.id === updateUuid || u.update_id === updateUuid);
       if (!row) throw new Error(`Field update ${updateUuid} not found.`);
 
-      const nowIso = new Date().toISOString();
+      const { error: rpcError } = await supabase.rpc('override_field_update_validation', {
+        p_field_update_id: row.id,
+        p_reason: reason.trim(),
+      });
 
-      // 1. Update field_updates
-      const { error: updError } = await supabase
-        .from('field_updates')
-        .update({
-          validation_overridden: true,
-          override_reason: reason.trim(),
-          override_by: plannerName || 'Lead Project Planner',
-          override_at: nowIso,
-          updated_at: nowIso,
-        })
-        .eq('id', row.id);
-
-      if (updError) throw updError;
-
-      // 2. Insert into planner_audit_logs
-      const { error: auditError } = await supabase
-        .from('planner_audit_logs')
-        .insert([
-          {
-            field_update_id: row.id,
-            action: 'override',
-            previous_activity_id: row.matched_activity_id,
-            new_activity_id: row.matched_activity_id,
-            planner_name: plannerName || 'Lead Project Planner',
-            remarks: `Validation Override: ${reason.trim()}`,
-          },
-        ]);
-
-      if (auditError) throw auditError;
+      if (rpcError) throw rpcError;
 
       await fetchUpdates();
       return { success: true };
@@ -290,7 +208,7 @@ export function useFieldUpdates() {
     error,
     refetch: fetchUpdates,
     submitFieldUpdate,
-    updateStatusAndAudit,
+    submitPlannerDecision,
     requeueForRematching,
     overrideValidation,
   };
