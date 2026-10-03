@@ -20,6 +20,7 @@ import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 import { useScheduleData } from '../../hooks/useScheduleData';
 import { useAuditLogs } from '../../hooks/useAuditLogs';
 import { buildExportData } from '../../lib/utils';
+import { humanizeAuditAction } from '../../lib/plannerWorkspace';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 
 export const AuditExport: React.FC = () => {
@@ -257,7 +258,7 @@ export const AuditExport: React.FC = () => {
                               log.action === 'remap' ? 'bg-purple-100 text-purple-800' :
                               log.action === 'requeue' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
                             }`}>
-                              {log.action}
+                              {humanizeAuditAction(log.action, log.metadata)}
                             </span>
                           </td>
                           <td className="py-2 px-3 font-mono text-setu-slate-600">{log.previous_activity_id || 'None'}</td>

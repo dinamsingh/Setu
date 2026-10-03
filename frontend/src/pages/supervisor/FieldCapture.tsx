@@ -11,9 +11,14 @@ import {
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
+import { useWorkflow } from '../../hooks/useWorkflow';
+import { useAuth } from '../../lib/AuthContext';
+import { NeedsClarification } from '../../components/supervisor/NeedsClarification';
 
 export const FieldCapture: React.FC = () => {
-  const { submitFieldUpdate } = useFieldUpdates();
+  const { submitFieldUpdate, updates, refetch } = useFieldUpdates();
+  const { user } = useAuth();
+  const workflow = useWorkflow(() => refetch(true));
 
   const [fieldText, setFieldText] = useState('');
   const [discipline, setDiscipline] = useState('Piping');
@@ -139,6 +144,9 @@ export const FieldCapture: React.FC = () => {
         )}
 
         {/* Capture Form */}
+        {workflow.error && <p role="alert" className="mb-3 text-xs text-rose-900">{workflow.error}</p>}
+        {user && <NeedsClarification rounds={workflow.rounds} updates={updates} userId={user.id}
+          act={workflow.act} available={!workflow.loading && !workflow.error} />}
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-setu-slate-200 p-6 sm:p-8 shadow-xs space-y-5">
           {/* Main Field Narrative */}
           <div>

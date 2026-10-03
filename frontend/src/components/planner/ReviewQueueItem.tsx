@@ -11,6 +11,7 @@ interface ReviewQueueItemProps {
   matchedActivity?: ScheduleActivity;
   selected: boolean;
   onSelect: () => void;
+  workflowLabel?: string;
 }
 
 function queueState(update: FieldUpdate, matchedActivity?: ScheduleActivity) {
@@ -41,6 +42,7 @@ export const ReviewQueueItem: React.FC<ReviewQueueItemProps> = ({
   matchedActivity,
   selected,
   onSelect,
+  workflowLabel,
 }) => {
   const state = queueState(update, matchedActivity);
   const StateIcon = state.icon;
@@ -60,7 +62,7 @@ export const ReviewQueueItem: React.FC<ReviewQueueItemProps> = ({
         <span className="font-mono text-xs font-bold text-setu-navy">{update.update_id}</span>
         <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold uppercase ${state.className}`}>
           <StateIcon className="h-3 w-3" />
-          {state.label}
+          {workflowLabel || state.label}
         </span>
       </div>
 

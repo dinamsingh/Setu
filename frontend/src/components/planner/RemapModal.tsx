@@ -1,373 +1,95 @@
-import React, { useState, useMemo } from 'react';
-import { X, Search, Check, Sparkles, ShieldCheck } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { extractCandidateTerms } from '../../lib/aliasProposer';
+import { useMemo, useState } from 'react';
 import { canRemapToActivity } from '../../lib/plannerWorkspace';
+import { extractCandidateTerms } from '../../lib/aliasProposer';
+import { supabase } from '../../lib/supabase';
 import type { FieldUpdate, ScheduleActivity } from '../../types';
 
-interface RemapModalProps {
-  isOpen: boolean;
-  update: FieldUpdate | null;
-  activities: ScheduleActivity[];
-  plannerName: string;
-  onClose: () => void;
-  onConfirmRemap: (update: FieldUpdate, newActivityId: string, remarks: string) => Promise<boolean>;
+interface Props {
+  isOpen: boolean; update: FieldUpdate | null; activities: ScheduleActivity[];
+  plannerName: string; onClose: () => void;
+  onConfirmRemap: (update: FieldUpdate, activityId: string, remarks: string) => Promise<boolean>;
 }
-
-type RemapModalContentProps = Omit<RemapModalProps, 'isOpen' | 'update'> & {
-  update: FieldUpdate;
-};
-
-export const RemapModal: React.FC<RemapModalProps> = ({ isOpen, update, ...rest }) => {
-  if (!isOpen || !update) return null;
-
-  return <RemapModalContent key={update.id} update={update} {...rest} />;
-};
-
-const RemapModalContent: React.FC<RemapModalContentProps> = ({
-  update,
-  activities,
-  plannerName,
-  onClose,
-  onConfirmRemap,
-}) => {
+export function RemapModal({ isOpen, update, ...rest }: Props) {
+  return isOpen && update ? <RemapSelection key={update.id} update={update} {...rest} /> : null;
+}
+function RemapSelection({ update, activities, plannerName, onClose, onConfirmRemap }: Omit<Props, 'isOpen' | 'update'> & { update: FieldUpdate }) {
   const [search, setSearch] = useState('');
-  const [selectedActId, setSelectedActId] = useState<string>('');
-  const [remarks, setRemarks] = useState(
-    update.planner_remarks || `Remapped by ${plannerName}`
-  );
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Optional governed alias proposal state
+  const [selected, setSelected] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [proposeAlias, setProposeAlias] = useState(false);
-  const [proposedFieldTerm, setProposedFieldTerm] = useState('');
-  const [proposedStandardTerm, setProposedStandardTerm] = useState('');
-  const [proposedDiscipline, setProposedDiscipline] = useState('');
-
-  const selectedActivity = useMemo(() => {
-    return activities.find((a) => a.activity_id === selectedActId) || null;
-  }, [activities, selectedActId]);
-
-  const candidateProposals = useMemo(() => {
-    if (!update?.field_text || !selectedActivity?.activity_name) return [];
-    return extractCandidateTerms(
-      update.field_text,
-      selectedActivity.activity_name,
-      selectedActivity.discipline
-    );
-  }, [update.field_text, selectedActivity]);
-
-  const handleAliasToggle = (checked: boolean) => {
-    setProposeAlias(checked);
-    if (!checked || proposedFieldTerm) return;
-
-    const proposal = candidateProposals[0];
-    if (proposal) {
-      setProposedFieldTerm(proposal.field_term);
-      setProposedStandardTerm(proposal.standard_term);
-      setProposedDiscipline(proposal.discipline);
-    } else if (selectedActivity) {
-      setProposedStandardTerm(selectedActivity.activity_name);
-      setProposedDiscipline(selectedActivity.discipline || 'General');
-    }
-  };
-
-  const filteredActivities = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return activities.slice(0, 50); // initial 50
-    return activities.filter(
-      (a) =>
-        a.activity_id.toLowerCase().includes(q) ||
-        a.activity_name.toLowerCase().includes(q) ||
-        a.discipline.toLowerCase().includes(q) ||
-        a.wbs_code.toLowerCase().includes(q)
-    );
-  }, [activities, search]);
-
-  const candidates = Array.isArray(update.candidate_matches) ? update.candidate_matches : [];
-
-  const handleConfirm = async () => {
-    if (!canRemapToActivity(update.matched_activity_id, selectedActId)) return;
-    setIsSubmitting(true);
+  const [fieldTerm, setFieldTerm] = useState('');
+  const [standardTerm, setStandardTerm] = useState('');
+  const [proposalSubmitted, setProposalSubmitted] = useState(false);
+  const selectedActivity = activities.find(a => a.activity_id === selected);
+  const filtered = useMemo(() => activities.filter(a =>
+    [a.activity_id, a.activity_name, a.discipline, a.wbs_code].join(' ').toLowerCase().includes(search.toLowerCase())).slice(0, 80),
+    [activities, search]);
+  async function submit() {
+    if (busy || !canRemapToActivity(update.matched_activity_id, selected)) return;
+    setBusy(true); setError(null);
     try {
-      if (proposeAlias && proposedFieldTerm.trim()) {
-        await supabase.from('domain_aliases').insert([
-          {
-            field_term: proposedFieldTerm.trim().toLowerCase(),
-            standard_term: (proposedStandardTerm || selectedActivity?.activity_name || '').trim(),
-            discipline: proposedDiscipline || selectedActivity?.discipline || 'General',
-            status: 'proposed',
-            origin: 'planner_correction',
-            source_update_id: update.update_id,
-            proposed_by: plannerName || 'Lead Project Planner',
-          },
-        ]);
+      if (!proposalSubmitted) {
+        if (!await onConfirmRemap(update, selected, '')) {
+          setError('Could not submit this target. See the action error and try again.'); return;
+        }
+        setProposalSubmitted(true);
       }
-      const remapped = await onConfirmRemap(update, selectedActId, remarks);
-      if (remapped) onClose();
-    } catch (err: any) {
-      console.error('Error confirming remap or proposing alias:', err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-setu-navy-dark/60 backdrop-blur-xs p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl border border-setu-slate-200 shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
-        {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-setu-slate-100 flex items-center justify-between bg-setu-slate-50">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-700">
-              Planner Control · Activity Reassignment
-            </span>
-            <h3 className="text-base font-bold text-setu-slate-900 mt-0.5">
-              Remap Report {update.update_id}
-            </h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-setu-slate-400 hover:text-setu-slate-700 hover:bg-setu-slate-200 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+      // Preserve the existing optional, quarantined alias proposal. A failed
+      // workflow never inserts an alias; retrying an alias never repeats remap.
+      if (proposeAlias && fieldTerm.trim()) {
+        const { error: aliasError } = await supabase.from('domain_aliases').insert([{
+          field_term: fieldTerm.trim().toLowerCase(), standard_term: standardTerm.trim(),
+          discipline: selectedActivity?.discipline || 'General', status: 'proposed',
+          origin: 'planner_correction', source_update_id: update.update_id, proposed_by: plannerName,
+        }]);
+        if (aliasError) { setError(`Target submitted; optional alias failed: ${aliasError.message}`); return; }
+      }
+      onClose();
+    } catch (err) { setError(err instanceof Error ? err.message : 'Target submission failed.'); }
+    finally { setBusy(false); }
+  }
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-setu-navy-dark/60 p-4">
+    <section role="dialog" aria-modal="true" aria-labelledby="remap-title" className="w-full max-w-2xl border border-setu-slate-300 bg-white shadow-xl">
+      <header className="border-b border-setu-slate-200 bg-setu-slate-50 px-5 py-4">
+        <h2 id="remap-title" className="font-bold">Select schedule activity · {update.update_id}</h2>
+        <p className="mt-1 text-xs">Selection creates a proposal, not a final decision. The worker validates this exact target before you confirm Remap.</p>
+      </header>
+      <div className="space-y-3 px-5 py-4">
+        <blockquote className="border-l-4 border-setu-slate-400 bg-setu-slate-50 p-3 text-xs">{update.field_text}</blockquote>
+        {error && <p role="alert" className="text-xs text-rose-900">{error}</p>}
+        <label className="block text-xs font-bold">Search baseline activities
+          <input autoFocus disabled={proposalSubmitted} aria-label="Search baseline activities" className="mt-1 w-full border border-setu-slate-300 px-3 py-2" value={search} onChange={e => setSearch(e.target.value)} />
+        </label>
+        <div className="max-h-72 overflow-y-auto divide-y divide-setu-slate-200 border border-setu-slate-200">
+          {filtered.map(a => <button key={a.activity_id} disabled={busy || proposalSubmitted || a.activity_id === update.matched_activity_id} onClick={() => { setSelected(a.activity_id); setProposeAlias(false); }}
+            className={`block w-full px-3 py-3 text-left text-xs focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue disabled:opacity-40 ${selected === a.activity_id ? 'bg-blue-50' : 'hover:bg-setu-slate-50'}`}>
+            <strong>{a.activity_id}</strong> · {a.discipline} · WBS {a.wbs_code}{a.activity_id === update.matched_activity_id ? ' · Current activity' : ''}
+            <p>{a.activity_name}</p>
+          </button>)}
+          {!filtered.length && <p className="p-3 text-xs">No baseline activities match.</p>}
         </div>
-
-        {/* Modal Body */}
-        <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
-          {/* Field Evidence Context */}
-          <div className="p-3 rounded-lg bg-setu-slate-900 text-white text-xs">
-            <span className="text-[10px] font-bold text-setu-blue-light uppercase tracking-wider block mb-1">
-              Field Evidence Narrative:
-            </span>
-            <p className="italic text-setu-slate-200">"{update.field_text}"</p>
-          </div>
-
-          {/* Quick pick candidates if available */}
-          {candidates.length > 0 && (
-            <div>
-              <span className="text-xs font-bold text-setu-slate-700 block mb-1.5">
-                Suggested Candidates from Matching Engine:
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {candidates.slice(0, 3).map((c, i) => {
-                  const isCurrentActivity = c.activity_id === update.matched_activity_id;
-                  return (
-                  <button
-                    key={i}
-                    type="button"
-                    disabled={isCurrentActivity}
-                    onClick={() => setSelectedActId(c.activity_id)}
-                    className={`text-left p-2.5 rounded-lg border text-xs transition-all ${
-                      selectedActId === c.activity_id
-                        ? 'border-purple-600 bg-purple-50 text-purple-900 font-semibold ring-1 ring-purple-600'
-                        : isCurrentActivity
-                        ? 'border-setu-slate-200 bg-setu-slate-100 text-setu-slate-400 cursor-not-allowed'
-                        : 'border-setu-slate-200 bg-setu-slate-50 hover:bg-white text-setu-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 font-mono text-[11px] font-bold text-setu-navy">
-                      <span>{c.activity_id}</span>
-                      {isCurrentActivity && <span className="font-sans text-[9px] uppercase text-setu-slate-500">Current</span>}
-                    </div>
-                    <div className="truncate text-[11px] mt-0.5">{c.activity_name}</div>
-                    <div className="text-[10px] text-setu-teal mt-0.5">
-                      Score: {c.combined_score ? (Number(c.combined_score) * 100).toFixed(1) + '%' : '—'}
-                    </div>
-                  </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Search All Activities */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-setu-slate-700">
-                Or Search All Loaded Baseline Activities ({activities.length}):
-              </span>
-              <span className="text-[11px] text-setu-slate-400">
-                {filteredActivities.length} matching
-              </span>
-            </div>
-            <div className="relative mb-2">
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-setu-slate-400" />
-              <input
-                type="text"
-                placeholder="Search activity ID, discipline, or task name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-600"
-              />
-            </div>
-
-            {/* List of activities */}
-            <div className="max-h-48 overflow-y-auto border border-setu-slate-200 rounded-lg divide-y divide-setu-slate-100">
-              {filteredActivities.length === 0 ? (
-                <div className="p-4 text-center text-xs text-setu-slate-500">
-                  No Primavera activities match your search query.
-                </div>
-              ) : (
-                filteredActivities.map((act) => {
-                  const isSelected = selectedActId === act.activity_id;
-                  const isCurrentActivity = act.activity_id === update.matched_activity_id;
-                  return (
-                    <button
-                      type="button"
-                      key={act.activity_id}
-                      disabled={isCurrentActivity}
-                      onClick={() => setSelectedActId(act.activity_id)}
-                      className={`w-full p-2.5 text-left text-xs flex items-center justify-between transition-colors ${
-                        isSelected ? 'bg-purple-50 text-purple-900 font-semibold' : 'hover:bg-setu-slate-50'
-                      } ${isCurrentActivity ? 'cursor-not-allowed bg-setu-slate-100 text-setu-slate-400 hover:bg-setu-slate-100' : ''}`}
-                    >
-                      <div className="min-w-0 flex-1 pr-2">
-                        <div className="flex items-center gap-1.5 font-mono">
-                          <span className="font-bold text-setu-navy">{act.activity_id}</span>
-                          <span className="text-setu-teal font-sans text-[10px]">[{act.discipline}]</span>
-                          <span className="text-setu-slate-400 text-[10px]">WBS: {act.wbs_code}</span>
-                          {isCurrentActivity && <span className="text-[9px] font-bold uppercase text-setu-slate-500">Current activity</span>}
-                        </div>
-                        <p className="truncate text-setu-slate-800 text-[11px] mt-0.5">{act.activity_name}</p>
-                      </div>
-                      {isSelected && (
-                        <Check className="w-4 h-4 text-purple-600 shrink-0" />
-                      )}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Optional governed domain alias proposal */}
-          <div className="p-3.5 rounded-xl border border-purple-200 bg-purple-50/40 space-y-3">
-            <label className="flex items-start gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={proposeAlias}
-                onChange={(e) => handleAliasToggle(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded border-setu-slate-300 text-purple-600 focus:ring-purple-500"
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                  <span className="text-xs font-bold text-setu-slate-900">
-                    Propose a Governed Domain Alias
-                  </span>
-                </div>
-                <span className="text-[11px] text-setu-slate-500 block mt-0.5">
-                  Teach the engine this site jargon so future matching links to this activity automatically.
-                </span>
-              </div>
-            </label>
-
-            {proposeAlias && (
-              <div className="space-y-3 pt-2.5 border-t border-purple-100 animate-fadeIn">
-                {candidateProposals.length > 0 && (
-                  <div>
-                    <span className="text-[10px] font-bold text-setu-slate-500 uppercase tracking-wider block mb-1.5">
-                      Suggested Candidate Jargon from Field Report:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {candidateProposals.map((cand, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => {
-                            setProposedFieldTerm(cand.field_term);
-                            setProposedStandardTerm(cand.standard_term);
-                            setProposedDiscipline(cand.discipline);
-                          }}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
-                            proposedFieldTerm === cand.field_term
-                              ? 'bg-purple-600 text-white border-purple-600 font-semibold shadow-xs'
-                              : 'bg-white text-setu-slate-700 border-setu-slate-200 hover:border-purple-300'
-                          }`}
-                        >
-                          "{cand.field_term}"
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div>
-                    <label className="text-[11px] font-semibold text-setu-slate-700 block mb-1">
-                      Field Term / Slang:
-                    </label>
-                    <input
-                      type="text"
-                      value={proposedFieldTerm}
-                      onChange={(e) => setProposedFieldTerm(e.target.value)}
-                      placeholder="e.g. box-up"
-                      className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-setu-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-purple-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold text-setu-slate-700 block mb-1">
-                      Target Standard Term:
-                    </label>
-                    <input
-                      type="text"
-                      value={proposedStandardTerm}
-                      onChange={(e) => setProposedStandardTerm(e.target.value)}
-                      placeholder="Standard P6 activity term"
-                      className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-setu-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-purple-600"
-                    />
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/80 flex items-start gap-2">
-                  <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-amber-800 leading-tight">
-                    <strong>Human Review Quarantine:</strong> Proposed aliases are stored as <em>'proposed'</em> and <strong>never affect matching</strong> until explicitly approved by a planner in the Domain Dictionary.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Remarks input */}
-          <div className="border-l-4 border-amber-500 bg-amber-50 px-3 py-2.5 text-[11px] leading-5 text-amber-950">
-            This phase records the selected remap through the existing governance RPC. Validation is not rerun against the new activity; post-remap revalidation requires Phase 0.9B backend work.
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-setu-slate-700 block mb-1">
-              Remap Justification / Planner Remarks:
-            </label>
-            <input
-              type="text"
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              placeholder="e.g. Reassigned based on foreman shift log clarification"
-              className="w-full text-xs px-3 py-2 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-600"
-            />
-          </div>
-        </div>
-
-        {/* Modal Footer */}
-        <div className="p-4 border-t border-setu-slate-100 flex items-center justify-between bg-setu-slate-50">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-xs font-bold text-setu-slate-600 hover:bg-setu-slate-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={!canRemapToActivity(update.matched_activity_id, selectedActId) || isSubmitting}
-            onClick={handleConfirm}
-            className="px-4 py-2 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-colors disabled:opacity-50"
-          >
-            {selectedActId ? `Confirm remap to [${selectedActId}]` : 'Select a different activity'}
-          </button>
-        </div>
+        {selectedActivity && <details className="border-t border-setu-slate-200 pt-2 text-xs">
+          <summary className="cursor-pointer font-semibold">Secondary: optional domain alias proposal</summary>
+          <label className="mt-2 block"><input type="checkbox" checked={proposeAlias} disabled={busy}
+            onChange={e => {
+              setProposeAlias(e.target.checked);
+              const candidate = extractCandidateTerms(update.field_text, selectedActivity.activity_name, selectedActivity.discipline)[0];
+              if (!fieldTerm) { setFieldTerm(candidate?.field_term || ''); setStandardTerm(candidate?.standard_term || selectedActivity.activity_name); }
+            }} /> Propose alias for separate governance review</label>
+          {proposeAlias && <div className="mt-2 space-y-2">
+            <label className="block">Field term<input aria-label="Alias field term" className="mt-1 w-full border px-2 py-2" value={fieldTerm} onChange={e => setFieldTerm(e.target.value)} /></label>
+            <label className="block">Standard term<input aria-label="Alias standard term" className="mt-1 w-full border px-2 py-2" value={standardTerm} onChange={e => setStandardTerm(e.target.value)} /></label>
+            <p>Stored as proposed only. It never affects matching until separately approved in Alias Governance.</p>
+          </div>}
+        </details>}
       </div>
-    </div>
-  );
-};
+      <footer className="flex justify-between border-t border-setu-slate-200 px-5 py-3 text-xs">
+        <button disabled={busy} className="border px-3 py-2" onClick={onClose}>Cancel</button>
+        <button disabled={busy || !canRemapToActivity(update.matched_activity_id, selected) || (proposeAlias && (!fieldTerm.trim() || !standardTerm.trim()))} className="bg-setu-blue px-3 py-2 font-bold text-white disabled:opacity-40" onClick={() => void submit()}>
+          {busy ? 'Submitting…' : proposalSubmitted ? 'Retry optional alias proposal' : 'Validate selected activity'}
+        </button>
+      </footer>
+    </section>
+  </div>;
+}

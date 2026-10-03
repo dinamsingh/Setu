@@ -1,4 +1,6 @@
 import type { FieldUpdate, ScheduleActivity } from '../types';
+import type { Clarification, RemapProposal } from '../types/workflow';
+import { workflowPriority, workflowState } from './workflow';
 
 export type ReviewView =
   | 'unresolved'
@@ -6,6 +8,10 @@ export type ReviewView =
   | 'unmatched'
   | 'low'
   | 'awaiting'
+  | 'response'
+  | 'triage'
+  | 'reprocessing'
+  | 'remap'
   | 'history'
   | 'all';
 
@@ -15,6 +21,11 @@ export interface OperationalCounts {
   lowConfidence: number;
   unmatched: number;
   awaitingAi: number;
+  awaitingResponse: number;
+  needsTriage: number;
+  reprocessing: number;
+  remapPending: number;
+  readyToConfirm: number;
 }
 
 export interface QueueFilters {
@@ -43,7 +54,8 @@ export function hasValidMatchedActivity(
 
 export function computeOperationalCounts(
   updates: FieldUpdate[],
-  activitiesMap: Map<string, ScheduleActivity>
+  activitiesMap: Map<string, ScheduleActivity>,
+  rounds: Clarification[] = [], proposals: RemapProposal[] = []
 ): OperationalCounts {
   const counts: OperationalCounts = {
     pendingReview: 0,
@@ -51,18 +63,25 @@ export function computeOperationalCounts(
     lowConfidence: 0,
     unmatched: 0,
     awaitingAi: 0,
+    awaitingResponse: 0, needsTriage: 0, reprocessing: 0, remapPending: 0, readyToConfirm: 0,
   };
 
   for (const update of updates) {
     if (update.status !== 'pending') continue;
+    const state = workflowState(update, rounds, proposals);
+    if (state === 'Awaiting Field Response') counts.awaitingResponse++;
+    if (state === 'Response Received') counts.needsTriage++;
+    if (state === 'Reprocessing Evidence') counts.reprocessing++;
+    if (state === 'Validating Selected Activity') counts.remapPending++;
+    if (state === 'Ready to Confirm Remap') counts.readyToConfirm++;
+    if (state === 'Validation Blocked') counts.blocked++;
 
     if (isMatchingPending(update)) {
-      counts.awaitingAi += 1;
+      if (state === 'Awaiting AI') counts.awaitingAi += 1;
       continue;
     }
 
     counts.pendingReview += 1;
-    if (isValidationBlocked(update)) counts.blocked += 1;
     if (update.confidence_level.toLowerCase() === 'low') counts.lowConfidence += 1;
     if (!hasValidMatchedActivity(update, activitiesMap)) counts.unmatched += 1;
   }
@@ -73,11 +92,16 @@ export function computeOperationalCounts(
 function matchesView(
   update: FieldUpdate,
   view: ReviewView,
-  activitiesMap: Map<string, ScheduleActivity>
+  activitiesMap: Map<string, ScheduleActivity>,
+  rounds: Clarification[], proposals: RemapProposal[]
 ) {
   switch (view) {
     case 'blocked':
-      return update.status === 'pending' && isValidationBlocked(update);
+      return workflowState(update, rounds, proposals) === 'Validation Blocked';
+    case 'response': return workflowState(update, rounds, proposals) === 'Awaiting Field Response';
+    case 'triage': return workflowState(update, rounds, proposals) === 'Response Received';
+    case 'reprocessing': return workflowState(update, rounds, proposals) === 'Reprocessing Evidence';
+    case 'remap': return ['Validating Selected Activity', 'Ready to Confirm Remap'].includes(workflowState(update, rounds, proposals));
     case 'unmatched':
       return (
         update.status === 'pending' &&
@@ -87,7 +111,7 @@ function matchesView(
     case 'low':
       return update.status === 'pending' && update.confidence_level.toLowerCase() === 'low';
     case 'awaiting':
-      return update.status === 'pending' && isMatchingPending(update);
+      return workflowState(update, rounds, proposals) === 'Awaiting AI';
     case 'history':
       return update.status !== 'pending';
     case 'all':
@@ -100,14 +124,12 @@ function matchesView(
 
 function queuePriority(
   update: FieldUpdate,
-  activitiesMap: Map<string, ScheduleActivity>
+  activitiesMap: Map<string, ScheduleActivity>,
+  rounds: Clarification[], proposals: RemapProposal[]
 ) {
-  if (update.status !== 'pending') return 5;
-  if (isValidationBlocked(update)) return 0;
-  if (!isMatchingPending(update) && !hasValidMatchedActivity(update, activitiesMap)) return 1;
-  if (update.confidence_level.toLowerCase() === 'low') return 2;
-  if (isMatchingPending(update)) return 4;
-  return 3;
+  const state = workflowState(update, rounds, proposals);
+  if (state === 'Reviewable' && (!hasValidMatchedActivity(update, activitiesMap) || update.confidence_level === 'Low')) return 2;
+  return workflowPriority(state);
 }
 
 function updateTimestamp(update: FieldUpdate) {
@@ -120,11 +142,12 @@ function updateTimestamp(update: FieldUpdate) {
 export function filterAndSortPlannerUpdates(
   updates: FieldUpdate[],
   activitiesMap: Map<string, ScheduleActivity>,
-  filters: QueueFilters
+  filters: QueueFilters,
+  rounds: Clarification[] = [], proposals: RemapProposal[] = []
 ) {
   return updates
     .filter((update) => {
-      if (!matchesView(update, filters.view, activitiesMap)) return false;
+      if (!matchesView(update, filters.view, activitiesMap, rounds, proposals)) return false;
 
       if (
         filters.confidence !== 'All' &&
@@ -187,7 +210,7 @@ export function filterAndSortPlannerUpdates(
     })
     .sort((left, right) => {
       const priorityDifference =
-        queuePriority(left, activitiesMap) - queuePriority(right, activitiesMap);
+        queuePriority(left, activitiesMap, rounds, proposals) - queuePriority(right, activitiesMap, rounds, proposals);
       if (priorityDifference !== 0) return priorityDifference;
 
       const timeDifference = updateTimestamp(right) - updateTimestamp(left);
@@ -219,9 +242,16 @@ const auditActionLabels: Record<string, string> = {
   reject: 'Rejected',
   requeue: 'Requeued',
   override: 'Validation overridden',
+  clarification_requested: 'Clarification requested',
+  clarification_responded: 'Field response received',
+  clarification_resolved: 'Clarification resolved',
+  remap_proposed: 'Remap target proposed',
+  remap_proposal_override: 'Selected-target validation overridden',
+  remap_proposal_cancelled: 'Remap proposal cancelled',
 };
 
-export function humanizeAuditAction(action: string) {
+export function humanizeAuditAction(action: string, metadata?: Record<string, unknown>) {
+  if (action === 'reject' && metadata?.decision === 'close_as_invalid') return 'Closed as Invalid';
   const normalized = action.trim().toLowerCase();
   return (
     auditActionLabels[normalized] ||

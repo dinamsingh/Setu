@@ -2,6 +2,7 @@
  * Isolated PostgreSQL SQL/RLS smoke tests for 008. Never connects to Supabase.
  * Run: node scripts/verify_workflow_foundation.mjs /path/to/pglite/dist/index.js
  * Add --review-guard-only to execute the review guard without applying migrations.
+ * Add --worker-workflow to verify migration 009 in the same disposable database.
  * PGlite is an optional test runtime, not an application dependency. Its single
  * connection cannot prove multi-session row-lock behavior; Python covers the
  * deterministic race model and production concurrency still needs staging QA.
@@ -318,7 +319,11 @@ try {
   await rejects(() => db.query('select * from public.field_update_clarifications'), /permission denied/);
   await actor('site');
   await rejects(() => rpc('_lock_pending_workflow_report', [requeueId]), /permission denied/);
-  console.log(`PASS: migration 005/006/007/008 executes locally; ${checks} PostgreSQL workflow/security checks. No live connection.`);
+  if (args.includes('--worker-workflow')) {
+    const { verifyWorkerWorkflow } = await import('./verify_worker_workflow.mjs');
+    checks += await verifyWorkerWorkflow({ db, read, actor, rpc, seed, report, users });
+  }
+  console.log(`PASS: migration 005/006/007/008${args.includes('--worker-workflow') ? '/009' : ''} executes locally; ${checks} PostgreSQL workflow/security checks. No live connection.`);
   }
 } finally {
   await db.close();

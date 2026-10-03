@@ -1,7 +1,7 @@
 """Background Matching Worker for SETU.
 
-Polls for unmatched field updates (confidence_level 'Pending' or NULL, status 'pending')
-and scores them using the existing EnsembleMatcher.
+Processes selected-target proposals first, material clarification revisions next,
+then new pending reports, using revision-bound server CAS writeback.
 Constructs EnsembleMatcher ONCE at startup to avoid expensive reloading.
 Works seamlessly with live Supabase and LocalMockDatabase.
 """
@@ -23,11 +23,10 @@ from database.supabase_client import (
     fetch_schedule_activities,
     fetch_field_updates,
     fetch_verified_domain_aliases,
-    update_field_update_match,
 )
 from engine.alias_expander import DomainAliasExpander
 from engine.ensemble_matcher import EnsembleMatcher
-from engine.validators import validate_report_matching
+from engine.workflow_processing import process_report, process_proposal, processing_intent
 
 
 def is_unmatched_row(row: Dict) -> bool:
@@ -48,44 +47,10 @@ def match_single_update(
     rep: Dict,
     all_reports: Optional[List[Dict]] = None
 ) -> Dict:
-    """Matches a single report, validates against project controls, and writes back results."""
-    match_res = matcher.match_single_report(rep, top_k=3)
-    tier = match_res["confidence_level"]
-    matched_act_id = match_res["matched_activity_id"] if tier in ("High", "Medium") else None
-
-    # Look up matched activity object
-    matched_act_obj = None
-    if matched_act_id and hasattr(matcher, "activities"):
-        matched_act_obj = next((a for a in matcher.activities if a["activity_id"] == matched_act_id), None)
-
-    # Run independent validation engine
-    val_res = validate_report_matching(
-        report=rep,
-        matched_activity=matched_act_obj,
-        candidates=match_res["candidate_matches"],
-        all_reports=all_reports,
-        all_activities=getattr(matcher, "activities", []),
-    )
-
-    update_payload = {
-        "expanded_text": match_res["expanded_text"],
-        "matched_activity_id": matched_act_id,
-        "confidence_score": match_res["confidence_score"],
-        "confidence_level": tier,
-        "matched_layer": match_res["matched_layer"],
-        "candidate_matches": match_res["candidate_matches"],
-        "validation_status": val_res["status"],
-        "validation_results": val_res["results"],
-        "validation_overridden": rep.get("validation_overridden", False),
-    }
-    update_field_update_match(db_client, rep["update_id"], update_payload)
-    return {
-        "update_id": rep["update_id"],
-        "tier": tier,
-        "validation_status": val_res["status"],
-        "matched_activity_id": matched_act_id,
-        "confidence_score": match_res["confidence_score"],
-    }
+    """Compatibility entry point; all deployed-worker writes now use server CAS."""
+    rounds = db_client.table("field_update_clarifications").select("*").execute().data
+    proposals = db_client.table("field_update_remap_proposals").select("*").execute().data
+    return process_report(matcher, db_client, rep, all_reports or [], rounds, proposals)
 
 
 def run_worker(
@@ -152,15 +117,27 @@ def run_worker(
 
             # Query updates
             all_updates = fetch_field_updates(db_client)
-            unmatched_rows = [r for r in all_updates if is_unmatched_row(r)]
+            rounds = db_client.table("field_update_clarifications").select("*").execute().data
+            proposals = db_client.table("field_update_remap_proposals").select("*").execute().data
+            by_id = {r["id"]: r for r in all_updates}
+            for proposal in proposals:
+                if proposal["status"] != "pending_validation" or proposal["field_update_id"] not in by_id:
+                    continue
+                try:
+                    applied = process_proposal(db_client, proposal, by_id[proposal["field_update_id"]], activities, all_updates, rounds)
+                    print(f"[PROPOSAL] {proposal['id']} | {'validated' if applied else 'stale/discarded'}")
+                except Exception as exc:
+                    print(f"[ERROR] Proposal {proposal['id']}: {exc}", file=sys.stderr)
+            unmatched_rows = [r for r in all_updates if processing_intent(r, rounds, proposals)]
+            unmatched_rows.sort(key=lambda r: processing_intent(r, rounds, proposals) == "match")
 
             if unmatched_rows:
                 print(f"[WORKER] Found {len(unmatched_rows)} unmatched report(s) to process.")
                 for rep in unmatched_rows:
                     try:
-                        res = match_single_update(matcher, db_client, rep, all_reports=all_updates)
+                        res = process_report(matcher, db_client, rep, all_updates, rounds, proposals)
                         print(
-                            f"[MATCHED] Report ID: {res['update_id']:12s} | "
+                            f"[{'APPLIED' if res['applied'] else 'STALE/DISCARDED'}] Report ID: {res['update_id']:12s} | "
                             f"Tier: {res['tier']:6s} | "
                             f"Val: {res.get('validation_status', 'pass'):5s} | "
                             f"Matched Act: {str(res['matched_activity_id'] or 'NULL'):15s} | "

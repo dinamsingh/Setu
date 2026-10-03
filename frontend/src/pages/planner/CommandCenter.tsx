@@ -17,6 +17,7 @@ import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 import { useScheduleData } from '../../hooks/useScheduleData';
 import { useAuditLogs } from '../../hooks/useAuditLogs';
+import { useWorkflow } from '../../hooks/useWorkflow';
 import {
   computeOperationalCounts,
   describeAuditActivityChange,
@@ -39,13 +40,21 @@ export const CommandCenter: React.FC = () => {
     error: scheduleError,
   } = useScheduleData();
   const { logs, error: auditError } = useAuditLogs();
+  const workflow = useWorkflow(() => refetch(true));
 
-  const loading = updatesLoading || scheduleLoading;
+  const loading = updatesLoading || scheduleLoading || workflow.loading;
   const counts = useMemo(
-    () => computeOperationalCounts(updates, activitiesMap),
-    [updates, activitiesMap]
+    () => computeOperationalCounts(updates, activitiesMap, workflow.rounds, workflow.proposals),
+    [updates, activitiesMap, workflow.rounds, workflow.proposals]
   );
 
+  const workflowMetrics = [
+    { label: 'Response Received', value: counts.needsTriage, detail: 'Planner triage required', icon: FileQuestion, view: 'triage', tone: 'border-setu-blue bg-blue-50/50 text-setu-blue-dark' },
+    { label: 'Awaiting Field Response', value: counts.awaitingResponse, detail: 'Requests available in SETU', icon: CalendarClock, view: 'response', tone: 'border-setu-slate-400 bg-setu-slate-50' },
+    { label: 'Reprocessing Evidence', value: counts.reprocessing, detail: 'Current evidence awaiting validation', icon: RefreshCw, view: 'reprocessing', tone: 'border-setu-amber bg-amber-50/60' },
+    { label: 'Validating Selected Activity', value: counts.remapPending, detail: 'Manual targets awaiting worker validation', icon: ClipboardCheck, view: 'remap', tone: 'border-setu-blue bg-blue-50/50' },
+    { label: 'Ready to Confirm Remap', value: counts.readyToConfirm, detail: 'Validated targets awaiting planner decision', icon: ListChecks, view: 'remap', tone: 'border-setu-teal bg-teal-50/50' },
+  ];
   const metrics = [
     {
       label: 'Pending review',
@@ -58,7 +67,7 @@ export const CommandCenter: React.FC = () => {
     {
       label: 'Blocked',
       value: counts.blocked,
-      detail: 'Project-controls block, no override',
+      detail: 'Report or selected-target validation block',
       icon: AlertOctagon,
       view: 'blocked',
       tone: 'border-setu-red bg-rose-50/60 text-setu-red-dark',
@@ -131,10 +140,10 @@ export const CommandCenter: React.FC = () => {
             </div>
           </section>
 
-          {(updatesError || scheduleError || auditError) && (
+          {(updatesError || scheduleError || auditError || workflow.error) && (
             <div className="border-l-4 border-setu-red bg-rose-50 px-4 py-3 text-xs text-rose-900" role="alert">
               <strong>Data unavailable:</strong>{' '}
-              {[updatesError, scheduleError, auditError].filter(Boolean).join(' ')}
+              {[updatesError, scheduleError, auditError, workflow.error].filter(Boolean).join(' ')}
             </div>
           )}
 
@@ -157,6 +166,15 @@ export const CommandCenter: React.FC = () => {
                   </p>
                 </div>
 
+                <div className="grid grid-cols-1 divide-y divide-setu-slate-200 border border-setu-slate-200 bg-white sm:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-y-0">
+                  {workflowMetrics.map(metric => <button key={metric.label} type="button"
+                    onClick={() => navigate(`/planner/review?view=${metric.view}`)}
+                    className="px-3 py-3 text-left text-xs hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">
+                    <p className="font-semibold text-setu-slate-700">{metric.label}</p>
+                    <p className="mt-1 font-mono text-xl font-bold tabular-nums text-setu-navy">{workflow.error ? '—' : metric.value}</p>
+                    <p className="mt-1 text-[10px] text-setu-slate-500">{metric.detail}</p>
+                  </button>)}
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
                   {metrics.map((metric) => {
                     const Icon = metric.icon;
@@ -172,7 +190,7 @@ export const CommandCenter: React.FC = () => {
                           <Icon className="h-4 w-4 shrink-0" />
                         </div>
                         <div className="mt-4 font-mono text-3xl font-extrabold tabular-nums">
-                          {metric.value}
+                          {workflow.error ? '—' : metric.value}
                         </div>
                         <p className="mt-2 text-[11px] leading-4 text-setu-slate-600">
                           {metric.detail}
@@ -208,7 +226,7 @@ export const CommandCenter: React.FC = () => {
                       {logs.slice(0, 6).map((log) => (
                         <div key={log.id} className="grid gap-2 px-4 py-3 text-xs sm:grid-cols-[7rem_1fr_auto] sm:items-center">
                           <span className="font-bold text-setu-slate-700">
-                            {humanizeAuditAction(log.action)}
+                            {humanizeAuditAction(log.action, log.metadata)}
                           </span>
                           <div className="min-w-0">
                             <p className="truncate text-setu-slate-700">

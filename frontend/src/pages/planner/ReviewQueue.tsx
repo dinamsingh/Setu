@@ -19,6 +19,9 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 import { useScheduleData } from '../../hooks/useScheduleData';
+import { useWorkflow } from '../../hooks/useWorkflow';
+import { WorkflowActions, ClarificationHistory } from '../../components/planner/WorkflowActions';
+import { canAccept, workflowState } from '../../lib/workflow';
 import { useAuth } from '../../lib/AuthContext';
 import {
   actionErrorMessage,
@@ -36,6 +39,7 @@ const reviewViews: ReviewView[] = [
   'unmatched',
   'low',
   'awaiting',
+  'response', 'triage', 'reprocessing', 'remap',
   'history',
   'all',
 ];
@@ -59,6 +63,7 @@ export const ReviewQueue: React.FC = () => {
     error: scheduleError,
   } = useScheduleData();
   const { role } = useAuth();
+  const workflow = useWorkflow(() => refetch(true));
 
   const plannerName = role === 'admin' ? 'Authenticated Administrator' : 'Authenticated Planner';
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -91,13 +96,13 @@ export const ReviewQueue: React.FC = () => {
         discipline,
         validation,
         search,
-      }),
-    [updates, activitiesMap, view, confidence, status, discipline, validation, search]
+      }, workflow.rounds, workflow.proposals),
+    [updates, activitiesMap, view, confidence, status, discipline, validation, search, workflow.rounds, workflow.proposals]
   );
 
   const counts = useMemo(
-    () => computeOperationalCounts(updates, activitiesMap),
-    [updates, activitiesMap]
+    () => computeOperationalCounts(updates, activitiesMap, workflow.rounds, workflow.proposals),
+    [updates, activitiesMap, workflow.rounds, workflow.proposals]
   );
   const historyCount = updates.filter((update) => update.status !== 'pending').length;
 
@@ -116,6 +121,10 @@ export const ReviewQueue: React.FC = () => {
   };
 
   const handleAccept = async (update: FieldUpdate, remarks: string) => {
+    if (!canAccept(update, workflow.rounds, workflow.proposals)) {
+      showToast('Current validation and an idle workflow are required before acceptance.', 'error');
+      return;
+    }
     if (update.status !== 'pending') {
       showToast(`Update ${update.update_id} is finalized and read-only.`, 'error');
       return;
@@ -159,14 +168,10 @@ export const ReviewQueue: React.FC = () => {
   const handleConfirmRemap = async (
     update: FieldUpdate,
     newActivityId: string,
-    remarks: string
+    _remarks: string
   ) => {
     if (update.status !== 'pending') {
       showToast(`Update ${update.update_id} is finalized and read-only.`, 'error');
-      return false;
-    }
-    if (update.validation_status === 'block' && !update.validation_overridden) {
-      showToast('A documented validation override is required before final remapping.', 'error');
       return false;
     }
     if (!activitiesMap.has(newActivityId)) {
@@ -178,18 +183,17 @@ export const ReviewQueue: React.FC = () => {
       return false;
     }
 
-    const result = await submitPlannerDecision({
-      updateUuid: update.id,
-      action: 'remap',
-      targetActivityId: newActivityId,
-      remarks,
+    const result = await workflow.act('propose_field_update_remap', {
+      p_field_update_id: update.id,
+      p_target_activity_id: newActivityId,
+      p_expected_workflow_revision: update.workflow_revision ?? 0,
     });
     const error = actionErrorMessage(result, 'Failed to remap report.');
     if (error) {
       showToast(error, 'error');
       return false;
     }
-    showToast(`Update ${update.update_id} remapped to ${newActivityId}.`);
+    showToast(`Selected target ${newActivityId} submitted for validation. Confirm Remap after review.`);
     return true;
   };
 
@@ -220,12 +224,16 @@ export const ReviewQueue: React.FC = () => {
     validation !== 'All' ||
     Boolean(search);
 
-  const viewOptions: Array<{ value: ReviewView; label: string; count: number }> = [
+  const viewOptions: Array<{ value: ReviewView; label: string; count: number | null }> = [
     { value: 'unresolved', label: 'Unresolved', count: updates.filter((update) => update.status === 'pending').length },
-    { value: 'blocked', label: 'Blocked', count: counts.blocked },
+    { value: 'blocked', label: 'Blocked', count: workflow.loading || workflow.error ? null : counts.blocked },
     { value: 'unmatched', label: 'Unmatched', count: counts.unmatched },
     { value: 'low', label: 'Low confidence', count: counts.lowConfidence },
     { value: 'awaiting', label: 'Awaiting AI', count: counts.awaitingAi },
+    { value: 'triage', label: 'Response Received', count: workflow.loading || workflow.error ? null : counts.needsTriage },
+    { value: 'response', label: 'Awaiting Field Response', count: workflow.loading || workflow.error ? null : counts.awaitingResponse },
+    { value: 'reprocessing', label: 'Reprocessing Evidence', count: workflow.loading || workflow.error ? null : counts.reprocessing },
+    { value: 'remap', label: 'Remap proposals', count: workflow.loading || workflow.error ? null : counts.remapPending + counts.readyToConfirm },
     { value: 'history', label: 'Finalized history', count: historyCount },
   ];
 
@@ -271,9 +279,9 @@ export const ReviewQueue: React.FC = () => {
             </div>
           </section>
 
-          {(updatesError || scheduleError) && (
+          {(updatesError || scheduleError || workflow.error) && (
             <div className="border-l-4 border-setu-red bg-rose-50 px-4 py-3 text-xs text-rose-900" role="alert">
-              <strong>Queue data unavailable:</strong> {[updatesError, scheduleError].filter(Boolean).join(' ')}
+              <strong>Queue data unavailable:</strong> {[updatesError, scheduleError, workflow.error].filter(Boolean).join(' ')}
             </div>
           )}
 
@@ -290,7 +298,7 @@ export const ReviewQueue: React.FC = () => {
                       : 'text-setu-slate-600 hover:bg-setu-slate-100 hover:text-setu-slate-900'
                   }`}
                 >
-                  {option.label} <span className="font-mono opacity-75">{option.count}</span>
+                  {option.label} <span className="font-mono opacity-75">{option.count ?? '—'}</span>
                 </button>
               ))}
             </div>
@@ -388,6 +396,7 @@ export const ReviewQueue: React.FC = () => {
                       matchedActivity={update.matched_activity_id ? activitiesMap.get(update.matched_activity_id) : undefined}
                       selected={effectiveSelectedId === update.id}
                       onSelect={() => setSelectedId(update.id)}
+                      workflowLabel={workflowState(update, workflow.rounds, workflow.proposals)}
                     />
                   ))}
                 </div>
@@ -405,6 +414,12 @@ export const ReviewQueue: React.FC = () => {
                     onOpenRemap={setRemapTarget}
                     onOpenOverride={setOverrideTarget}
                     onRequeue={handleRequeue}
+                    workflowLabel={workflowState(selectedUpdate, workflow.rounds, workflow.proposals)}
+                    manualMapping={workflow.proposals.some(p => p.field_update_id === selectedUpdate.id && p.status === 'finalized')}
+                    evidenceHistory={<ClarificationHistory rounds={workflow.rounds.filter(c => c.field_update_id === selectedUpdate.id)} />}
+                    decisionContent={<WorkflowActions update={selectedUpdate} rounds={workflow.rounds} proposals={workflow.proposals}
+                      activities={activities} act={workflow.act} available={!workflow.loading && !workflow.error}
+                      onAccept={handleAccept} onRemap={setRemapTarget} />}
                   />
                 )}
               </div>

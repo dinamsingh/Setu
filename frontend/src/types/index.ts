@@ -77,6 +77,12 @@ export interface FieldUpdate {
   override_reason?: string | null;
   override_by?: string | null;
   override_at?: string | null;
+  submitted_by_user_id?: string | null;
+  evidence_revision?: number;
+  workflow_revision?: number;
+  validation_evidence_revision?: number;
+  override_evidence_revision?: number | null;
+  override_activity_id?: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'remapped';
   planner_remarks: string | null;
   reported_date: string | null;
@@ -87,7 +93,8 @@ export interface FieldUpdate {
 export interface PlannerAuditLog {
   id: string;
   field_update_id: string;
-  action: 'accept' | 'reject' | 'remap' | 'requeue' | 'override';
+  action: string;
+  metadata?: Record<string, unknown>;
   previous_activity_id: string | null;
   new_activity_id: string | null;
   planner_name: string;
