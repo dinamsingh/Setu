@@ -8,6 +8,7 @@ field_updates, and planner_audit_logs.
 import json
 import os
 import sys
+from threading import RLock
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -153,11 +154,17 @@ class LocalMockDatabase:
 
     def __init__(self, storage_file: Path):
         self.storage_file = storage_file
+        # Workflow RPC tests serialize transactions on this mock instance.
+        # This is not a substitute for PostgreSQL row locks or live RLS tests.
+        self._workflow_lock = RLock()
         self.tables: Dict[str, List[Dict]] = {
             "schedule_activities": [],
             "domain_aliases": [],
             "field_updates": [],
-            "planner_audit_logs": []
+            "planner_audit_logs": [],
+            "user_roles": [],
+            "field_update_clarifications": [],
+            "field_update_remap_proposals": [],
         }
         self.load()
 
@@ -179,6 +186,11 @@ class LocalMockDatabase:
                     row.setdefault("override_reason", None)
                     row.setdefault("override_by", None)
                     row.setdefault("override_at", None)
+                    row.setdefault("evidence_revision", 0)
+                    row.setdefault("workflow_revision", 0)
+                    row.setdefault("validation_evidence_revision", 0)
+                    row.setdefault("override_evidence_revision", row["evidence_revision"] if row["validation_overridden"] else None)
+                    row.setdefault("override_activity_id", row.get("matched_activity_id") if row["validation_overridden"] else None)
             except Exception:
                 pass
 
@@ -196,6 +208,14 @@ class LocalMockDatabase:
 
     def table(self, table_name: str) -> LocalMockQueryBuilder:
         return LocalMockQueryBuilder(table_name, self)
+
+    def rpc(self, name: str, params: Dict, *, actor_user_id: Optional[str] = None):
+        """Emulate governed RPCs using an explicit test identity, never secrets.
+
+        actor_user_id is mock-only; real Supabase derives identity from its JWT.
+        """
+        from database.workflow_mock import LocalWorkflowRPC
+        return LocalWorkflowRPC(self, name, params, actor_user_id)
 
 
 # ---------------------------------------------------------------------------
