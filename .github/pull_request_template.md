@@ -8,18 +8,21 @@
 - [ ] I did not change backend/database/matching/auth logic unless explicitly required.
 - [ ] I did not intentionally change existing hooks/data behavior.
 
+## UI PR checklist
+
+> For Supervisor UI-only work, use a branch name starting with `ui/` (for example `ui/supervisor-redesign`).
+> A `ui/*` PR is automatically scope-checked and will fail if it changes files outside the allowed Supervisor UI paths.
+
+- [ ] Visual/layout changes are isolated from business logic.
+- [ ] Responsive behavior checked where relevant.
+- [ ] No production-only secrets or data were added.
+
 ## Verification
 
 - [ ] GitHub Actions are green.
 - [ ] Cloudflare Preview deployment is green.
 - [ ] I manually tested the affected workflow in Preview.
 - [ ] Existing critical workflows still work.
-
-## UI PR checklist
-
-- [ ] Visual/layout changes are isolated from business logic.
-- [ ] Responsive behavior checked where relevant.
-- [ ] No production-only secrets or data were added.
 
 ## Notes for reviewer
 
