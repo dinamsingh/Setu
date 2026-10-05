@@ -25,6 +25,59 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Enforce supervisor UI-only PR scope
+        if: startsWith(github.head_ref, 'ui/')
+        working-directory: .
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          echo "UI PR detected: ${GITHUB_HEAD_REF}"
+          echo "Allowed paths:"
+          echo "  - frontend/src/pages/supervisor/**"
+          echo "  - frontend/src/components/supervisor/**"
+          echo "  - frontend/src/index.css"
+
+          changed_files="$(git -c diff.renames=false diff --name-only "${BASE_SHA}" "${HEAD_SHA}")"
+
+          if [[ -z "${changed_files}" ]]; then
+            echo "No changed files found; failing closed."
+            exit 1
+          fi
+
+          blocked=0
+
+          while IFS= read -r file; do
+            [[ -z "${file}" ]] && continue
+
+            case "${file}" in
+              frontend/src/pages/supervisor/*)
+                ;;
+              frontend/src/components/supervisor/*)
+                ;;
+              frontend/src/index.css)
+                ;;
+              *)
+                echo "::error title=UI-only PR violation::Disallowed file changed: ${file}"
+                blocked=1
+                ;;
+            esac
+          done <<< "${changed_files}"
+
+          if [[ "${blocked}" -ne 0 ]]; then
+            echo ""
+            echo "UI-only PR failed because one or more files are outside the allowed Supervisor UI scope."
+            echo "Use a non-ui/* branch for changes that require backend, hooks, database, tests, planner, engine, or other non-UI work."
+            exit 1
+          fi
+
+          echo "UI-only PR scope check passed."
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
