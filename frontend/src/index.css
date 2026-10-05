@@ -26,3 +26,19 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
 }
+
+
+body {
+  background-color: #f3f4f6; /* Desktop par background gray rakhega */
+}
+
+#root {
+  width: 100%;
+  max-width: 480px; /* Mobile ki maximum width */
+  margin: 0 auto; /* Screen ke center mein layega */
+  min-height: 100vh;
+  background-color: #ffffff; 
+  overflow-x: hidden; /* Horizontal scroll block karega */
+  position: relative;
+  box-shadow: 0 0 15px rgba(0,0,0,0.1); 
+}
