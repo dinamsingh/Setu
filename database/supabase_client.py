@@ -69,6 +69,10 @@ class LocalMockQueryBuilder:
         self._filters.append((column, "neq", value))
         return self
 
+    def in_(self, column: str, values):
+        self._filters.append((column, "in", tuple(values)))
+        return self
+
     def execute(self) -> "LocalMockResponse":
         rows = self.db.get_table(self.table_name)
 
@@ -79,6 +83,8 @@ class LocalMockQueryBuilder:
                     filtered = [r for r in filtered if r.get(col) == val]
                 elif op == "neq":
                     filtered = [r for r in filtered if r.get(col) != val]
+                elif op == "in":
+                    filtered = [r for r in filtered if r.get(col) in val]
             return LocalMockResponse(filtered)
 
         elif self._action == "insert":
@@ -170,6 +176,7 @@ class LocalMockDatabase:
             "user_roles": [],
             "field_update_clarifications": [],
             "field_update_remap_proposals": [],
+            "progress_events": [],
         }
         self.load()
 
@@ -192,6 +199,11 @@ class LocalMockDatabase:
                     row.setdefault("override_by", None)
                     row.setdefault("override_at", None)
                     row.setdefault("evidence_revision", 0)
+                    row.setdefault("progress_extraction_revision", None)
+                    row.setdefault("progress_extraction_retry_revision", None)
+                    row.setdefault("progress_extraction_attempts", 0)
+                    row.setdefault("progress_extraction_last_error", None)
+                    row.setdefault("progress_extraction_next_attempt_at", None)
                     row.setdefault("workflow_revision", 0)
                     row.setdefault("validation_evidence_revision", 0)
                     row.setdefault("override_evidence_revision", row["evidence_revision"] if row["validation_overridden"] else None)
@@ -219,6 +231,9 @@ class LocalMockDatabase:
 
         actor_user_id is mock-only; real Supabase derives identity from its JWT.
         """
+        from database.progress_mock import LocalProgressRPC, RPC_NAMES as PROGRESS_RPC_NAMES
+        if name in PROGRESS_RPC_NAMES:
+            return LocalProgressRPC(self, name, params, server_role)
         from database.worker_workflow_mock import LocalOrchestrationRPC, RPC_NAMES
         if name in RPC_NAMES:
             return LocalOrchestrationRPC(self, name, params, actor_user_id, server_role)
