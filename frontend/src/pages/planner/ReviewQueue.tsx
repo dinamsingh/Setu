@@ -20,6 +20,7 @@ import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 import { useScheduleData } from '../../hooks/useScheduleData';
 import { useWorkflow } from '../../hooks/useWorkflow';
+import { useProgressEvents } from '../../hooks/useProgressEvents';
 import { WorkflowActions, ClarificationHistory } from '../../components/planner/WorkflowActions';
 import { canAccept, workflowState } from '../../lib/workflow';
 import { useAuth } from '../../lib/AuthContext';
@@ -114,6 +115,7 @@ export const ReviewQueue: React.FC = () => {
   const selectedActivity = selectedUpdate?.matched_activity_id
     ? activitiesMap.get(selectedUpdate.matched_activity_id)
     : undefined;
+  const progress = useProgressEvents(selectedUpdate, refetch);
 
   const showToast = (message: string, tone: Toast['tone'] = 'success') => {
     setToast({ message, tone });
@@ -410,6 +412,10 @@ export const ReviewQueue: React.FC = () => {
                     update={selectedUpdate}
                     matchedActivity={selectedActivity}
                     plannerName={plannerName}
+                    progressEvents={progress.events}
+                    progressEventsLoading={progress.loading}
+                    progressEventsError={progress.error}
+                    onRetryProgressEvents={progress.refetch}
                     onAccept={handleAccept}
                     onReject={handleReject}
                     onOpenRemap={setRemapTarget}

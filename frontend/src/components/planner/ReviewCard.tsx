@@ -24,6 +24,8 @@ import { ConfidenceBadge } from '../common/ConfidenceBadge';
 import { StatusBadge } from '../common/StatusBadge';
 import { parseValidationResults } from '../../lib/utils';
 import { isMatchingPending } from '../../lib/plannerWorkspace';
+import { ProgressEventsSection } from './ProgressEventsSection';
+import type { ProgressEvent } from '../../types/progressEvents';
 
 interface ReviewCardProps {
   update: FieldUpdate;
@@ -38,6 +40,10 @@ interface ReviewCardProps {
   decisionContent?: React.ReactNode;
   evidenceHistory?: React.ReactNode;
   manualMapping?: boolean;
+  progressEvents?: ProgressEvent[];
+  progressEventsLoading?: boolean;
+  progressEventsError?: string | null;
+  onRetryProgressEvents?: () => void;
 }
 
 const supportedChecks = new Set([
@@ -113,6 +119,10 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   decisionContent,
   evidenceHistory,
   manualMapping,
+  progressEvents,
+  progressEventsLoading,
+  progressEventsError,
+  onRetryProgressEvents,
 }) => {
   const [pendingAction, setPendingAction] = useState<'accept' | 'reject' | 'requeue' | null>(null);
   const [actionNote, setActionNote] = useState(update.planner_remarks || '');
@@ -338,6 +348,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             “{update.field_text}”
           </blockquote>
           {evidenceHistory}
+          <ProgressEventsSection update={update} events={progressEvents} loading={progressEventsLoading} error={progressEventsError} onRetry={onRetryProgressEvents} />
         </section>
 
         <section className="px-4 py-5 sm:px-5" aria-labelledby={`suggestion-${update.id}`}>

@@ -319,11 +319,15 @@ try {
   await rejects(() => db.query('select * from public.field_update_clarifications'), /permission denied/);
   await actor('site');
   await rejects(() => rpc('_lock_pending_workflow_report', [requeueId]), /permission denied/);
-  if (args.includes('--worker-workflow')) {
+  if (args.includes('--worker-workflow') || args.includes('--progress-events')) {
     const { verifyWorkerWorkflow } = await import('./verify_worker_workflow.mjs');
     checks += await verifyWorkerWorkflow({ db, read, actor, rpc, seed, report, users });
   }
-  console.log(`PASS: migration 005/006/007/008${args.includes('--worker-workflow') ? '/009' : ''} executes locally; ${checks} PostgreSQL workflow/security checks. No live connection.`);
+  if (args.includes('--progress-events')) {
+    const { verifyProgressEvents } = await import('./verify_progress_events.mjs');
+    checks += await verifyProgressEvents({ db, read, actor, rpc, seed, report, users });
+  }
+  console.log(`PASS: migration 005/006/007/008${args.includes('--worker-workflow') || args.includes('--progress-events') ? '/009' : ''}${args.includes('--progress-events') ? '/010' : ''} executes locally; ${checks} PostgreSQL workflow/security checks. No live connection.`);
   }
 } finally {
   await db.close();

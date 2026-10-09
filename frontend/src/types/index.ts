@@ -79,6 +79,7 @@ export interface FieldUpdate {
   override_at?: string | null;
   submitted_by_user_id?: string | null;
   evidence_revision?: number;
+  progress_extraction_revision?: number | null;
   workflow_revision?: number;
   validation_evidence_revision?: number;
   override_evidence_revision?: number | null;

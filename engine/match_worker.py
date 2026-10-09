@@ -27,6 +27,7 @@ from database.supabase_client import (
 from engine.alias_expander import DomainAliasExpander
 from engine.ensemble_matcher import EnsembleMatcher
 from engine.workflow_processing import process_report, process_proposal, processing_intent
+from engine.progress_processing import progress_extraction_available, process_progress_extraction_batch
 
 
 def is_unmatched_row(row: Dict) -> bool:
@@ -97,6 +98,8 @@ def run_worker(
     )
     print("EnsembleMatcher successfully initialized and ready.\n")
 
+    progress_enabled = progress_extraction_available(db_client)
+
     if once:
         print("[WORKER] Running single matching pass (--once)...")
     else:
@@ -150,6 +153,11 @@ def run_worker(
                         )
             elif verbose:
                 print(f"[POLL] No unmatched reports found. Waiting {interval:.1f}s...")
+
+            # Independent backfill/extraction pass, including finalized reports.
+            # A failed extraction never rolls back or suppresses matching results.
+            if progress_enabled:
+                progress_enabled = process_progress_extraction_batch(db_client)
 
             if once:
                 print("[WORKER] Single pass completed.")
