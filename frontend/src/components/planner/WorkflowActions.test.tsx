@@ -44,7 +44,7 @@ function workspace(rpc = vi.fn(async () => ({ success: true })), rounds: Clarifi
 describe('planner workflow interactions', () => {
   it('Resolve Now requires contact details and explicit impact and uses its RPC', async () => {
     const rpc = vi.fn(async () => ({ success: true })); await render(workspace(rpc));
-    await click('Clarify'); await click('Resolve Now'); expect(button('Confirm').disabled).toBe(true);
+    await click('Ask for clarification'); await click('Resolve Now'); expect(button('Confirm').disabled).toBe(true);
     await input('Clarification question', 'Which task?'); await input('Communication method', 'Phone');
     await input('Clarification received', 'Piping fit-up'); await input('Supplied by', 'Supervisor');
     expect(button('Confirm').disabled).toBe(true);
@@ -53,11 +53,11 @@ describe('planner workflow interactions', () => {
   });
   it('Request Response uses original identity server-side and makes no external-message claim', async () => {
     const rpc = vi.fn(async () => ({ success: true })); await render(workspace(rpc));
-    await click('Clarify'); await click('Request Response'); await input('Clarification question', 'Which location?'); await submit();
+    await click('Ask for clarification'); await click('Request Response'); await input('Clarification question', 'Which location?'); await submit();
     expect(rpc).toHaveBeenCalledWith('request_field_update_clarification', expect.objectContaining({ p_question: 'Which location?', p_field_update_id: 'report' }));
     await render(workspace(rpc, [round])); expect(container.textContent).toContain('Awaiting Field Response');
     expect(container.textContent).toContain('available to the original submitter in SETU');
-    expect(container.querySelectorAll('button')).not.toContainEqual(expect.objectContaining({ textContent: 'Accept' }));
+    expect(container.querySelectorAll('button')).not.toContainEqual(expect.objectContaining({ textContent: 'Accept suggested mapping' }));
   });
   it('shows response attribution and explicit triage', async () => {
     const rpc = vi.fn(async () => ({ success: true }));
@@ -72,21 +72,21 @@ describe('planner workflow interactions', () => {
   ])('locks normal actions and technical requeue during %s', async (state, changes) => {
     await render(workspace(undefined, [], [], { ...report, ...changes }));
     expect(container.textContent).toContain(state);
-    for (const name of ['Accept', 'Remap', 'Clarify', 'Technical Requeue']) {
+    for (const name of ['Accept suggested mapping', 'Choose different activity', 'Ask for clarification', 'Technical requeue']) {
       expect(Array.from(container.querySelectorAll('button')).find(b => b.textContent === name)).toBeUndefined();
     }
-    expect(button('Close as Invalid').disabled).toBe(false);
+    expect(button('Close as invalid').disabled).toBe(false);
   });
   it('locks an already-open clarification form when polling reveals processing', async () => {
     const rpc = vi.fn(async () => ({ success: true })); await render(workspace(rpc));
-    await click('Clarify'); await click('Request Response'); await input('Clarification question', 'Which area?');
+    await click('Ask for clarification'); await click('Request Response'); await input('Clarification question', 'Which area?');
     await render(workspace(rpc, [], [], { ...report, evidence_revision: 1 }));
     expect(container.querySelector('form')).toBeNull(); expect(rpc).not.toHaveBeenCalled();
   });
   it.each([
-    ['Accept', 'accept_current_field_update', false],
-    ['Exceptional: override validation', 'override_current_field_update_validation', true],
-    ['Technical Requeue', 'requeue_current_field_update', false],
+    ['Accept suggested mapping', 'accept_current_field_update', false],
+    ['Resolve validation issue', 'override_current_field_update_validation', true],
+    ['Technical requeue', 'requeue_current_field_update', false],
   ])('%s uses displayed revision and surfaces stale-state errors', async (action, name, blocked) => {
     const rpc = vi.fn(async () => ({ success: false, error: 'Workflow changed; refresh before acting' }));
     await render(workspace(rpc, [], [], { ...report, validation_status: blocked ? 'block' : 'pass' }));
@@ -97,13 +97,13 @@ describe('planner workflow interactions', () => {
   });
   it('keeps Clarify and Remap as recovery paths for blocked report validation', async () => {
     await render(workspace(undefined, [], [], { ...report, validation_status: 'block' }));
-    expect(button('Accept').disabled).toBe(true);
-    expect(button('Clarify').disabled).toBe(false); expect(button('Remap').disabled).toBe(false);
+    expect(container.textContent).not.toContain('Accept suggested mapping');
+    expect(button('Ask for clarification').disabled).toBe(false); expect(button('Choose different activity').disabled).toBe(false);
   });
   it('Confirm Remap never uses an abandoned action note', async () => {
     const rpc = vi.fn(async () => ({ success: true }));
     await render(workspace(rpc, [], [{ ...proposal, status: 'validated', validation_status: 'pass', validated_generation: 1, validation_evidence_revision: 0 }]));
-    await click('Close as Invalid'); await input('Planner reason or note', 'Abandoned invalid-close note'); await click('Cancel');
+    await click('Close as invalid'); await input('Planner reason or note', 'Abandoned invalid-close note'); await click('Cancel');
     await click('Confirm Remap');
     expect(rpc).toHaveBeenCalledWith('finalize_field_update_remap', {
       p_proposal_id: proposal.id, p_expected_workflow_revision: 1, p_remarks: null,
@@ -119,20 +119,20 @@ describe('planner workflow interactions', () => {
   it('blocked proposal needs a reason-scoped override and offers cancellation into Clarify', async () => {
     const rpc = vi.fn(async () => ({ success: true })); await render(workspace(rpc, [], [{ ...proposal, status: 'blocked', validation_status: 'block', validated_generation: 1, validation_evidence_revision: 0 }]));
     expect(button('Confirm Remap').disabled).toBe(true);
-    await click('Exceptional: override selected-target validation'); expect(button('Confirm').disabled).toBe(true);
+    await click('Resolve selected-target validation'); expect(button('Confirm').disabled).toBe(true);
     await input('Planner reason or note', 'Signed site record reviewed'); await submit();
     expect(rpc).toHaveBeenCalledWith('override_field_update_remap_proposal', expect.objectContaining({ p_proposal_id: 'proposal', p_reason: 'Signed site record reviewed' }));
     await click('Cancel proposal & Clarify'); expect(rpc).toHaveBeenCalledWith('cancel_field_update_remap_proposal', expect.objectContaining({ p_reason: 'Planner needs clarification' }));
     expect(container.textContent).toContain('Clarify field evidence');
   });
-  it('Close as Invalid requires a reason and calls compatibility-safe RPC', async () => {
-    const rpc = vi.fn(async () => ({ success: true })); await render(workspace(rpc)); await click('Close as Invalid');
+  it('Close as invalid requires a reason and calls compatibility-safe RPC', async () => {
+    const rpc = vi.fn(async () => ({ success: true })); await render(workspace(rpc)); await click('Close as invalid');
     expect(button('Confirm').disabled).toBe(true); await input('Planner reason or note', 'Duplicate'); await submit();
     expect(rpc).toHaveBeenCalledWith('close_field_update_as_invalid', expect.objectContaining({ p_reason: 'Duplicate' }));
   });
   it('keeps failed action form open with server error, and disables duplicate submits', async () => {
     const rpc = vi.fn(async () => ({ success: false, error: 'Workflow changed; refresh before acting' }));
-    await render(workspace(rpc)); await click('Clarify'); await click('Request Response');
+    await render(workspace(rpc)); await click('Ask for clarification'); await click('Request Response');
     await input('Clarification question', 'Question'); await submit();
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('Workflow changed'); expect(container.querySelector('form')).toBeTruthy();
     let release!: (value: { success: boolean }) => void;
