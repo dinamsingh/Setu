@@ -128,6 +128,8 @@ describe('ReviewCard planner governance states', () => {
       validation_status: 'block',
       validation_results: validationResults,
       validation_overridden: true,
+      override_evidence_revision: 0,
+      override_activity_id: 'ACT-001',
       override_reason: 'Verified against the signed site log.',
     });
     expect(html).toContain('Accept mapping');

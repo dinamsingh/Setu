@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -26,6 +26,10 @@ import { parseValidationResults } from '../../lib/utils';
 import { isMatchingPending } from '../../lib/plannerWorkspace';
 import { ProgressEventsSection } from './ProgressEventsSection';
 import type { ProgressEvent } from '../../types/progressEvents';
+import type { Clarification, RemapProposal } from '../../types/workflow';
+import { ReviewStepper } from './ReviewStepper';
+import { reviewStage } from '../../lib/guidedReview';
+import { activeProposal } from '../../lib/workflow';
 
 interface ReviewCardProps {
   update: FieldUpdate;
@@ -44,16 +48,12 @@ interface ReviewCardProps {
   progressEventsLoading?: boolean;
   progressEventsError?: string | null;
   onRetryProgressEvents?: () => void;
+  rounds?: Clarification[];
+  proposals?: RemapProposal[];
+  workflowAvailable?: boolean;
+  onReviewNext?: () => void;
+  onBackToQueue?: () => void;
 }
-
-const supportedChecks = new Set([
-  'date_plausibility',
-  'candidate_ambiguity',
-  'location_consistency',
-  'duplicate_detection',
-  'reporter_discipline',
-  'sequence_plausibility',
-]);
 
 function ValidationCheck({ check }: { check: ValidationCheckResult }) {
   const outcome = check.outcome || check.status;
@@ -95,12 +95,12 @@ function ValidationCheck({ check }: { check: ValidationCheckResult }) {
   );
 }
 
-const SectionLabel = ({ number, children }: { number: number; children: React.ReactNode }) => (
+const SectionLabel = ({ number, children, id }: { number: number; children: React.ReactNode; id?: string }) => (
   <div className="mb-3 flex items-center gap-2 border-b border-setu-slate-200 pb-2">
     <span className="flex h-5 w-5 items-center justify-center bg-setu-navy font-mono text-[10px] font-bold text-white">
       {number}
     </span>
-    <h2 className="text-xs font-extrabold uppercase tracking-[0.12em] text-setu-slate-700">
+    <h2 id={id} className="text-xs font-bold tracking-tight text-setu-slate-700">
       {children}
     </h2>
   </div>
@@ -123,20 +123,39 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   progressEventsLoading,
   progressEventsError,
   onRetryProgressEvents,
+  rounds = [],
+  proposals = [],
+  workflowAvailable = true,
+  onReviewNext,
+  onBackToQueue,
 }) => {
   const [pendingAction, setPendingAction] = useState<'accept' | 'reject' | 'requeue' | null>(null);
   const [actionNote, setActionNote] = useState(update.planner_remarks || '');
   const [showMoreActions, setShowMoreActions] = useState(false);
+  const [suggestionExpanded, setSuggestionExpanded] = useState(false);
+  const [checksExpanded, setChecksExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const validationRef = useRef<HTMLElement>(null);
   const decisionRef = useRef<HTMLElement>(null);
   const actionNoteRef = useRef<HTMLTextAreaElement>(null);
+  const doneRef = useRef<HTMLElement>(null);
+  const stage = reviewStage(update, rounds, proposals, matchedActivity, workflowAvailable);
+  const selectedProposal = activeProposal(proposals, update.id);
+  const currentStep = stage.current;
+  const previousStep = useRef(currentStep);
+  useEffect(() => {
+    if (previousStep.current !== currentStep && [4, 5].includes(currentStep)) {
+      const target = currentStep === 5 ? doneRef.current : decisionRef.current;
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      target?.scrollIntoView?.({ behavior: reducedMotion ? 'instant' : 'smooth', block: 'start' });
+      target?.focus({ preventScroll: true });
+    }
+    previousStep.current = currentStep;
+  }, [currentStep]);
 
   const awaiting = !manualMapping && isMatchingPending(update);
   const candidates = Array.isArray(update.candidate_matches) ? update.candidate_matches : [];
-  const validationResults = parseValidationResults(update.validation_results).filter((check) =>
-    supportedChecks.has(check.check)
-  );
+  const validationResults = parseValidationResults(update.validation_results);
   const failedChecks = validationResults.filter(
     (check) => (check.outcome || check.status) === 'fail'
   );
@@ -146,7 +165,8 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const isReviewed = ['approved', 'rejected', 'remapped'].includes(
     (update.status || '').toLowerCase()
   );
-  const isBlocked = update.validation_status === 'block' && !update.validation_overridden;
+  const isBlocked = update.validation_status === 'block' && !stage.currentOverride
+    && (update.validation_evidence_revision ?? 0) === (update.evidence_revision ?? 0);
   const hasValidMatch = Boolean(update.matched_activity_id && matchedActivity);
   const failedControlCount = Math.max(failedChecks.length, isBlocked ? 1 : 0);
 
@@ -241,6 +261,13 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
         icon: ShieldAlert,
         tone: 'border-setu-red bg-rose-50 text-rose-900',
       }
+    : stage.current < 4
+    ? {
+        label: 'Validation pending',
+        detail: 'Current evidence must be validated before a planner decision.',
+        icon: Clock,
+        tone: 'border-setu-slate-400 bg-setu-slate-50 text-setu-slate-700',
+      }
     : {
         label: 'Ready for decision',
         detail: hasValidMatch
@@ -270,15 +297,16 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               <span className="flex items-center gap-1"><User className="h-3 w-3" />{update.reported_by || 'Reporter not supplied'}</span>
             </div>
           </div>
-          {update.validation_overridden && (
-            <span className="inline-flex items-center gap-1.5 border border-purple-200 bg-purple-50 px-2 py-1 text-[11px] font-bold text-purple-800">
+          {stage.currentOverride && (
+            <span className="inline-flex items-center gap-1.5 border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-800">
               <Unlock className="h-3.5 w-3.5" /> Governed override recorded
             </span>
           )}
         </div>
       </header>
 
-      <div
+      <ReviewStepper stage={stage} />
+      {!decisionContent && <div
         data-testid="decision-status-bar"
         className={`sticky top-16 z-20 border-b border-l-4 px-4 py-2.5 shadow-sm sm:px-5 ${decisionState.tone}`}
       >
@@ -296,7 +324,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             </div>
           </div>
 
-          {!decisionContent && !isReviewed && !awaiting && (
+          {!decisionContent && !isReviewed && !awaiting && (stage.current === 4 || isBlocked) && (
             <div className="flex shrink-0 flex-wrap items-center gap-1.5">
               {isBlocked ? (
                 <button
@@ -308,7 +336,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 </button>
               ) : (
                 <>
-                  {hasValidMatch && (
+                  {stage.canApprove && (
                     <button
                       type="button"
                       disabled={isSubmitting}
@@ -339,11 +367,12 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       <div className="divide-y divide-setu-slate-200">
-        <section className="px-4 py-5 sm:px-5" aria-labelledby={`evidence-${update.id}`}>
-          <SectionLabel number={1}>Field evidence</SectionLabel>
+        <section className={`px-4 py-5 sm:px-5 ${stage.current === 1 ? 'border-l-2 border-setu-teal' : ''}`} aria-labelledby={`evidence-${update.id}`}>
+          <SectionLabel number={1} id={`evidence-${update.id}`}>Field evidence</SectionLabel>
+          <p className="mb-2 text-xs text-setu-slate-500">Start here: verify what the field team reported.</p>
           <blockquote className="border-l-4 border-setu-slate-500 bg-setu-slate-50 px-4 py-3 text-sm font-medium leading-6 text-setu-slate-900">
             “{update.field_text}”
           </blockquote>
@@ -352,7 +381,8 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
         </section>
 
         <section className="px-4 py-5 sm:px-5" aria-labelledby={`suggestion-${update.id}`}>
-          <SectionLabel number={2}>AI suggestion</SectionLabel>
+          <SectionLabel number={2} id={`suggestion-${update.id}`}>AI match</SectionLabel>
+          <p className="mb-2 text-xs text-setu-slate-500">SETU suggests a schedule activity using field wording, discipline and location. You decide whether it fits.</p>
           {workflowLabel === 'Reprocessing Evidence' && <p className="mb-2 text-xs text-amber-900">Previous suggestion shown for context only. Current clarified evidence is being processed.</p>}
           <div className="flex flex-col gap-3 border border-setu-slate-200 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
@@ -379,9 +409,9 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           </div>
 
           {!awaiting && (
-            <details className="mt-3 border border-setu-slate-200 bg-setu-slate-50">
-              <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-bold text-setu-blue focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">
-                <span>Why suggested?</span>
+            <details open={suggestionExpanded} onToggle={e => setSuggestionExpanded(e.currentTarget.open)} className="mt-3 border border-setu-slate-200 bg-setu-slate-50">
+              <summary aria-expanded={suggestionExpanded} className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-bold text-setu-blue focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">
+                <span>Why this was suggested</span>
                 <ChevronDown className="h-4 w-4" />
               </summary>
               <div className="space-y-3 border-t border-setu-slate-200 px-3 py-3 text-xs">
@@ -416,7 +446,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-setu-slate-100">
-                        {candidates.slice(0, 3).map((candidate, index) => {
+                        {candidates.map((candidate, index) => {
                           const score = candidate.combined_score ?? candidate.final_score ?? candidate.score ?? 0;
                           return (
                             <tr key={`${candidate.activity_id}-${index}`}>
@@ -443,20 +473,24 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
         <section
           ref={validationRef}
           tabIndex={-1}
-          className="scroll-mt-32 px-4 py-5 focus:outline-none sm:px-5"
+          className={`scroll-mt-32 px-4 py-5 focus:outline-none sm:px-5 ${stage.current === 3 ? 'border-l-2 border-setu-teal' : ''}`}
           aria-labelledby={`validation-${update.id}`}
         >
-          <SectionLabel number={3}>Project-controls validation</SectionLabel>
+          <SectionLabel number={3} id={`validation-${update.id}`}>Project-controls validation</SectionLabel>
 
-          {isBlocked ? (
+          {selectedProposal ? <p className="border-l-4 border-setu-blue bg-setu-slate-50 px-3 py-3 text-xs">
+            {stage.completed[2] ? 'Selected-target validation checks complete. Review and confirm the remap below.'
+              : selectedProposal.status === 'blocked' ? 'Selected-target validation needs your decision. Resolve the issue or choose a recovery path.'
+              : 'Validation is processing the planner-selected activity. The existing mapping has not changed.'}
+          </p> : isBlocked ? (
             <div className="space-y-3">
               <div className="border-l-4 border-setu-red bg-rose-50 px-4 py-3 text-xs text-rose-900">
                 <div className="flex items-start gap-2">
                   <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
                   <div>
-                    <p className="font-bold">Blocked by project-controls validation</p>
+                    <p className="font-bold">{failedControlCount} issue{failedControlCount === 1 ? '' : 's'} need{failedControlCount === 1 ? 's' : ''} your decision</p>
                     <p className="mt-1 leading-5 text-rose-800">
-                      {failedControlCount} validation control{failedControlCount === 1 ? '' : 's'} failed. Review failed checks before taking an exceptional action.
+                      You cannot approve yet. Resolve this validation issue first. Failed checks remain recorded.
                     </p>
                   </div>
                 </div>
@@ -471,8 +505,8 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 </p>
               )}
               {remainingChecks.length > 0 && (
-                <details className="border border-setu-slate-200">
-                  <summary className="cursor-pointer px-3 py-2 text-xs font-bold text-setu-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">
+                <details open={checksExpanded} onToggle={e => setChecksExpanded(e.currentTarget.open)} className="border border-setu-slate-200">
+                  <summary aria-expanded={checksExpanded} className="cursor-pointer px-3 py-2 text-xs font-bold text-setu-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">
                     Review remaining checks ({remainingChecks.length})
                   </summary>
                   <div className="grid grid-cols-1 gap-2 border-t border-setu-slate-200 p-3 xl:grid-cols-2">
@@ -481,23 +515,23 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 </details>
               )}
             </div>
-          ) : update.validation_status ? (
+          ) : stage.completed[2] ? (
             <div>
               <div className={`flex items-start gap-2 border-l-4 px-4 py-3 text-xs ${
-                update.validation_overridden
-                  ? 'border-purple-500 bg-purple-50 text-purple-900'
+                stage.currentOverride
+                  ? 'border-setu-green bg-emerald-50 text-emerald-900'
                   : update.validation_status === 'warn'
                   ? 'border-setu-amber bg-amber-50 text-amber-950'
                   : 'border-setu-green bg-emerald-50 text-emerald-900'
               }`}>
-                {update.validation_overridden ? <Unlock className="mt-0.5 h-4 w-4 shrink-0" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />}
+                {stage.currentOverride ? <Unlock className="mt-0.5 h-4 w-4 shrink-0" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />}
                 <div>
                   <p className="font-bold">
-                    {update.validation_overridden
-                      ? 'Validation block overridden under planner governance'
+                    {stage.currentOverride
+                      ? 'Validation exception recorded under planner governance.'
                       : update.validation_status === 'warn'
-                      ? 'Validation completed with warnings'
-                      : 'Validation checks passed'}
+                      ? 'Validation checks complete — warnings recorded'
+                      : 'Validation checks complete'}
                   </p>
                   {update.validation_overridden && update.override_reason && (
                     <p className="mt-1 leading-5">{update.override_reason}</p>
@@ -505,8 +539,8 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 </div>
               </div>
               {validationResults.length > 0 && (
-                <details className="mt-3 border border-setu-slate-200">
-                  <summary className="cursor-pointer px-3 py-2 text-xs font-bold text-setu-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">
+                <details open={checksExpanded} onToggle={e => setChecksExpanded(e.currentTarget.open)} className="mt-3 border border-setu-slate-200">
+                  <summary aria-expanded={checksExpanded} className="cursor-pointer px-3 py-2 text-xs font-bold text-setu-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">
                     Review all validation checks ({validationResults.length})
                   </summary>
                   <div className="grid grid-cols-1 gap-2 border-t border-setu-slate-200 p-3 xl:grid-cols-2">
@@ -525,10 +559,11 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
 
         <section
           ref={decisionRef}
-          className="scroll-mt-32 px-4 py-5 sm:px-5"
+          tabIndex={-1}
+          className={`scroll-mt-32 px-4 py-5 sm:px-5 ${stage.current === 4 ? 'border-l-2 border-setu-teal' : ''}`}
           aria-labelledby={`decision-${update.id}`}
         >
-          <SectionLabel number={4}>Planner decision</SectionLabel>
+          <SectionLabel number={4} id={`decision-${update.id}`}>Planner decision</SectionLabel>
 
           {decisionContent || (isReviewed ? (
             <div className="border-l-4 border-setu-slate-500 bg-setu-slate-50 px-4 py-3 text-xs text-setu-slate-700">
@@ -545,6 +580,8 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 </p>
               </div>
             </div>
+          ) : stage.current < 4 && !isBlocked ? (
+            <p className="border-l-4 border-setu-blue bg-blue-50 px-4 py-3 text-xs">Current validation must complete before planner decision controls become available.</p>
           ) : (
             <div className="space-y-4">
               {!hasValidMatch && !awaiting && !isBlocked && (
@@ -581,7 +618,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center gap-2">
-                  {hasValidMatch && !awaiting && (
+                  {stage.canApprove && !awaiting && (
                     <button
                       type="button"
                       disabled={isSubmitting}
@@ -630,7 +667,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       type="button"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || (pendingAction === 'accept' && !stage.canApprove)}
                       onClick={() => runAction(submitPendingAction)}
                       className={`px-3 py-2 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-50 ${pendingActionCopy.button}`}
                     >
@@ -696,7 +733,74 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             </div>
           ))}
         </section>
+        {isReviewed && <section ref={doneRef} tabIndex={-1} aria-labelledby={`done-${update.id}`}
+          className={`scroll-mt-32 border-l-4 bg-setu-slate-50 px-4 py-5 focus:outline-none sm:px-5 ${update.status === 'rejected' ? 'border-setu-slate-500' : 'border-setu-green'}`}>
+          <SectionLabel number={5} id={`done-${update.id}`}>Done</SectionLabel>
+          <h3 className="text-lg font-bold text-setu-navy">{update.status === 'rejected' ? 'Rejected' : 'Approved'}</h3>
+          <p className="mt-1 text-sm leading-6 text-setu-slate-600">{update.status === 'rejected'
+            ? 'Report closed with terminal rejected status. This evidence does not contribute to Schedule Actuals.'
+            : 'This evidence can now contribute to Schedule Actuals.'}</p>
+          <p className="mt-2 text-xs text-setu-slate-500">Read-only planner decision{update.status === 'remapped' ? ' · Planner-selected mapping' : ''}.</p>
+          {update.planner_remarks && <p className="mt-2 text-xs">Planner note: {update.planner_remarks}</p>}
+          <details className="mt-3 text-xs"><summary className="cursor-pointer font-semibold focus:outline-none focus:ring-2 focus:ring-setu-blue/30">Decision and audit context</summary>
+            <p className="mt-2">Report {update.update_id} · {update.status} · Workflow revision {update.workflow_revision ?? 0} · Evidence revision {update.evidence_revision ?? 0}</p>
+            <p className="mt-1">Last report change: {update.updated_at}</p>
+            <a href="/planner/audit-export" className="mt-2 inline-block text-setu-blue underline">Open append-only planner audit trail</a>
+          </details>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {update.status !== 'rejected' && <a href="/planner/schedule-actuals" className="bg-setu-navy px-4 py-2.5 text-sm font-bold text-white rounded hover:bg-setu-blue focus:outline-none focus:ring-2 focus:ring-setu-teal">View Schedule Actuals</a>}
+            {onReviewNext && <button type="button" onClick={onReviewNext} className={update.status === 'rejected'
+              ? 'bg-setu-navy px-4 py-2.5 text-sm font-bold text-white rounded focus:outline-none focus:ring-2 focus:ring-setu-teal'
+              : 'px-4 py-2.5 text-sm font-semibold text-setu-blue hover:underline focus:outline-none focus:ring-2 focus:ring-setu-blue/30'}>Review next item</button>}
+            {onBackToQueue && <button type="button" onClick={onBackToQueue} className="px-4 py-2.5 text-sm font-semibold text-setu-slate-500 hover:text-setu-navy focus:outline-none focus:ring-2 focus:ring-setu-blue/30">Back to Review Queue</button>}
+          </div>
+        </section>}
       </div>
+
+      {/* Sticky action bar */}
+      {!isReviewed && !awaiting && (stage.current === 4 || isBlocked) && (
+        <div data-testid="sticky-action-bar" className="sticky bottom-0 z-20 border-t border-setu-slate-200 bg-white/95 backdrop-blur px-5 py-3 shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm text-setu-slate-600">
+              {isBlocked
+                ? 'Resolve this validation issue before approval.'
+                : stage.canApprove
+                ? 'Validation complete. Record your planner decision.'
+                : 'Choose an activity or clarify evidence to proceed.'}
+            </p>
+            <div className="flex items-center gap-2 shrink-0">
+              {isBlocked ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenOverride?.(update)}
+                  disabled={isSubmitting}
+                  className="bg-setu-navy px-4 py-2 text-sm font-bold text-white rounded hover:bg-setu-blue focus:outline-none focus:ring-2 focus:ring-setu-teal disabled:opacity-50"
+                >
+                  Resolve validation issue
+                </button>
+              ) : stage.canApprove ? (
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => openDecisionAction('accept')}
+                  className="bg-setu-green px-4 py-2 text-sm font-bold text-white rounded hover:bg-setu-green-dark focus:outline-none focus:ring-2 focus:ring-setu-green/40 disabled:opacity-50"
+                >
+                  Accept suggested mapping
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => onOpenRemap(update)}
+                  className="border border-setu-blue bg-white px-4 py-2 text-sm font-bold text-setu-blue rounded hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-50"
+                >
+                  Choose different activity
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </article>
   );
 };
