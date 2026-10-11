@@ -3,6 +3,7 @@
  * Run: node scripts/verify_workflow_foundation.mjs /path/to/pglite/dist/index.js
  * Add --review-guard-only to execute the review guard without applying migrations.
  * Add --worker-workflow to verify migration 009 in the same disposable database.
+ * Add --actuals-overlay to verify migrations 009–011 and their view contracts.
  * PGlite is an optional test runtime, not an application dependency. Its single
  * connection cannot prove multi-session row-lock behavior; Python covers the
  * deterministic race model and production concurrency still needs staging QA.
@@ -319,15 +320,19 @@ try {
   await rejects(() => db.query('select * from public.field_update_clarifications'), /permission denied/);
   await actor('site');
   await rejects(() => rpc('_lock_pending_workflow_report', [requeueId]), /permission denied/);
-  if (args.includes('--worker-workflow') || args.includes('--progress-events')) {
+  if (args.includes('--worker-workflow') || args.includes('--progress-events') || args.includes('--actuals-overlay')) {
     const { verifyWorkerWorkflow } = await import('./verify_worker_workflow.mjs');
     checks += await verifyWorkerWorkflow({ db, read, actor, rpc, seed, report, users });
   }
-  if (args.includes('--progress-events')) {
+  if (args.includes('--progress-events') || args.includes('--actuals-overlay')) {
     const { verifyProgressEvents } = await import('./verify_progress_events.mjs');
     checks += await verifyProgressEvents({ db, read, actor, rpc, seed, report, users });
   }
-  console.log(`PASS: migration 005/006/007/008${args.includes('--worker-workflow') || args.includes('--progress-events') ? '/009' : ''}${args.includes('--progress-events') ? '/010' : ''} executes locally; ${checks} PostgreSQL workflow/security checks. No live connection.`);
+  if (args.includes('--actuals-overlay')) {
+    const { verifyActualsOverlay } = await import('./verify_actuals_overlay.mjs');
+    checks += await verifyActualsOverlay({ db, read, actor, rpc, seed, report, users });
+  }
+  console.log(`PASS: migration 005/006/007/008${args.includes('--worker-workflow') || args.includes('--progress-events') || args.includes('--actuals-overlay') ? '/009' : ''}${args.includes('--progress-events') || args.includes('--actuals-overlay') ? '/010' : ''}${args.includes('--actuals-overlay') ? '/011' : ''} executes locally; ${checks} PostgreSQL workflow/security checks. No live connection.`);
   }
 } finally {
   await db.close();
