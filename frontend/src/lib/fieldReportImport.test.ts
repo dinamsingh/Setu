@@ -7,13 +7,14 @@ import { completedImport } from '../test/importFixtures';
 
 const rpc = vi.hoisted(() => vi.fn());
 vi.mock('./supabase', () => ({ supabase: { rpc } }));
+const originalDeployment = { ...gate };
 const request = async () => prepareFieldReportImport(await parseFieldReportFile(intakeFile('field_text,reported_date\nWork A,2026-10-11')));
 beforeEach(() => {
   rpc.mockReset(); Object.assign(gate, { migration012Verified: true, migration013Verified: true, submissionEnabled: true });
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Real network forbidden')));
 });
 afterEach(() => {
-  Object.assign(gate, { migration012Verified: false, migration013Verified: false, submissionEnabled: false });
+  Object.assign(gate, originalDeployment);
   expect(fetch).not.toHaveBeenCalled(); vi.unstubAllGlobals(); vi.restoreAllMocks();
 });
 describe('typed secure import adapter (Supabase mocked)', () => {
@@ -21,8 +22,8 @@ describe('typed secure import adapter (Supabase mocked)', () => {
     Object.assign(gate, { migration012Verified: a, migration013Verified: b, submissionEnabled: c });
     expect(isFieldReportImportEnabled()).toBe(a && b && c);
   });
-  it('fails closed in the adapter itself, not just via disabled UI', async () => {
-    gate.submissionEnabled = false;
+  it.each(['migration012Verified', 'migration013Verified', 'submissionEnabled'] as const)('fails closed in the adapter itself when %s is disabled', async flag => {
+    gate[flag] = false;
     expect((await submitFieldReportImport(await request())).kind).toBe('disabled'); expect(rpc).not.toHaveBeenCalled();
   });
   it('whitelists normalized original fields and freezes the request payload', async () => {

@@ -3,9 +3,9 @@
  * Deliberately does not read .env, discover schema remotely or auto-enable.
  */
 export const FIELD_REPORT_IMPORT_DEPLOYMENT = {
-  migration012Verified: false,
-  migration013Verified: false,
-  submissionEnabled: false,
+  migration012Verified: true,
+  migration013Verified: true,
+  submissionEnabled: true,
 };
 
 export function isFieldReportImportEnabled(): boolean {

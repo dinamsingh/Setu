@@ -5,17 +5,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReportImportWizard } from './ReportImportWizard';
 import { intakeFile, intakeXlsx } from '../../test/intakeFixtures';
 import * as intake from '../../lib/fieldReportIntake';
+import { FIELD_REPORT_IMPORT_DEPLOYMENT as gate } from '../../lib/fieldReportImportDeployment';
 vi.mock('../../lib/supabase', () => ({ supabase: { rpc: vi.fn() } }));
 
 let root: Root; let container: HTMLDivElement;
 const cancel = vi.fn();
+const originalDeployment = { ...gate };
 beforeEach(async () => {
   (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   cancel.mockReset();
+  // These are local-preview/locked-gate tests, independent of release defaults.
+  Object.assign(gate, { migration012Verified: false, migration013Verified: false, submissionEnabled: false });
   container = document.createElement('div'); document.body.append(container); root = createRoot(container);
   await act(async () => root.render(<ReportImportWizard onCancel={cancel} />));
 });
-afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks(); });
+afterEach(async () => {
+  await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks();
+  Object.assign(gate, originalDeployment);
+});
 function button(text: string) {
   const result = [...container.querySelectorAll('button')].find(b => b.textContent?.trim() === text);
   expect(result, text).toBeTruthy(); return result!;
