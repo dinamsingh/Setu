@@ -14,14 +14,43 @@ vi.mock('../../hooks/useFieldUpdates', () => ({ useFieldUpdates: () => ({ update
 vi.mock('../../hooks/useWorkflow', () => ({ useWorkflow: () => ({ rounds: [], loading: false, error: null, act: state.act }) }));
 vi.mock('../../lib/AuthContext', () => ({ useAuth: () => ({ user: { id: 'site', email: 'site@example.test' }, role: 'site', signOut: state.signOut }) }));
 let root: Root; let container: HTMLDivElement;
+class MockSpeechRecognition {
+  continuous = false;
+  interimResults = false;
+  lang = 'en-IN';
+  onstart: (() => void) | null = null;
+  onresult: ((event: unknown) => void) | null = null;
+  onerror: ((event: unknown) => void) | null = null;
+  onend: (() => void) | null = null;
+
+  start = vi.fn(() => {
+    if (this.onstart) this.onstart();
+  });
+  stop = vi.fn(() => {
+    if (this.onend) this.onend();
+  });
+  abort = vi.fn(() => {
+    if (this.onend) this.onend();
+  });
+
+  static instances: MockSpeechRecognition[] = [];
+  constructor() {
+    MockSpeechRecognition.instances.push(this);
+  }
+}
+
 beforeEach(async () => {
   (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.resetAllMocks();
+  MockSpeechRecognition.instances = [];
+  (window as unknown as { SpeechRecognition: unknown }).SpeechRecognition = MockSpeechRecognition;
   container = document.createElement('div'); document.body.append(container); root = createRoot(container);
   await act(async () => root.render(<MemoryRouter><FieldCapture /></MemoryRouter>));
 });
 afterEach(async () => {
   await act(async () => root.unmount()); container.remove();
+  delete (window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition;
+  delete (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
   Object.assign(gate, { migration012Verified: false, migration013Verified: false, submissionEnabled: false });
 });
 async function click(text: string) {
@@ -155,5 +184,114 @@ it('does not allow opening attachments while the existing text submission is in 
   expect(container.querySelector<HTMLButtonElement>('[aria-label="Add attachment"]')?.disabled).toBe(true);
   await click('Add attachment'); expect(container.querySelector('[role="menu"]')).toBeNull();
   await act(async () => finish({ success: false, error: 'Mock-only failure' }));
+  expect(container.querySelector<HTMLButtonElement>('[aria-label="Add attachment"]')?.disabled).toBe(false);
+});
+
+it('starts voice recognition, displays interim listening status, and appends final transcript without losing typed text', async () => {
+  await draft();
+  const micButton = container.querySelector<HTMLButtonElement>('[aria-label="Start voice input"]')!;
+  expect(micButton).toBeTruthy();
+  expect(micButton.getAttribute('aria-pressed')).toBe('false');
+
+  await act(async () => { micButton.click(); });
+  expect(MockSpeechRecognition.instances.length).toBe(1);
+  const recognition = MockSpeechRecognition.instances[0];
+  expect(recognition.start).toHaveBeenCalled();
+  expect(micButton.getAttribute('aria-label')).toBe('Stop voice input');
+  expect(micButton.getAttribute('aria-pressed')).toBe('true');
+
+  // Emit interim result
+  await act(async () => {
+    recognition.onresult?.({
+      resultIndex: 0,
+      results: [
+        {
+          isFinal: false,
+          0: { transcript: 'spool hydrotest' },
+        },
+      ],
+    });
+  });
+  expect(container.querySelector('[role="status"]')?.textContent).toContain('Listening:spool hydrotest');
+
+  // Emit final transcript
+  await act(async () => {
+    recognition.onresult?.({
+      resultIndex: 0,
+      results: [
+        {
+          isFinal: true,
+          0: { transcript: 'spool hydrotest passed today' },
+        },
+      ],
+    });
+  });
+
+  const textarea = container.querySelector<HTMLTextAreaElement>('#field-report')!;
+  expect(textarea.value).toBe('Unsent original field narrative spool hydrotest passed today');
+
+  // Stop listening
+  await act(async () => { micButton.click(); });
+  expect(recognition.stop).toHaveBeenCalled();
+  expect(micButton.getAttribute('aria-label')).toBe('Start voice input');
+});
+
+it('switches voice recognition language between English and Hindi before listening', async () => {
+  await draft();
+  const langSelect = container.querySelector<HTMLSelectElement>('[aria-label="Voice input language"]')!;
+  expect(langSelect).toBeTruthy();
+  expect(langSelect.value).toBe('en-IN');
+
+  await act(async () => {
+    langSelect.value = 'hi-IN';
+    langSelect.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  expect(langSelect.value).toBe('hi-IN');
+
+  const micButton = container.querySelector<HTMLButtonElement>('[aria-label="Start voice input"]')!;
+  await act(async () => { micButton.click(); });
+
+  const recognition = MockSpeechRecognition.instances[0];
+  expect(recognition.lang).toBe('hi-IN');
+  expect(langSelect.disabled).toBe(true);
+});
+
+it('displays helpful status when browser does not support speech recognition and keeps typing intact', async () => {
+  delete (window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition;
+  delete (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+
+  await draft();
+  const micButton = container.querySelector<HTMLButtonElement>('[aria-label="Start voice input"]')!;
+  await act(async () => { micButton.click(); });
+
+  const alert = container.querySelector('[role="alert"]')!;
+  expect(alert.textContent).toContain('Voice input is not supported in this browser. You can continue typing manually.');
+  expectDraft();
+
+  // Dismiss status
+  const dismissBtn = container.querySelector<HTMLButtonElement>('[aria-label="Dismiss voice status"]')!;
+  await act(async () => { dismissBtn.click(); });
+  expect(container.querySelector('[aria-label="Dismiss voice status"]')).toBeNull();
+});
+
+it('disables voice input and stops listening while report submission is in flight', async () => {
+  await draft();
+  const micButton = container.querySelector<HTMLButtonElement>('[aria-label="Start voice input"]')!;
+  await act(async () => { micButton.click(); });
+
+  let finish: (value: { success: boolean; error: string }) => void = () => {};
+  state.submit.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  await act(async () => {
+    container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
+
+  const langSelect = container.querySelector<HTMLSelectElement>('[aria-label="Voice input language"]')!;
+  expect(micButton.disabled).toBe(true);
+  expect(langSelect.disabled).toBe(true);
+  expect(container.querySelector<HTMLButtonElement>('[aria-label="Add attachment"]')?.disabled).toBe(true);
+
+  await act(async () => finish({ success: false, error: 'Mock-only failure' }));
+  expect(micButton.disabled).toBe(false);
+  expect(langSelect.disabled).toBe(false);
   expect(container.querySelector<HTMLButtonElement>('[aria-label="Add attachment"]')?.disabled).toBe(false);
 });

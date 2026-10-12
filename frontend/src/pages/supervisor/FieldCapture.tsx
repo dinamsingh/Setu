@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, ArrowRight, CalendarDays, Check, ChevronDown, ChevronRight,
+  AlertCircle, ArrowLeft, ArrowRight, CalendarDays, Check, ChevronDown, ChevronRight,
   ClipboardList, FileText, Layers3, LogOut, MapPin,
   PenLine, Plus, RefreshCw, Send, Settings2, UserRound,
 } from 'lucide-react';
+import { VoiceInputControl } from '../../components/supervisor/VoiceInputControl';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { useAuth } from '../../lib/AuthContext';
@@ -95,6 +96,15 @@ export const FieldCapture: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [sent, setSent] = useState<SentReport | null>(null);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
+
+  const handleFinalTranscript = (chunk: string) => {
+    setFieldText(prev => {
+      if (!prev) return chunk;
+      return /\s$/.test(prev) ? `${prev}${chunk}` : `${prev} ${chunk}`;
+    });
+  };
 
   const ownUpdates = useMemo(() => ownSiteUpdates(updates, user?.id), [updates, user?.id]);
   const ownRounds = useMemo(() => user ? addressedRequests(workflow.rounds, user.id) : [], [workflow.rounds, user]);
@@ -102,7 +112,12 @@ export const FieldCapture: React.FC = () => {
   const currentReport = ownUpdates.find(u => u.id === selectedReport);
   const defaultLocation = ownUpdates[0]?.site_location || 'Duliajan Manifold Area A';
 
-  const startNew = () => { setSubmitError(null); setScreen('compose'); };
+  const startNew = () => {
+    setSubmitError(null);
+    setInterimTranscript('');
+    setVoiceStatus(null);
+    setScreen('compose');
+  };
   const openReport = (update: FieldUpdate) => { setSelectedReport(update.id); setScreen('report'); };
   const sendUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -202,8 +217,42 @@ export const FieldCapture: React.FC = () => {
                 placeholder="Piping spool erection and line fit-up finished at Manifold A today…"
                 className="block min-h-[235px] w-full resize-y rounded-[1.4rem] border border-slate-200 bg-white p-5 pb-16 text-base leading-7 text-[#112344] placeholder:text-slate-400 shadow-sm outline-none focus:border-[#1557A0] focus:ring-4 focus:ring-blue-100 sm:p-6 sm:pb-16 sm:text-lg" />
               <ReportAttachmentMenu triggerRef={importEntry} disabled={isSubmitting} onImport={() => setScreen('import')} />
+              <VoiceInputControl
+                disabled={isSubmitting}
+                onFinalTranscript={handleFinalTranscript}
+                onInterimTranscript={setInterimTranscript}
+                onStatusChange={setVoiceStatus}
+              />
             </div>
-            <p className="mt-2 text-right text-xs tabular-nums text-slate-400">{fieldText.length} characters</p>
+            {interimTranscript && (
+              <div role="status" className="mt-2 flex items-center gap-2 rounded-xl bg-blue-50 px-3.5 py-2 text-xs text-blue-700">
+                <span className="h-2 w-2 rounded-full bg-blue-600 animate-ping" />
+                <span className="font-semibold">Listening:</span>
+                <span className="italic">{interimTranscript}</span>
+              </div>
+            )}
+            {voiceStatus && (
+              <div role="alert" className="mt-2 flex items-start justify-between gap-2 rounded-xl bg-amber-50 px-3.5 py-2 text-xs text-amber-800">
+                <div className="flex items-start gap-2">
+                  <AlertCircle size={15} className="mt-0.5 shrink-0 text-amber-600" />
+                  <span>{voiceStatus}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setVoiceStatus(null)}
+                  className="ml-2 font-bold text-amber-700 hover:text-amber-900"
+                  aria-label="Dismiss voice status"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            <div className="mt-2 flex flex-col gap-1 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[11px] leading-tight text-slate-500">
+                Voice input: Mixed-language (Hinglish) accuracy is best-effort. Speech is processed by your browser and not stored or recorded by SETU.
+              </p>
+              <p className="shrink-0 text-right tabular-nums">{fieldText.length} characters</p>
+            </div>
           </div>
           <fieldset>
             <legend className="mb-3 text-sm font-semibold">Report context</legend>
