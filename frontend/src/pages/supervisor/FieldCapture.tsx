@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, CalendarDays, Check, ChevronDown, ChevronRight,
@@ -10,10 +10,12 @@ import { useWorkflow } from '../../hooks/useWorkflow';
 import { useAuth } from '../../lib/AuthContext';
 import { addressedRequests } from '../../lib/workflow';
 import { NeedsClarification } from '../../components/supervisor/NeedsClarification';
+import { ReportImportWizard } from '../../components/supervisor/ReportImportWizard';
+import { ReportAttachmentMenu } from '../../components/supervisor/ReportAttachmentMenu';
 import { ownSiteUpdates, siteLogDate, siteLogStatus, type SiteLogTone } from '../../lib/siteLog';
 import type { FieldUpdate } from '../../types';
 
-type Screen = 'home' | 'compose' | 'sent' | 'updates' | 'report' | 'account';
+type Screen = 'home' | 'compose' | 'sent' | 'updates' | 'report' | 'account' | 'import';
 
 type SentReport = {
   updateId: string;
@@ -73,6 +75,13 @@ export const FieldCapture: React.FC = () => {
   const { submitFieldUpdate, updates, loading, error, refetch } = useFieldUpdates();
   const workflow = useWorkflow(() => refetch(true));
   const [screen, setScreen] = useState<Screen>('home');
+  const [importLocked, setImportLocked] = useState(false);
+  const importEntry = useRef<HTMLButtonElement>(null);
+  const previousScreen = useRef<Screen>('home');
+  useEffect(() => {
+    if (previousScreen.current === 'import' && screen === 'compose') importEntry.current?.focus();
+    previousScreen.current = screen;
+  }, [screen]);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [fieldText, setFieldText] = useState('');
   const [discipline, setDiscipline] = useState('Piping');
@@ -119,7 +128,7 @@ export const FieldCapture: React.FC = () => {
   return <div className="min-h-screen bg-[#F7F9FC] text-[#112344] selection:bg-blue-100">
     <header className="border-b border-slate-200/80 bg-white/95">
       <div className="mx-auto flex h-[72px] w-full max-w-6xl items-center justify-between px-5 sm:px-8">
-        <button type="button" onClick={() => setScreen('home')} className={`flex items-center gap-3 rounded-lg text-left ${focus}`} aria-label="SETU Site Log home">
+        <button type="button" disabled={importLocked} onClick={() => setScreen('home')} className={`flex items-center gap-3 rounded-lg text-left ${focus}`} aria-label="SETU Site Log home">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1557A0] text-white"><Layers3 size={21} strokeWidth={2.3}/></span>
           <span><span className="block text-lg font-extrabold leading-5 tracking-tight">SETU</span>
             <span className="block text-xs font-medium text-slate-500">Site Log · Oil India Limited</span></span>
@@ -127,7 +136,7 @@ export const FieldCapture: React.FC = () => {
         <div className="flex items-center gap-3">
           <span className="hidden text-right sm:block"><span className="block text-sm font-semibold">{reportedBy.split(' (')[0]}</span>
             <span className="block text-xs text-slate-500">{role === 'engineer' ? 'Field Engineer' : 'Site Supervisor'}</span></span>
-          <button type="button" onClick={() => setScreen('account')} aria-label="Account and sign out"
+          <button type="button" disabled={importLocked} onClick={() => setScreen('account')} aria-label="Account and sign out"
             className={`flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-[#1557A0] ${focus}`}>
             <UserRound size={20}/>
           </button>
@@ -135,7 +144,9 @@ export const FieldCapture: React.FC = () => {
       </div>
     </header>
 
-    <main className="mx-auto w-full max-w-4xl px-4 pb-32 pt-7 sm:px-8 sm:pt-10">
+    <main className={`mx-auto w-full px-4 pb-32 pt-7 sm:px-8 sm:pt-10 ${screen === 'import' ? 'max-w-6xl' : 'max-w-4xl'}`}>
+      {screen === 'import' && <ReportImportWizard onCancel={() => setScreen('compose')}
+        submitter={user ? { id: user.id, role } : undefined} onLockChange={setImportLocked} onCompleted={() => void refetch(true)} />}
       {screen === 'home' && <div className="space-y-7">
         <section className="relative overflow-hidden rounded-[1.7rem] bg-[#EAF2FC] px-6 py-7 sm:px-9 sm:py-9">
           <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full border-[35px] border-white/45" aria-hidden="true" />
@@ -184,11 +195,14 @@ export const FieldCapture: React.FC = () => {
         <p className="mt-2 max-w-lg text-sm leading-6 text-slate-500 sm:text-base">Write naturally. SETU will suggest the relevant schedule activity for planner review.</p>
         <form id="site-log-compose" onSubmit={sendUpdate} className="mt-7 space-y-6">
           <div>
-            <label htmlFor="field-report" className="sr-only">Describe field progress</label>
-            <textarea id="field-report" rows={7} value={fieldText} required
-              onChange={e => setFieldText(e.target.value)}
-              placeholder="Piping spool erection and line fit-up finished at Manifold A today…"
-              className="min-h-[235px] w-full resize-y rounded-[1.4rem] border border-slate-200 bg-white p-5 text-base leading-7 text-[#112344] placeholder:text-slate-400 shadow-sm outline-none focus:border-[#1557A0] focus:ring-4 focus:ring-blue-100 sm:p-6 sm:text-lg" />
+            <div className="relative">
+              <label htmlFor="field-report" className="sr-only">Describe field progress</label>
+              <textarea id="field-report" rows={7} value={fieldText} required
+                onChange={e => setFieldText(e.target.value)}
+                placeholder="Piping spool erection and line fit-up finished at Manifold A today…"
+                className="block min-h-[235px] w-full resize-y rounded-[1.4rem] border border-slate-200 bg-white p-5 pb-16 text-base leading-7 text-[#112344] placeholder:text-slate-400 shadow-sm outline-none focus:border-[#1557A0] focus:ring-4 focus:ring-blue-100 sm:p-6 sm:pb-16 sm:text-lg" />
+              <ReportAttachmentMenu triggerRef={importEntry} disabled={isSubmitting} onImport={() => setScreen('import')} />
+            </div>
             <p className="mt-2 text-right text-xs tabular-nums text-slate-400">{fieldText.length} characters</p>
           </div>
           <fieldset>
