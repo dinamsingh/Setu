@@ -1,0 +1,9 @@
+# Security and Caching Headers for Cloudflare Pages
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(self), microphone=(self), camera=()
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
