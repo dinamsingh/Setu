@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { FIELD_REPORT_IMPORT_DEPLOYMENT, isFieldReportImportEnabled } from './fieldReportImportDeployment';
 
 const sql = readFileSync(new URL('../../../database/migrations/013_secure_field_report_import.sql', import.meta.url), 'utf8');
 const compact = sql.replace(/--[^\n]*/g, '').replace(/\s+/g, ' ').trim();
@@ -85,10 +86,16 @@ describe('013 secure import static migration contracts (not DB execution)', () =
     const manual = readFileSync(new URL('../hooks/useFieldUpdates.ts', import.meta.url), 'utf8');
     expect(wizard).not.toMatch(/supabase|import_field_reports|\.rpc\(|\.insert\(/);
     expect(wizard).toContain('ReportImportConfirmation');
-    const gate = readFileSync(new URL('./fieldReportImportDeployment.ts', import.meta.url), 'utf8');
-    expect(gate).toContain('migration012Verified: false');
-    expect(gate).toContain('migration013Verified: false');
-    expect(gate).toContain('submissionEnabled: false');
+    // Release values may be enabled after verification; enforce the gate contract,
+    // not the development defaults. Runtime truth-table/adapter tests cover denial.
+    expect(Object.keys(FIELD_REPORT_IMPORT_DEPLOYMENT).sort()).toEqual([
+      'migration012Verified', 'migration013Verified', 'submissionEnabled',
+    ]);
+    expect(Object.values(FIELD_REPORT_IMPORT_DEPLOYMENT).every(value => typeof value === 'boolean')).toBe(true);
+    expect(isFieldReportImportEnabled()).toBe(Object.values(FIELD_REPORT_IMPORT_DEPLOYMENT).every(value => value === true));
+    const confirmation = readFileSync(new URL('../components/supervisor/ReportImportConfirmation.tsx', import.meta.url), 'utf8');
+    expect(confirmation).not.toMatch(/supabase|import_field_reports|\.rpc\(|\.insert\(/);
+    expect(confirmation).toContain('await submitFieldReportImport(request)');
     expect(manual).toContain("source_type: 'manual_text'");
     expect(manual).not.toContain('import_field_reports');
   });
