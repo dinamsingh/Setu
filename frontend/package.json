@@ -12,11 +12,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
+    "fflate": "0.8.3",
     "lucide-react": "^1.46.0",
     "papaparse": "^5.7.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",
+    "read-excel-file": "9.3.12",
     "recharts": "^3.10.1"
   },
   "devDependencies": {
