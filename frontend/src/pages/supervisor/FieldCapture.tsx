@@ -6,8 +6,13 @@ import {
   PenLine, Plus, RefreshCw, Send, Settings2, UserRound,
 } from 'lucide-react';
 import { VoiceInputControl } from '../../components/supervisor/VoiceInputControl';
-import { getKolkataReferenceDate, parseTemporalExpressions } from '../../lib/temporalParser';
-import { DateTimeSuggestions } from '../../components/supervisor/DateTimeSuggestions';
+import { getKolkataReferenceDate } from '../../lib/temporalParser';
+import {
+  analyzeSupervisorNarrative,
+  type ClarificationOption,
+  type MaterialAmbiguity,
+  type SupervisorAnalysisResult,
+} from '../../lib/supervisorSemanticAnalyzer';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { useAuth } from '../../lib/AuthContext';
@@ -93,6 +98,7 @@ export const FieldCapture: React.FC = () => {
     return getKolkataReferenceDate().yyyyMmDd;
   });
   const [reportedBy, setReportedBy] = useState('Ramesh Borah (Site Supervisor)');
+  const [showDetails, setShowDetails] = useState(false);
   const [showReporter, setShowReporter] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
@@ -103,15 +109,8 @@ export const FieldCapture: React.FC = () => {
   const [sent, setSent] = useState<SentReport | null>(null);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
-  const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<string[]>([]);
-
-  const temporalSuggestions = useMemo(() => {
-    return parseTemporalExpressions(fieldText);
-  }, [fieldText]);
-
-  const visibleSuggestions = useMemo(() => {
-    return temporalSuggestions.filter((s) => !dismissedSuggestionIds.includes(s.id));
-  }, [temporalSuggestions, dismissedSuggestionIds]);
+  const [pendingClarification, setPendingClarification] = useState<MaterialAmbiguity | null>(null);
+  const [resolvedAmbiguity, setResolvedAmbiguity] = useState<ClarificationOption | null>(null);
 
   const handleFinalTranscript = (chunk: string) => {
     if (isSubmittingRef.current) return;
@@ -131,29 +130,98 @@ export const FieldCapture: React.FC = () => {
     setSubmitError(null);
     setInterimTranscript('');
     setVoiceStatus(null);
-    setDismissedSuggestionIds([]);
+    setPendingClarification(null);
+    setResolvedAmbiguity(null);
     setScreen('compose');
   };
   const openReport = (update: FieldUpdate) => { setSelectedReport(update.id); setScreen('report'); };
-  const sendUpdate = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!fieldText.trim() || isSubmitting) return;
+
+  const executeSubmission = async (
+    analysis: SupervisorAnalysisResult,
+    clarificationOpt?: ClarificationOption | null
+  ) => {
+    if (isSubmittingRef.current) return;
     setIsSubmitting(true);
     isSubmittingRef.current = true;
     setSubmitError(null);
-    const result = await submitFieldUpdate({ fieldText, siteLocation, reportedDate, reportedBy });
+
+    const result = await submitFieldUpdate({
+      fieldText: fieldText.trim(),
+      siteLocation: siteLocation.trim() || 'Site Area',
+      reportedDate,
+      reportedBy: reportedBy.trim(),
+      discipline,
+      sourceType: 'manual_text',
+      interpretation: analysis.summary,
+      clarification: clarificationOpt
+        ? {
+            question: analysis.materialAmbiguity?.question,
+            answer: clarificationOpt.label,
+            resolution: clarificationOpt.resolution,
+          }
+        : null,
+    });
+
     setIsSubmitting(false);
     isSubmittingRef.current = false;
+
     if (!result.success) {
-      setSubmitError(result.error || 'Could not send your update. Please try again.');
+      setSubmitError(result.error || 'Update nahi bheji gayi. Kripya dobara koshish karein.');
       return;
     }
-    setSent({ updateId: result.updateId || 'Submitted', text: fieldText.trim(), location: siteLocation.trim(), discipline,
-      date: reportedDate, reporter: reportedBy.trim() });
+
+    setSent({
+      updateId: result.updateId || 'Submitted',
+      text: fieldText.trim(),
+      location: siteLocation.trim(),
+      discipline,
+      date: reportedDate,
+      reporter: reportedBy.trim(),
+    });
     setFieldText('');
-    setDismissedSuggestionIds([]);
+    setPendingClarification(null);
+    setResolvedAmbiguity(null);
     setScreen('sent');
   };
+
+  const handleSend = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!fieldText.trim() || isSubmitting) return;
+
+    const analysis = analyzeSupervisorNarrative(fieldText, reportedDate, {
+      location: siteLocation,
+    });
+
+    if (!analysis.isValid) {
+      setSubmitError(analysis.validationError || 'Please enter a valid update.');
+      return;
+    }
+
+    // If there is an unresolved material ambiguity affecting accuracy, clarify first
+    if (analysis.materialAmbiguity && !resolvedAmbiguity) {
+      setPendingClarification(analysis.materialAmbiguity);
+      return;
+    }
+
+    await executeSubmission(analysis, resolvedAmbiguity);
+  };
+
+  const handleResolveClarification = async (opt: ClarificationOption) => {
+    setResolvedAmbiguity(opt);
+    setPendingClarification(null);
+
+    if (opt.resolution === 'yesterday') {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      setReportedDate(getKolkataReferenceDate(yesterday).yyyyMmDd);
+    }
+
+    const analysis = analyzeSupervisorNarrative(fieldText, reportedDate, {
+      location: siteLocation,
+    });
+    await executeSubmission(analysis, opt);
+  };
+
   const handleSignOut = async () => {
     const result = await signOut();
     if (!result.error) navigate('/');
@@ -205,18 +273,13 @@ export const FieldCapture: React.FC = () => {
         <section aria-labelledby="recent-heading">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div><h2 id="recent-heading" className="text-xl font-bold tracking-tight sm:text-2xl">Recent updates</h2>
-              <p className="mt-0.5 text-sm text-slate-500">Reports you've sent from your account</p></div>
-            {ownUpdates.length > 3 && <button type="button" onClick={() => setScreen('updates')}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-semibold text-[#1557A0] ${focus}`}>View all <ArrowRight size={15}/></button>}
+              <p className="text-sm text-slate-500">Your site observations awaiting planner review</p></div>
+            <button type="button" onClick={() => setScreen('updates')} className={`text-sm font-semibold text-[#1557A0] ${focus}`}>View all ({ownUpdates.length})</button>
           </div>
           <div className={`${card} overflow-hidden`}>
-            {loading ? <p role="status" className="p-6 text-sm text-slate-500">Loading your updates…</p> : error ?
-              <div className="p-6"><p role="alert" className="text-sm text-rose-700">Couldn't load updates: {error}</p>
-                <button type="button" onClick={() => void refetch()} className="mt-3 text-sm font-semibold text-[#1557A0]">Try again</button></div> :
+            {loading ? <p className="p-6 text-sm text-slate-500">Loading updates…</p> : error ? <p role="alert" className="p-6 text-sm text-rose-700">{error}</p> :
               ownUpdates.length ? ownUpdates.slice(0, 3).map(u => <FieldUpdateRow key={u.id} update={u} rounds={ownRounds} onClick={() => openReport(u)}/>) :
-              <div className="px-6 py-10 text-center"><ClipboardList className="mx-auto text-blue-300" size={30}/>
-                <p className="mt-3 text-sm font-semibold text-[#13264A]">No field updates yet</p>
-                <p className="mt-1 text-sm text-slate-500">Your first report will appear here once submitted.</p></div>}
+              <p className="p-6 text-sm text-slate-500">You haven't sent any updates yet.</p>}
           </div>
         </section>
       </div>}
@@ -226,13 +289,17 @@ export const FieldCapture: React.FC = () => {
         <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E5F7F0] text-[#0D8067]"><PenLine size={21}/></span>
         <p className="mt-6 text-xs font-bold uppercase tracking-[0.14em] text-[#0C806D]">New update</p>
         <h1 className="mt-2 text-[2rem] font-bold leading-tight tracking-tight sm:text-[2.65rem]">What happened on site?</h1>
-        <p className="mt-2 max-w-lg text-sm leading-6 text-slate-500 sm:text-base">Write naturally. SETU will suggest the relevant schedule activity for planner review.</p>
-        <form id="site-log-compose" onSubmit={sendUpdate} className="mt-7 space-y-6">
+        <p className="mt-2 max-w-lg text-sm leading-6 text-slate-500 sm:text-base">Write naturally or use voice. SETU handles schedule linking for planner review.</p>
+        <form id="site-log-compose" onSubmit={handleSend} className="mt-7 space-y-6">
           <div>
             <div className="relative">
               <label htmlFor="field-report" className="sr-only">Describe field progress</label>
               <textarea id="field-report" rows={7} value={fieldText} required
-                onChange={e => setFieldText(e.target.value)}
+                onChange={e => {
+                  setFieldText(e.target.value);
+                  if (pendingClarification) setPendingClarification(null);
+                  if (resolvedAmbiguity) setResolvedAmbiguity(null);
+                }}
                 placeholder="Piping spool erection and line fit-up finished at Manifold A today…"
                 className="block min-h-[235px] w-full resize-y rounded-[1.4rem] border border-slate-200 bg-white p-5 pb-16 text-base leading-7 text-[#112344] placeholder:text-slate-400 shadow-sm outline-none focus:border-[#1557A0] focus:ring-4 focus:ring-blue-100 sm:p-6 sm:pb-16 sm:text-lg" />
               <ReportAttachmentMenu triggerRef={importEntry} disabled={isSubmitting} onImport={() => setScreen('import')} />
@@ -273,56 +340,207 @@ export const FieldCapture: React.FC = () => {
               <p className="shrink-0 text-right tabular-nums">{fieldText.length} characters</p>
             </div>
           </div>
-          <DateTimeSuggestions
-            suggestions={visibleSuggestions}
-            currentReportedDate={reportedDate}
-            onApplyDate={(date) => setReportedDate(date)}
-            onDismissSuggestion={(id) => setDismissedSuggestionIds((prev) => [...prev, id])}
-            onDismissAll={() => setDismissedSuggestionIds(temporalSuggestions.map((s) => s.id))}
-          />
-          <fieldset>
-            <legend className="mb-3 text-sm font-semibold">Report context</legend>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
-                <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><Settings2 size={14}/> Discipline</span>
-                <span className="relative block"><select value={discipline} onChange={e => setDiscipline(e.target.value)}
-                  className="w-full appearance-none bg-transparent pr-5 text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Engineering discipline">
-                  {disciplines.map(d => <option key={d} value={d}>{d}</option>)}</select><ChevronDown size={14} className="pointer-events-none absolute right-0 top-1 text-slate-500"/></span>
-              </label>
-              <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
-                <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><MapPin size={14}/> Site / Area</span>
-                <input value={siteLocation} onChange={e => setSiteLocation(e.target.value)} aria-label="Site location"
-                  className="w-full min-w-0 bg-transparent text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500" />
-              </label>
-              <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
-                <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><CalendarDays size={14}/> Reported date</span>
-                <input required type="date" value={reportedDate} onChange={e => setReportedDate(e.target.value)} aria-label="Reported date"
-                  className="w-full min-w-0 bg-transparent text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500" />
-              </label>
+
+          {/* Compact date and location display with accessible 'Change details' control */}
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 sm:text-sm">
+                <span className="inline-flex items-center gap-1.5 font-medium text-slate-700">
+                  <CalendarDays size={15} className="text-[#1557A0]" aria-hidden="true" />
+                  <span data-testid="compact-date">{siteLogDate(reportedDate)}</span>
+                </span>
+                <span className="text-slate-300" aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-slate-700">
+                  <MapPin size={15} className="text-[#1557A0]" aria-hidden="true" />
+                  <span data-testid="compact-location">{siteLocation || 'Site Area'}</span>
+                </span>
+                {discipline && (
+                  <>
+                    <span className="hidden text-slate-300 sm:inline" aria-hidden="true">·</span>
+                    <span className="hidden font-medium text-slate-500 sm:inline">{discipline}</span>
+                  </>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDetails(v => !v)}
+                aria-expanded={showDetails}
+                aria-controls="report-details-panel"
+                className="shrink-0 text-xs font-semibold text-[#1557A0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1 py-0.5"
+              >
+                {showDetails ? 'Hide details' : 'Change details'}
+              </button>
             </div>
-          </fieldset>
-          <section className="border-t border-slate-200 pt-5">
-            <button type="button" onClick={() => setShowReporter(v => !v)} aria-expanded={showReporter}
-              className={`flex w-full items-center gap-3 rounded-xl py-2 text-left ${focus}`}>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#1557A0]"><UserRound size={18}/></span>
-              <span className="flex-1"><span className="block text-xs text-slate-500">Reporting as</span><span className="block text-sm font-semibold">{reportedBy}</span></span>
-              <ChevronDown className={`text-slate-400 transition-transform ${showReporter ? 'rotate-180' : ''}`} size={18}/>
-            </button>
-            {showReporter && <div className="mt-3"><label htmlFor="reporter-name" className="mb-1 block text-xs font-semibold text-slate-600">Reporter name / designation</label>
-              <input id="reporter-name" value={reportedBy} onChange={e => setReportedBy(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" /></div>}
-          </section>
-          {submitError && <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800">{submitError}</p>}
-          <p className="text-xs leading-5 text-slate-500">This report is sent for AI schedule linking and human planner review. Submission does not approve or update the baseline schedule.</p>
-          <button type="submit" disabled={isSubmitting || !fieldText.trim()}
-            className={`hidden w-full items-center justify-center gap-2 rounded-2xl bg-[#123F77] px-6 py-4 text-base font-semibold text-white transition-colors hover:bg-[#0C315D] disabled:cursor-not-allowed disabled:opacity-50 sm:flex ${focus}`}>
-            <Send size={18}/>{isSubmitting ? 'Sending update…' : 'Send for plan linking'}<ArrowRight size={18}/>
+
+            <div id="report-details-panel" className={showDetails ? 'mt-4 border-t border-slate-100 pt-3 block space-y-4' : 'hidden'}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
+                  <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><Settings2 size={14}/> Discipline</span>
+                  <span className="relative block">
+                    <select
+                      value={discipline}
+                      onChange={e => setDiscipline(e.target.value)}
+                      className="w-full appearance-none bg-transparent pr-5 text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      aria-label="Engineering discipline"
+                    >
+                      {disciplines.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-0 top-1 text-slate-500"/>
+                  </span>
+                </label>
+                <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
+                  <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><MapPin size={14}/> Site / Area</span>
+                  <input
+                    value={siteLocation}
+                    onChange={e => setSiteLocation(e.target.value)}
+                    aria-label="Site location"
+                    className="w-full min-w-0 bg-transparent text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  />
+                </label>
+                <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
+                  <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><CalendarDays size={14}/> Reported date</span>
+                  <input
+                    required
+                    type="date"
+                    value={reportedDate}
+                    onChange={e => setReportedDate(e.target.value)}
+                    aria-label="Reported date"
+                    className="w-full min-w-0 bg-transparent text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  />
+                </label>
+              </div>
+              <section className="border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowReporter(v => !v)}
+                  aria-expanded={showReporter}
+                  className={`flex w-full items-center gap-3 rounded-xl py-2 text-left ${focus}`}
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#1557A0]">
+                    <UserRound size={18}/>
+                  </span>
+                  <span className="flex-1">
+                    <span className="block text-xs text-slate-500">Reporting as</span>
+                    <span className="block text-sm font-semibold">{reportedBy}</span>
+                  </span>
+                  <ChevronDown className={`text-slate-400 transition-transform ${showReporter ? 'rotate-180' : ''}`} size={18}/>
+                </button>
+                {showReporter && (
+                  <div className="mt-2">
+                    <label htmlFor="reporter-name" className="mb-1 block text-xs font-semibold text-slate-600">Reporter name / designation</label>
+                    <input
+                      id="reporter-name"
+                      value={reportedBy}
+                      onChange={e => setReportedBy(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+
+          {/* Minimal Plain-Language Clarification Dialog */}
+          {pendingClarification && (
+            <div
+              role="dialog"
+              aria-labelledby="clarification-title"
+              className="rounded-2xl border-2 border-amber-300 bg-amber-50/95 p-5 shadow-sm"
+            >
+              <div className="flex items-start gap-3">
+                <AlertCircle size={20} className="mt-0.5 text-amber-700 shrink-0" aria-hidden="true" />
+                <div className="flex-1">
+                  <h3 id="clarification-title" className="text-xs font-bold uppercase tracking-wider text-amber-800">
+                    Kripya spashth karein (Please clarify)
+                  </h3>
+                  <p className="mt-1.5 text-base font-bold text-slate-900">
+                    {pendingClarification.question}
+                  </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                    {pendingClarification.options.map((opt, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleResolveClarification(opt)}
+                        className="rounded-xl bg-[#123F77] px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#0C315D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setPendingClarification(null)}
+                      className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    >
+                      Update badlein (Edit update)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* AI Processing subtle feedback during actual async call */}
+          {isSubmitting && (
+            <div
+              role="status"
+              className="flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-900 shadow-sm"
+            >
+              <RefreshCw size={17} className="animate-spin text-blue-700 shrink-0" aria-hidden="true" />
+              <span>SETU aapki update check kar raha hai…</span>
+            </div>
+          )}
+
+          {/* Submission error with Retry */}
+          {submitError && (
+            <div
+              role="alert"
+              className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle size={18} className="mt-0.5 text-rose-600 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="font-bold text-rose-950">Update nahi bheji gayi</p>
+                    <p className="mt-0.5 text-xs text-rose-800">{submitError}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  className="shrink-0 rounded-xl bg-rose-700 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                >
+                  Dobara koshish karein (Retry)
+                </button>
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs leading-5 text-slate-500">
+            This report is sent for AI schedule linking and human planner review. Submission does not approve or update the baseline schedule.
+          </p>
+
+          <button
+            type="submit"
+            disabled={isSubmitting || !fieldText.trim()}
+            className={`hidden w-full items-center justify-center gap-2 rounded-2xl bg-[#123F77] px-6 py-4 text-base font-semibold text-white transition-colors hover:bg-[#0C315D] disabled:cursor-not-allowed disabled:opacity-50 sm:flex ${focus}`}
+          >
+            <Send size={18}/>
+            {isSubmitting ? 'SETU aapki update check kar raha hai…' : 'Update bhejo'}
+            {!isSubmitting && <ArrowRight size={18}/>}
           </button>
         </form>
+
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur sm:hidden">
-          <button type="submit" form="site-log-compose" disabled={isSubmitting || !fieldText.trim()}
-            className={`flex w-full items-center justify-center gap-2 rounded-2xl bg-[#123F77] px-5 py-4 font-semibold text-white disabled:opacity-50 ${focus}`}>
-            <Send size={18}/>{isSubmitting ? 'Sending update…' : 'Send for plan linking'}<ArrowRight size={18}/>
+          <button
+            type="submit"
+            form="site-log-compose"
+            disabled={isSubmitting || !fieldText.trim()}
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl bg-[#123F77] px-5 py-4 font-semibold text-white disabled:opacity-50 ${focus}`}
+          >
+            <Send size={18}/>
+            {isSubmitting ? 'SETU aapki update check kar raha hai…' : 'Update bhejo'}
+            {!isSubmitting && <ArrowRight size={18}/>}
           </button>
         </div>
       </div>}
@@ -345,10 +563,10 @@ export const FieldCapture: React.FC = () => {
         <button type="button" onClick={startNew} className={`mt-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#1557A0] ${focus}`}>Send another update</button>
       </div>}
 
-      {screen === 'updates' && <section className="mx-auto max-w-3xl">
-        <button type="button" onClick={() => setScreen('home')} className={`mb-6 inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> Site Log</button>
-        <div className="mb-5 flex items-center justify-between"><h1 className="text-3xl font-bold tracking-tight">My updates</h1>
-          <button type="button" onClick={() => void refetch()} className={`flex items-center gap-1.5 text-sm font-semibold text-[#1557A0] ${focus}`}><RefreshCw size={16}/> Refresh</button></div>
+      {screen === 'updates' && <section className="mx-auto max-w-2xl">
+        <button type="button" onClick={() => setScreen('home')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> Site Log</button>
+        <div className="mb-6 flex items-center justify-between"><h1 className="text-2xl font-bold tracking-tight">My updates</h1>
+          <span className="text-sm font-medium text-slate-500">{ownUpdates.length} total</span></div>
         <div className={`${card} overflow-hidden`}>
           {loading ? <p className="p-6 text-sm text-slate-500">Loading updates…</p> : error ? <p role="alert" className="p-6 text-sm text-rose-700">{error}</p> :
             ownUpdates.length ? ownUpdates.map(u => <FieldUpdateRow key={u.id} update={u} rounds={ownRounds} onClick={() => openReport(u)}/>) :
@@ -374,16 +592,19 @@ export const FieldCapture: React.FC = () => {
       </section>}
 
       {screen === 'account' && <section className="mx-auto max-w-md">
-        <button type="button" onClick={() => setScreen('home')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold ${focus}`}><ArrowLeft size={17}/> Site Log</button>
+        <button type="button" onClick={() => setScreen('home')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> Site Log</button>
         <h1 className="text-3xl font-bold tracking-tight">Account</h1>
         <div className={`${card} mt-6 space-y-5 p-6`}><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-800"><UserRound size={22}/></span>
           <div><p className="font-semibold">{reportedBy}</p><p className="text-sm text-slate-500">{user?.email || 'Signed-in account'}</p></div></div>
           <p className="text-sm text-slate-500">Role: {role === 'engineer' ? 'Field Engineer' : 'Site Supervisor'}</p>
-          <button type="button" onClick={() => void handleSignOut()} className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-rose-700 ${focus}`}><LogOut size={17}/> Sign out</button>
+          <button type="button" onClick={() => void handleSignOut()} className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-rose-700 ${focus}`}>
+            <LogOut size={17}/> Sign out
+          </button>
         </div>
       </section>}
     </main>
-    {(screen === 'home' || screen === 'updates' || screen === 'account') && <nav aria-label="Site Log navigation" className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
+
+    {(screen === 'home' || screen === 'updates' || screen === 'account') && <nav aria-label="Site Log navigation" className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom))] backdrop-blur sm:hidden">
       <div className="grid grid-cols-3 py-2">
         {([{ name:'Site Log', page:'home' as Screen, Icon: ClipboardList }, { name:'My updates', page:'updates' as Screen, Icon: FileText }, { name:'Account', page:'account' as Screen, Icon: UserRound }]).map(n =>
           <button type="button" key={n.page} onClick={() => setScreen(n.page)} aria-current={screen === n.page ? 'page' : undefined}

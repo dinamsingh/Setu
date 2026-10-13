@@ -4,6 +4,8 @@ import type { FieldUpdate } from '../types';
 import { useAuth } from '../lib/AuthContext';
 import { computeKpis, parseCandidates } from '../lib/utils';
 import { createFieldUpdateId } from '../lib/fieldUpdateId';
+import { isSupervisorSubmissionEnabled } from '../lib/supervisorSubmissionDeployment';
+import { getKolkataReferenceDate } from '../lib/temporalParser';
 
 export function useFieldUpdates() {
   const [updates, setUpdates] = useState<FieldUpdate[]>([]);
@@ -61,16 +63,15 @@ export function useFieldUpdates() {
 
   const kpis = useMemo(() => computeKpis(updates), [updates]);
 
-  const submitFieldUpdate = async ({
-    fieldText,
-    siteLocation,
-    reportedBy,
-    reportedDate,
-  }: {
+  const submitFieldUpdate = async (options: {
     fieldText: string;
     siteLocation: string;
     reportedBy?: string;
     reportedDate?: string;
+    discipline?: string;
+    sourceType?: 'manual_text' | 'voice_transcript';
+    interpretation?: unknown;
+    clarification?: unknown;
   }) => {
     try {
       if (!user) throw new Error('You must be signed in to submit a field update.');
@@ -80,10 +81,10 @@ export function useFieldUpdates() {
       const payload = {
         update_id: nextId,
         source_type: 'manual_text',
-        field_text: fieldText.trim(),
-        site_location: siteLocation.trim() || 'Site Area',
-        reported_by: (reportedBy || 'Site Supervisor').trim(),
-        reported_date: reportedDate || nowIso,
+        field_text: options.fieldText.trim(),
+        site_location: options.siteLocation.trim() || 'Site Area',
+        reported_by: (options.reportedBy || 'Site Supervisor').trim(),
+        reported_date: options.reportedDate || nowIso,
         status: 'pending',
         confidence_level: 'Pending',
         confidence_score: 0,
@@ -105,6 +106,53 @@ export function useFieldUpdates() {
       return { success: true, data: data?.[0], updateId: nextId };
     } catch (err: any) {
       console.error('Error submitting field update:', err);
+      return { success: false, error: err.message || 'Failed to submit field update' };
+    }
+  };
+
+  const submitSupervisorFieldUpdate = async (options: {
+    fieldText: string;
+    siteLocation?: string;
+    reportedBy?: string;
+    reportedDate?: string;
+    discipline?: string;
+    sourceType?: 'manual_text' | 'voice_transcript';
+    interpretation?: unknown;
+    clarification?: unknown;
+  }) => {
+    try {
+      if (!isSupervisorSubmissionEnabled()) {
+        return {
+          success: false,
+          error: 'Supervisor submission is locked pending verification of backend deployment (Migration 014).',
+          deploymentLocked: true,
+        };
+      }
+
+      if (!user) throw new Error('You must be signed in to submit a field update.');
+
+      const nextId = createFieldUpdateId();
+      const nowIso = getKolkataReferenceDate().yyyyMmDd;
+
+      const { data, error: rpcError } = await supabase.rpc('submit_supervisor_field_update', {
+        p_field_text: options.fieldText.trim(),
+        p_site_location: (options.siteLocation || 'Site Area').trim(),
+        p_reported_date: options.reportedDate || nowIso,
+        p_reported_by: (options.reportedBy || 'Site Supervisor').trim(),
+        p_discipline: options.discipline || null,
+        p_source_type: options.sourceType || 'manual_text',
+        p_client_update_id: nextId,
+        p_interpretation: options.interpretation || null,
+        p_clarification: options.clarification || null,
+      });
+
+      if (rpcError) throw rpcError;
+
+      await fetchUpdates();
+      const updateId = (data as any)?.update_id || nextId;
+      return { success: true, data, updateId };
+    } catch (err: any) {
+      console.error('Error submitting supervisor field update:', err);
       return { success: false, error: err.message || 'Failed to submit field update' };
     }
   };
@@ -221,6 +269,7 @@ export function useFieldUpdates() {
     error,
     refetch: fetchUpdates,
     submitFieldUpdate,
+    submitSupervisorFieldUpdate,
     submitPlannerDecision,
     requeueForRematching,
     overrideValidation,
