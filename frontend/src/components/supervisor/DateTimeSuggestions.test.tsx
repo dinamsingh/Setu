@@ -20,7 +20,7 @@ describe('DateTimeSuggestions component', () => {
     container.remove();
   });
 
-  const mockSuggestions: TemporalSuggestion[] = [
+  const mockAmbiguousSuggestion: TemporalSuggestion[] = [
     {
       id: 'sugg-1',
       matchedText: 'kal welding shuru hogi',
@@ -37,17 +37,39 @@ describe('DateTimeSuggestions component', () => {
         },
         {
           date: '2026-10-14',
-          label: 'Tomorrow (Planned work: 2026-10-14)',
+          label: 'Tomorrow (Planned activity: 2026-10-14)',
           relation: 'future',
-          isSuggestedDefault: true,
+          isSuggestedDefault: false,
         },
       ],
       time: {
         raw: '9:30 AM',
         display: '09:30 AM (Morning)',
       },
+      confidence: 'needs_confirmation',
+      explanation: 'Identified as planned future work ("kal welding shuru hogi"). Select whether report date refers to yesterday or planned future activity.',
+    },
+  ];
+
+  const mockTimeOnlySuggestion: TemporalSuggestion[] = [
+    {
+      id: 'sugg-time-1',
+      matchedText: '14:30 pump alignment check',
+      rawExpression: '14:30',
+      intent: 'completed_work',
+      intentBadge: 'Completed field work',
+      isAmbiguous: false,
+      resolvedDate: undefined,
+      candidates: [],
+      time: {
+        raw: '14:30',
+        display: '14:30 (02:30 PM)',
+        hours24: 14,
+        minutes: 30,
+        isAmbiguousMeridiem: false,
+      },
       confidence: 'confident',
-      explanation: 'Identified as planned/scheduled future work, not evidence of completed progress.',
+      explanation: 'Time mentioned: 14:30 (02:30 PM). No explicit date in narrative; advisory only.',
     },
   ];
 
@@ -66,11 +88,11 @@ describe('DateTimeSuggestions component', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders suggestions panel with timezone and intent badges', async () => {
+  it('renders suggestions panel with timezone, intent badges and advisory notice for future work', async () => {
     await act(async () => {
       root.render(
         <DateTimeSuggestions
-          suggestions={mockSuggestions}
+          suggestions={mockAmbiguousSuggestion}
           currentReportedDate="2026-10-13"
           onApplyDate={vi.fn()}
           onDismissSuggestion={vi.fn()}
@@ -86,7 +108,7 @@ describe('DateTimeSuggestions component', () => {
     expect(container.textContent).toContain('“kal”');
     expect(container.textContent).toContain('Planned future work (Advisory)');
     expect(container.textContent).toContain('09:30 AM (Morning)');
-    expect(container.textContent).toContain('Advisory only');
+    expect(container.textContent).toContain('Planned future activity:');
   });
 
   it('renders explicit choices for ambiguous terms and calls onApplyDate when clicked', async () => {
@@ -94,7 +116,7 @@ describe('DateTimeSuggestions component', () => {
     await act(async () => {
       root.render(
         <DateTimeSuggestions
-          suggestions={mockSuggestions}
+          suggestions={mockAmbiguousSuggestion}
           currentReportedDate="2026-10-13"
           onApplyDate={onApplyDate}
           onDismissSuggestion={vi.fn()}
@@ -103,7 +125,7 @@ describe('DateTimeSuggestions component', () => {
     });
 
     const buttons = Array.from(container.querySelectorAll('button'));
-    const tomBtn = buttons.find((b) => b.textContent?.includes('Tomorrow (Planned work: 2026-10-14)'));
+    const tomBtn = buttons.find((b) => b.textContent?.includes('Tomorrow (Planned activity: 2026-10-14)'));
     expect(tomBtn).toBeDefined();
 
     act(() => {
@@ -113,27 +135,31 @@ describe('DateTimeSuggestions component', () => {
     expect(onApplyDate).toHaveBeenCalledTimes(1);
     expect(onApplyDate).toHaveBeenCalledWith(
       '2026-10-14',
-      mockSuggestions[0],
-      mockSuggestions[0].candidates[1]
+      mockAmbiguousSuggestion[0],
+      mockAmbiguousSuggestion[0].candidates[1]
     );
   });
 
-  it('indicates when a candidate date matches currentReportedDate', async () => {
+  it('safely handles date-less time-only suggestions without offering an inferred Use Today button', async () => {
+    const onApplyDate = vi.fn();
     await act(async () => {
       root.render(
         <DateTimeSuggestions
-          suggestions={mockSuggestions}
-          currentReportedDate="2026-10-14"
-          onApplyDate={vi.fn()}
+          suggestions={mockTimeOnlySuggestion}
+          currentReportedDate="2026-10-13"
+          onApplyDate={onApplyDate}
           onDismissSuggestion={vi.fn()}
         />
       );
     });
 
+    expect(container.textContent).toContain('14:30 (02:30 PM)');
+    expect(container.textContent).toContain('No date specified in narrative. Current reported date is preserved.');
+
+    // Crucial check: No date application buttons are rendered!
     const buttons = Array.from(container.querySelectorAll('button'));
-    const tomBtn = buttons.find((b) => b.textContent?.includes('Tomorrow (Planned work: 2026-10-14)'));
-    expect(tomBtn?.textContent).toContain('(Selected)');
-    expect(tomBtn?.className).toContain('bg-emerald-50');
+    const useDateButtons = buttons.filter((b) => b.textContent?.includes('Use ') || b.textContent?.includes('Set future date:'));
+    expect(useDateButtons).toHaveLength(0);
   });
 
   it('calls onDismissSuggestion when individual dismiss button is clicked', async () => {
@@ -141,7 +167,7 @@ describe('DateTimeSuggestions component', () => {
     await act(async () => {
       root.render(
         <DateTimeSuggestions
-          suggestions={mockSuggestions}
+          suggestions={mockAmbiguousSuggestion}
           currentReportedDate="2026-10-13"
           onApplyDate={vi.fn()}
           onDismissSuggestion={onDismiss}
@@ -165,7 +191,7 @@ describe('DateTimeSuggestions component', () => {
     await act(async () => {
       root.render(
         <DateTimeSuggestions
-          suggestions={mockSuggestions}
+          suggestions={mockAmbiguousSuggestion}
           currentReportedDate="2026-10-13"
           onApplyDate={vi.fn()}
           onDismissSuggestion={vi.fn()}

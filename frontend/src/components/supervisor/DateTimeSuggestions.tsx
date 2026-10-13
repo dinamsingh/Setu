@@ -1,4 +1,4 @@
-import { Clock, X, Check, Sparkles } from 'lucide-react';
+import { Clock, X, Check, Sparkles, AlertTriangle } from 'lucide-react';
 import type { TemporalSuggestion, DateCandidate } from '../../lib/temporalParser';
 
 export interface DateTimeSuggestionsProps {
@@ -68,6 +68,10 @@ export const DateTimeSuggestions = ({
       <div className="mt-3 space-y-2.5">
         {suggestions.map((s) => {
           const badgeClass = getIntentBadgeClasses(s.intent);
+          const hasCandidates = s.candidates && s.candidates.length > 0;
+          const hasResolvedDate = Boolean(s.resolvedDate);
+          const isDateLess = !hasCandidates && !hasResolvedDate;
+          const isFutureIntent = s.intent === 'future_plan';
 
           return (
             <div
@@ -108,6 +112,15 @@ export const DateTimeSuggestions = ({
                 </div>
               )}
 
+              {isFutureIntent && (
+                <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50/60 p-2 text-[11px] text-amber-900">
+                  <AlertTriangle size={13} className="shrink-0 text-amber-600 mt-0.5" aria-hidden="true" />
+                  <span>
+                    <strong>Planned future activity:</strong> Field reports typically record today&apos;s progress or past actuals. Setting a future report date is advisory.
+                  </span>
+                </div>
+              )}
+
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 {s.isAmbiguous ? (
                   <>
@@ -116,6 +129,8 @@ export const DateTimeSuggestions = ({
                     </span>
                     {s.candidates.map((c) => {
                       const isSelected = c.date === currentReportedDate;
+                      const isFutureCandidate = c.relation === 'future';
+
                       return (
                         <button
                           key={c.date}
@@ -124,6 +139,8 @@ export const DateTimeSuggestions = ({
                           className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                             isSelected
                               ? 'border border-emerald-300 bg-emerald-50 text-emerald-800'
+                              : isFutureCandidate
+                              ? 'border border-amber-300 bg-amber-50/90 text-amber-900 hover:bg-amber-100'
                               : 'bg-[#1557A0] text-white hover:bg-[#0C315D]'
                           }`}
                         >
@@ -134,12 +151,14 @@ export const DateTimeSuggestions = ({
                       );
                     })}
                   </>
-                ) : (
+                ) : !isDateLess ? (
                   (() => {
                     const targetDate = s.resolvedDate || s.candidates[0]?.date;
                     if (!targetDate) return null;
                     const isSelected = targetDate === currentReportedDate;
+                    const isFutureCandidate = isFutureIntent || s.candidates[0]?.relation === 'future';
                     const label = s.candidates[0]?.label || targetDate;
+
                     return (
                       <button
                         type="button"
@@ -147,15 +166,21 @@ export const DateTimeSuggestions = ({
                         className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                           isSelected
                             ? 'border border-emerald-300 bg-emerald-50 text-emerald-800'
+                            : isFutureCandidate
+                            ? 'border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
                             : 'bg-[#1557A0] text-white hover:bg-[#0C315D]'
                         }`}
                       >
                         {isSelected && <Check size={13} aria-hidden="true" />}
-                        Use {label}
+                        {isFutureCandidate ? `Set future date: ${label}` : `Use ${label}`}
                         {isSelected && ' (Selected)'}
                       </button>
                     );
                   })()
+                ) : (
+                  <div className="text-[11px] italic text-slate-500">
+                    No date specified in narrative. Current reported date is preserved.
+                  </div>
                 )}
               </div>
             </div>

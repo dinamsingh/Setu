@@ -372,7 +372,7 @@ it('shows explicit choices for ambiguous "kal" and updates reportedDate on click
   expect(region?.textContent).toContain('“kal”');
 
   const buttons = Array.from(region!.querySelectorAll('button'));
-  const tomBtn = buttons.find(b => b.textContent?.includes('Tomorrow (Planned work:'));
+  const tomBtn = buttons.find(b => b.textContent?.includes('Tomorrow (Planned activity:'));
   const yestBtn = buttons.find(b => b.textContent?.includes('Yesterday (Past work:'));
   expect(tomBtn).toBeDefined();
   expect(yestBtn).toBeDefined();
@@ -394,8 +394,9 @@ it('parses Hindi Devanagari phrase with advisory time and preserves narrative', 
   await click('New field update');
   const textarea = container.querySelector<HTMLTextAreaElement>('#field-report')!;
   const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
+  const hindiPhrase = '\u0906\u091c \u0938\u0941\u092c\u0939 \u096f:\u0969\u0966 \u092c\u091c\u0947 \u092a\u0902\u092a \u0905\u0932\u093e\u0907\u0928\u092e\u0947\u0902\u091f \u092a\u0942\u0930\u093e \u0939\u0941\u0906';
 
-  await edit('#field-report', 'आज सुबह ९:३० बजे पंप अलाइनमेंट पूरा हुआ');
+  await edit('#field-report', hindiPhrase);
 
   const region = container.querySelector('[role="region"]');
   expect(region).not.toBeNull();
@@ -410,7 +411,19 @@ it('parses Hindi Devanagari phrase with advisory time and preserves narrative', 
   });
 
   expect(dateInput.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-  expect(textarea.value).toBe('आज सुबह ९:३० बजे पंप अलाइनमेंट पूरा हुआ');
+  expect(textarea.value).toBe(hindiPhrase);
+});
+
+it('correctly classifies negated Hindi narrative as Needs confirmation and does not claim completion', async () => {
+  await click('New field update');
+  const negatedHindi = '\u0906\u091c \u0928\u093f\u0930\u0940\u0915\u094d\u0937\u0923 \u092a\u0942\u0930\u093e \u0928\u0939\u0940\u0902 \u0939\u0941\u0906';
+
+  await edit('#field-report', negatedHindi);
+
+  const region = container.querySelector('[role="region"]');
+  expect(region).not.toBeNull();
+  expect(region?.textContent).toContain('Needs confirmation');
+  expect(region?.textContent).not.toContain('Completed field work');
 });
 
 it('separates completed work from planned future work in compound sentence', async () => {
@@ -425,7 +438,27 @@ it('separates completed work from planned future work in compound sentence', asy
 
   // Verify "kal" has both yesterday and tomorrow options
   expect(region?.textContent).toContain('Yesterday (Past work:');
-  expect(region?.textContent).toContain('Tomorrow (Planned work:');
+  expect(region?.textContent).toContain('Tomorrow (Planned activity:');
+});
+
+it('safely handles date-less time-only narrative without offering inferred date button', async () => {
+  await click('New field update');
+  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
+  const initialDate = dateInput.value;
+
+  await edit('#field-report', '14:30 pump alignment check');
+
+  const region = container.querySelector('[role="region"]');
+  expect(region).not.toBeNull();
+  expect(region?.textContent).toContain('14:30 (02:30 PM)');
+  expect(region?.textContent).toContain('No date specified in narrative. Current reported date is preserved.');
+
+  // Date input remains intact
+  expect(dateInput.value).toBe(initialDate);
+
+  // No date application buttons
+  const dateButtons = Array.from(region!.querySelectorAll('button')).filter(b => b.textContent?.includes('Use ') || b.textContent?.includes('Set future date:'));
+  expect(dateButtons).toHaveLength(0);
 });
 
 it('allows dismissing individual suggestion and dismissing all suggestions', async () => {

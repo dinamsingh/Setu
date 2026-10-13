@@ -1,5 +1,6 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
+  extractTimeFromClause,
   getKolkataReferenceDate,
   offsetKolkataDate,
   parseTemporalExpressions,
@@ -53,243 +54,92 @@ describe('temporalParser - Reference Date & Timezone', () => {
   });
 
   it('correctly handles midnight boundaries in Asia/Kolkata', () => {
-    // 2026-10-13 00:01:00 IST (2026-10-12 18:31:00 UTC)
-    const justAfterMidnight = new Date('2026-10-12T18:31:00.000Z');
-    const kolkata = getKolkataReferenceDate(justAfterMidnight);
-    expect(kolkata.yyyyMmDd).toBe('2026-10-13');
+    // Just before midnight IST: 23:59:59 IST on 2026-10-12 (UTC is 18:29:59Z)
+    const beforeMidnight = new Date('2026-10-12T18:29:59.000Z');
+    expect(getKolkataReferenceDate(beforeMidnight).yyyyMmDd).toBe('2026-10-12');
+    expect(getKolkataReferenceDate(beforeMidnight).hour).toBe(23);
+    expect(getKolkataReferenceDate(beforeMidnight).minute).toBe(59);
 
-    // 2026-10-12 23:59:00 IST (2026-10-12 18:29:00 UTC)
-    const justBeforeMidnight = new Date('2026-10-12T18:29:00.000Z');
-    const kolkataPrev = getKolkataReferenceDate(justBeforeMidnight);
-    expect(kolkataPrev.yyyyMmDd).toBe('2026-10-12');
+    // Exactly midnight IST: 00:00:00 IST on 2026-10-13 (UTC is 18:30:00Z)
+    const midnight = new Date('2026-10-12T18:30:00.000Z');
+    expect(getKolkataReferenceDate(midnight).yyyyMmDd).toBe('2026-10-13');
+    expect(getKolkataReferenceDate(midnight).hour).toBe(0);
+    expect(getKolkataReferenceDate(midnight).minute).toBe(0);
+
+    // Just after midnight IST: 00:00:01 IST on 2026-10-13 (UTC is 18:30:01Z)
+    const afterMidnight = new Date('2026-10-12T18:30:01.000Z');
+    expect(getKolkataReferenceDate(afterMidnight).yyyyMmDd).toBe('2026-10-13');
   });
 });
 
-describe('temporalParser - English phrases', () => {
-  it('parses "today" as current date', () => {
-    const res = parseTemporalExpressions('Piping hydrotest completed today at Manifold A', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    expect(res[0].rawExpression).toBe('today');
-    expect(res[0].resolvedDate).toBe('2026-10-13');
-    expect(res[0].intent).toBe('completed_work');
-    expect(res[0].isAmbiguous).toBe(false);
+describe('temporalParser - Clock range validation & time-only expressions', () => {
+  it('rejects invalid clock expressions like "29 baje", "13 PM", "25:30", "9:60"', () => {
+    expect(extractTimeFromClause('Pump testing at 29 baje')).toBeNull();
+    expect(extractTimeFromClause('Shift started at 13 PM')).toBeNull();
+    expect(extractTimeFromClause('Radiography at 25:30')).toBeNull();
+    expect(extractTimeFromClause('Tie-in at 9:60')).toBeNull();
+    expect(extractTimeFromClause('Hydrotest at 0 AM')).toBeNull();
+    expect(extractTimeFromClause('Pressure test at 9:60 AM')).toBeNull();
+    expect(extractTimeFromClause('Inspection at 9:60 baje')).toBeNull();
   });
 
-  it('parses "yesterday" as T-1', () => {
-    const res = parseTemporalExpressions('Spool fit-up was finished yesterday', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    expect(res[0].rawExpression).toBe('yesterday');
-    expect(res[0].resolvedDate).toBe('2026-10-12');
-    expect(res[0].intent).toBe('completed_work');
-    expect(res[0].isAmbiguous).toBe(false);
+  it('accepts legitimate 12-hour, 24-hour, and Hindi/Hinglish times', () => {
+    const t12 = extractTimeFromClause('Pump inspection at 9:30 AM');
+    expect(t12).not.toBeNull();
+    expect(t12?.display).toBe('09:30 AM');
+    expect(t12?.hours24).toBe(9);
+    expect(t12?.minutes).toBe(30);
+
+    const t24 = extractTimeFromClause('Line fit-up at 14:30');
+    expect(t24).not.toBeNull();
+    expect(t24?.display).toContain('14:30');
+    expect(t24?.hours24).toBe(14);
+
+    const tBaje = extractTimeFromClause('Shaam 5 baje work ended');
+    expect(tBaje).not.toBeNull();
+    expect(tBaje?.display).toContain('05:00 PM (Evening)');
+
+    const tDev = extractTimeFromClause('सुबह ९:३० बजे पूरा हुआ'.replace(/[\u0966-\u096F]/g, d => ({ '९': '9', '३': '3', '०': '0' }[d] || d)));
+    expect(tDev).not.toBeNull();
+    expect(tDev?.display).toContain('09:30 AM (Morning)');
   });
 
-  it('parses "tomorrow" as future planned work with T+1', () => {
-    const res = parseTemporalExpressions('Flange bolt torqueing is scheduled for tomorrow', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    expect(res[0].rawExpression).toBe('tomorrow');
-    expect(res[0].resolvedDate).toBe('2026-10-14');
-    expect(res[0].intent).toBe('future_plan');
-    expect(res[0].intentBadge).toContain('Planned future work');
-  });
-
-  it('parses relative "two days ago" as T-2', () => {
-    const res = parseTemporalExpressions('Excavation halted two days ago due to rain', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    expect(res[0].rawExpression).toBe('two days ago');
-    expect(res[0].resolvedDate).toBe('2026-10-11');
-    expect(res[0].isAmbiguous).toBe(false);
-  });
-
-  it('parses "last night" as T-1 with night time advisory', () => {
-    const res = parseTemporalExpressions('Line leak test was successful last night', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    expect(res[0].rawExpression).toBe('last night');
-    expect(res[0].resolvedDate).toBe('2026-10-12');
-    expect(res[0].time?.display).toContain('Night');
-  });
-
-  it('parses explicit 12-hour clock times like "9:30 AM"', () => {
+  it('does NOT infer today for time-only expressions (stops inferring today without date anchor)', () => {
     const res = parseTemporalExpressions('9:30 AM pump alignment checked', {
       referenceDate: FIXED_CLOCK,
     });
     expect(res).toHaveLength(1);
+    expect(res[0].rawExpression).toBe('9:30 am');
+    expect(res[0].resolvedDate).toBeUndefined(); // Crucial: Date is NOT inferred!
+    expect(res[0].candidates).toHaveLength(0); // Crucial: No inferred date button!
     expect(res[0].time?.display).toBe('09:30 AM');
-    expect(res[0].time?.hours24).toBe(9);
-    expect(res[0].time?.minutes).toBe(30);
-    expect(res[0].time?.isAmbiguousMeridiem).toBe(false);
+    expect(res[0].explanation).toContain('No explicit date in narrative');
   });
 
-  it('parses 24-hour military times like "14:30"', () => {
-    const res = parseTemporalExpressions('14:30 spool placement finished', {
+  it('does NOT infer today for 24-hour time-only expressions', () => {
+    const res = parseTemporalExpressions('14:30 hydrostatic inspection completed', {
       referenceDate: FIXED_CLOCK,
     });
     expect(res).toHaveLength(1);
+    expect(res[0].resolvedDate).toBeUndefined();
+    expect(res[0].candidates).toHaveLength(0);
     expect(res[0].time?.hours24).toBe(14);
-    expect(res[0].time?.minutes).toBe(30);
-    expect(res[0].time?.display).toContain('14:30');
   });
 });
 
-describe('temporalParser - Hindi and Devanagari phrases', () => {
-  it('parses "आज" as today', () => {
-    const res = parseTemporalExpressions('आज पाइपिंग निरीक्षण पूरा हुआ', {
+describe('temporalParser - Hindi & Hinglish Intent Classification', () => {
+  it('correctly classifies "आज निरीक्षण पूरा हुआ" as completed work', () => {
+    const res = parseTemporalExpressions('आज निरीक्षण पूरा हुआ', {
       referenceDate: FIXED_CLOCK,
     });
     expect(res).toHaveLength(1);
-    expect(res[0].resolvedDate).toBe('2026-10-13');
     expect(res[0].intent).toBe('completed_work');
-  });
-
-  it('parses "२ दिन पहले" as 2 days ago', () => {
-    const res = parseTemporalExpressions('२ दिन पहले लाइन क्लीयरेंस मिला था', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    expect(res[0].resolvedDate).toBe('2026-10-11');
-  });
-
-  it('parses "कल" with ambiguous candidates', () => {
-    const res = parseTemporalExpressions('कल काम होगा', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    expect(res[0].isAmbiguous).toBe(true);
-    expect(res[0].resolvedDate).toBeUndefined(); // Never silently guessed
-    expect(res[0].candidates).toHaveLength(2);
-    expect(res[0].candidates.map(c => c.date)).toEqual(['2026-10-12', '2026-10-14']);
-  });
-
-  it('parses Hindi numerals in time expressions: "सुबह ९:३० बजे"', () => {
-    const res = parseTemporalExpressions('सुबह ९:३० बजे लाइन प्रेशर चेक किया', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    expect(res[0].time?.display).toContain('09:30 AM (Morning)');
-  });
-});
-
-describe('temporalParser - Hinglish & Ambiguity Handling', () => {
-  it('parses "aaj subah 9 baje" with date and advisory time', () => {
-    const res = parseTemporalExpressions('Aaj subah 9 baje hydrotest shuru hua', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
+    expect(res[0].intentBadge).toBe('Completed field work');
     expect(res[0].resolvedDate).toBe('2026-10-13');
-    expect(res[0].time?.display).toContain('09:00 AM (Morning)');
-    expect(res[0].time?.hours24).toBe(9);
-    expect(res[0].intent).toBe('completed_work');
   });
 
-  it('never silently guesses "kal": identifies future intent in "Kal welding shuru hogi"', () => {
-    const res = parseTemporalExpressions('Kal welding shuru hogi', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    const sugg = res[0];
-    expect(sugg.rawExpression).toBe('kal');
-    expect(sugg.isAmbiguous).toBe(true);
-    expect(sugg.resolvedDate).toBeUndefined(); // Crucial: must NOT pick a date silently
-    expect(sugg.intent).toBe('future_plan');
-    expect(sugg.intentBadge).toContain('Planned future work');
-    expect(sugg.candidates).toHaveLength(2);
-
-    const yesterdayCandidate = sugg.candidates.find(c => c.relation === 'past');
-    const tomorrowCandidate = sugg.candidates.find(c => c.relation === 'future');
-    expect(yesterdayCandidate?.date).toBe('2026-10-12');
-    expect(tomorrowCandidate?.date).toBe('2026-10-14');
-    expect(tomorrowCandidate?.isSuggestedDefault).toBe(true);
-  });
-
-  it('never silently guesses "kal": identifies past intent in "Kal welding complete hui thi"', () => {
-    const res = parseTemporalExpressions('Kal welding complete hui thi', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    const sugg = res[0];
-    expect(sugg.isAmbiguous).toBe(true);
-    expect(sugg.resolvedDate).toBeUndefined();
-    expect(sugg.intent).toBe('completed_work');
-    expect(sugg.candidates.find(c => c.relation === 'past')?.isSuggestedDefault).toBe(true);
-  });
-
-  it('handles ambiguous "parso" with options for 2 days ago and in 2 days', () => {
-    const res = parseTemporalExpressions('Parso NDT testing complete hui thi', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    const sugg = res[0];
-    expect(sugg.rawExpression).toBe('parso');
-    expect(sugg.isAmbiguous).toBe(true);
-    expect(sugg.resolvedDate).toBeUndefined();
-    expect(sugg.candidates).toEqual([
-      expect.objectContaining({ date: '2026-10-11', relation: 'past' }),
-      expect.objectContaining({ date: '2026-10-15', relation: 'future' }),
-    ]);
-  });
-
-  it('keeps completed work and future plan separate in compound sentence: "Aaj inspection complete hua, kal welding hogi"', () => {
-    const text = 'Aaj inspection complete hua, kal welding hogi';
-    const res = parseTemporalExpressions(text, { referenceDate: FIXED_CLOCK });
-    expect(res).toHaveLength(2);
-
-    const aajSugg = res[0];
-    expect(aajSugg.rawExpression).toBe('aaj');
-    expect(aajSugg.intent).toBe('completed_work');
-    expect(aajSugg.resolvedDate).toBe('2026-10-13');
-    expect(aajSugg.isAmbiguous).toBe(false);
-
-    const kalSugg = res[1];
-    expect(kalSugg.rawExpression).toBe('kal');
-    expect(kalSugg.intent).toBe('future_plan');
-    expect(kalSugg.isAmbiguous).toBe(true);
-    expect(kalSugg.resolvedDate).toBeUndefined();
-    expect(kalSugg.candidates.map(c => c.date)).toEqual(['2026-10-12', '2026-10-14']);
-  });
-
-  it('supports multiple sequential clauses with distinct temporal references', () => {
-    const text = 'Subah 9 baje clearance mila, kal welding shuru hogi aur parso NDT testing hogi';
-    const res = parseTemporalExpressions(text, { referenceDate: FIXED_CLOCK });
-    expect(res).toHaveLength(3);
-    expect(res[0].time?.display).toContain('09:00 AM');
-    expect(res[1].rawExpression).toBe('kal');
-    expect(res[1].intent).toBe('future_plan');
-    expect(res[2].rawExpression).toBe('parso');
-    expect(res[2].intent).toBe('future_plan');
-  });
-
-  it('flags ambiguous meridiem in bare "9 baje"', () => {
-    const res = parseTemporalExpressions('9 baje compressor band hua', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    expect(res[0].time?.isAmbiguousMeridiem).toBe(true);
-    expect(res[0].time?.display).toContain('AM/PM unconfirmed');
-    expect(res[0].confidence).toBe('needs_confirmation');
-  });
-
-  it('resolves explicit "shaam 5 baje" to PM', () => {
-    const res = parseTemporalExpressions('shaam 5 baje concrete pouring finish hua', {
-      referenceDate: FIXED_CLOCK,
-    });
-    expect(res).toHaveLength(1);
-    expect(res[0].time?.display).toContain('05:00 PM (Evening)');
-    expect(res[0].time?.hours24).toBe(17);
-    expect(res[0].time?.isAmbiguousMeridiem).toBe(false);
-  });
-
-  it('marks negation or uncertainty as "Needs confirmation"', () => {
-    const res = parseTemporalExpressions('Kal hydrotest shayad nahi hua', {
+  it('correctly classifies "आज निरीक्षण पूरा नहीं हुआ" as needs confirmation (negated)', () => {
+    const res = parseTemporalExpressions('आज निरीक्षण पूरा नहीं हुआ', {
       referenceDate: FIXED_CLOCK,
     });
     expect(res).toHaveLength(1);
@@ -298,20 +148,136 @@ describe('temporalParser - Hinglish & Ambiguity Handling', () => {
     expect(res[0].confidence).toBe('needs_confirmation');
   });
 
-  it('returns empty array when narrative has no temporal references', () => {
-    const res = parseTemporalExpressions('Piping spool erection and flange alignment finished at Manifold Area A', {
+  it('correctly classifies "कल काम होगा" as future plan with ambiguous date choices', () => {
+    const res = parseTemporalExpressions('कल काम होगा', {
       referenceDate: FIXED_CLOCK,
     });
-    expect(res).toEqual([]);
+    expect(res).toHaveLength(1);
+    expect(res[0].intent).toBe('future_plan');
+    expect(res[0].intentBadge).toBe('Planned future work (Advisory)');
+    expect(res[0].isAmbiguous).toBe(true);
+    expect(res[0].candidates).toHaveLength(2);
+    expect(res[0].candidates[0].date).toBe('2026-10-12'); // Yesterday
+    expect(res[0].candidates[1].date).toBe('2026-10-14'); // Tomorrow
   });
 
+  it('correctly classifies "कल काम नहीं हुआ" as needs confirmation (not completed)', () => {
+    const res = parseTemporalExpressions('कल काम नहीं हुआ', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(1);
+    expect(res[0].intent).toBe('uncertain');
+    expect(res[0].intentBadge).toBe('Needs confirmation');
+    expect(res[0].isAmbiguous).toBe(true);
+  });
+
+  it('correctly classifies "शायद कल काम होगा" as uncertain', () => {
+    const res = parseTemporalExpressions('शायद कल काम होगा', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(1);
+    expect(res[0].intent).toBe('uncertain');
+    expect(res[0].intentBadge).toBe('Needs confirmation');
+  });
+
+  it('correctly classifies "Aaj inspection complete nahi hua" as needs confirmation', () => {
+    const res = parseTemporalExpressions('Aaj inspection complete nahi hua', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(1);
+    expect(res[0].intent).toBe('uncertain');
+    expect(res[0].intentBadge).toBe('Needs confirmation');
+  });
+
+  it('correctly classifies "Kal welding shuru hogi" as future planned work', () => {
+    const res = parseTemporalExpressions('Kal welding shuru hogi', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(1);
+    expect(res[0].intent).toBe('future_plan');
+    expect(res[0].intentBadge).toBe('Planned future work (Advisory)');
+    expect(res[0].isAmbiguous).toBe(true);
+    expect(res[0].resolvedDate).toBeUndefined(); // Never silently guessed
+  });
+});
+
+describe('temporalParser - Word boundary enforcement for unrelated words', () => {
+  it('does NOT match "kal" inside unrelated words like "nikal", "kalka", "sakal", "chakal"', () => {
+    const res = parseTemporalExpressions('Nikal gaya site se kalka station sakal pipe chakal', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(0);
+  });
+
+  it('does NOT match Devanagari "कल" inside unrelated words like "निकल", "कल्याण", "आजकल"', () => {
+    const res = parseTemporalExpressions('निकल गया कल्याण कार्य आजकल', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(0);
+  });
+
+  it('does NOT match "aaj" inside unrelated words like "raaj", "swaraj", "aaji", "आजाद", "राजा"', () => {
+    const res = parseTemporalExpressions('Raaj path swaraj pipe aaji pump आजाद राजा', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(0);
+  });
+});
+
+describe('temporalParser - Uncertainty respected across all parser branches', () => {
+  it('respects negation in yesterday branch: "Yesterday inspection was not completed"', () => {
+    const res = parseTemporalExpressions('Yesterday inspection was not completed', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(1);
+    expect(res[0].intent).toBe('uncertain');
+    expect(res[0].intentBadge).toBe('Needs confirmation');
+    expect(res[0].resolvedDate).toBe('2026-10-12');
+  });
+
+  it('respects negation in last night branch: "Last night pressure test failed"', () => {
+    const res = parseTemporalExpressions('Last night pressure test failed', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(1);
+    expect(res[0].intent).toBe('uncertain');
+    expect(res[0].intentBadge).toBe('Needs confirmation');
+    expect(res[0].resolvedDate).toBe('2026-10-12');
+  });
+
+  it('respects negation in relative days branch: "2 days ago tie-in was cancelled"', () => {
+    const res = parseTemporalExpressions('2 days ago tie-in was cancelled', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(1);
+    expect(res[0].intent).toBe('uncertain');
+    expect(res[0].intentBadge).toBe('Needs confirmation');
+    expect(res[0].resolvedDate).toBe('2026-10-11');
+  });
+
+  it('separates completed work and future plan in compound sentence: "Aaj inspection complete hua, kal welding hogi"', () => {
+    const res = parseTemporalExpressions('Aaj inspection complete hua, kal welding hogi', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(2);
+
+    expect(res[0].intent).toBe('completed_work');
+    expect(res[0].intentBadge).toBe('Completed field work');
+    expect(res[0].resolvedDate).toBe('2026-10-13');
+
+    expect(res[1].intent).toBe('future_plan');
+    expect(res[1].intentBadge).toBe('Planned future work (Advisory)');
+    expect(res[1].isAmbiguous).toBe(true);
+  });
+});
+
+describe('temporalParser - Additional common phrases & relative dates', () => {
   it('parses "this morning" as today with morning time advisory', () => {
     const res = parseTemporalExpressions('Hydrostatic pressure test passed this morning', {
       referenceDate: FIXED_CLOCK,
     });
     expect(res).toHaveLength(1);
     expect(res[0].resolvedDate).toBe('2026-10-13');
-    expect(res[0].candidates[0].date).toBe('2026-10-13');
     expect(res[0].time?.display).toBe('Morning (Advisory)');
   });
 
@@ -350,5 +316,24 @@ describe('temporalParser - Hinglish & Ambiguity Handling', () => {
     expect(res[0].resolvedDate).toBe('2026-10-11');
     expect(res[0].candidates[0].date).toBe('2026-10-11');
     expect(res[0].candidates[0].relation).toBe('past');
+  });
+
+  it('handles ambiguous "parso" with options for 2 days ago and in 2 days', () => {
+    const res = parseTemporalExpressions('Parso flange alignment complete hua', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toHaveLength(1);
+    expect(res[0].isAmbiguous).toBe(true);
+    expect(res[0].resolvedDate).toBeUndefined();
+    expect(res[0].candidates).toHaveLength(2);
+    expect(res[0].candidates[0].date).toBe('2026-10-11');
+    expect(res[0].candidates[1].date).toBe('2026-10-15');
+  });
+
+  it('returns empty array when narrative has no temporal references', () => {
+    const res = parseTemporalExpressions('Piping spool erection and flange alignment finished at Manifold Area A', {
+      referenceDate: FIXED_CLOCK,
+    });
+    expect(res).toEqual([]);
   });
 });

@@ -6,7 +6,7 @@ import {
   PenLine, Plus, RefreshCw, Send, Settings2, UserRound,
 } from 'lucide-react';
 import { VoiceInputControl } from '../../components/supervisor/VoiceInputControl';
-import { parseTemporalExpressions } from '../../lib/temporalParser';
+import { getKolkataReferenceDate, parseTemporalExpressions } from '../../lib/temporalParser';
 import { DateTimeSuggestions } from '../../components/supervisor/DateTimeSuggestions';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 import { useWorkflow } from '../../hooks/useWorkflow';
@@ -90,8 +90,7 @@ export const FieldCapture: React.FC = () => {
   const [discipline, setDiscipline] = useState('Piping');
   const [siteLocation, setSiteLocation] = useState('Duliajan Manifold Area A');
   const [reportedDate, setReportedDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return getKolkataReferenceDate().yyyyMmDd;
   });
   const [reportedBy, setReportedBy] = useState('Ramesh Borah (Site Supervisor)');
   const [showReporter, setShowReporter] = useState(false);
