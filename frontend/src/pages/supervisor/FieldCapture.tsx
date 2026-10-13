@@ -6,6 +6,8 @@ import {
   PenLine, Plus, RefreshCw, Send, Settings2, UserRound,
 } from 'lucide-react';
 import { VoiceInputControl } from '../../components/supervisor/VoiceInputControl';
+import { getKolkataReferenceDate, parseTemporalExpressions } from '../../lib/temporalParser';
+import { DateTimeSuggestions } from '../../components/supervisor/DateTimeSuggestions';
 import { useFieldUpdates } from '../../hooks/useFieldUpdates';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { useAuth } from '../../lib/AuthContext';
@@ -88,8 +90,7 @@ export const FieldCapture: React.FC = () => {
   const [discipline, setDiscipline] = useState('Piping');
   const [siteLocation, setSiteLocation] = useState('Duliajan Manifold Area A');
   const [reportedDate, setReportedDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return getKolkataReferenceDate().yyyyMmDd;
   });
   const [reportedBy, setReportedBy] = useState('Ramesh Borah (Site Supervisor)');
   const [showReporter, setShowReporter] = useState(false);
@@ -102,6 +103,15 @@ export const FieldCapture: React.FC = () => {
   const [sent, setSent] = useState<SentReport | null>(null);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
+  const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<string[]>([]);
+
+  const temporalSuggestions = useMemo(() => {
+    return parseTemporalExpressions(fieldText);
+  }, [fieldText]);
+
+  const visibleSuggestions = useMemo(() => {
+    return temporalSuggestions.filter((s) => !dismissedSuggestionIds.includes(s.id));
+  }, [temporalSuggestions, dismissedSuggestionIds]);
 
   const handleFinalTranscript = (chunk: string) => {
     if (isSubmittingRef.current) return;
@@ -121,6 +131,7 @@ export const FieldCapture: React.FC = () => {
     setSubmitError(null);
     setInterimTranscript('');
     setVoiceStatus(null);
+    setDismissedSuggestionIds([]);
     setScreen('compose');
   };
   const openReport = (update: FieldUpdate) => { setSelectedReport(update.id); setScreen('report'); };
@@ -140,6 +151,7 @@ export const FieldCapture: React.FC = () => {
     setSent({ updateId: result.updateId || 'Submitted', text: fieldText.trim(), location: siteLocation.trim(), discipline,
       date: reportedDate, reporter: reportedBy.trim() });
     setFieldText('');
+    setDismissedSuggestionIds([]);
     setScreen('sent');
   };
   const handleSignOut = async () => {
@@ -261,6 +273,13 @@ export const FieldCapture: React.FC = () => {
               <p className="shrink-0 text-right tabular-nums">{fieldText.length} characters</p>
             </div>
           </div>
+          <DateTimeSuggestions
+            suggestions={visibleSuggestions}
+            currentReportedDate={reportedDate}
+            onApplyDate={(date) => setReportedDate(date)}
+            onDismissSuggestion={(id) => setDismissedSuggestionIds((prev) => [...prev, id])}
+            onDismissAll={() => setDismissedSuggestionIds(temporalSuggestions.map((s) => s.id))}
+          />
           <fieldset>
             <legend className="mb-3 text-sm font-semibold">Report context</legend>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
