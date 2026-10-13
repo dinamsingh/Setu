@@ -341,3 +341,173 @@ it('prevents late speech results from mutating fieldText after report submission
     fieldText: expect.not.stringContaining('late speech chunk during submission'),
   }));
 });
+
+it('displays date & time suggestions panel when narrative contains temporal references without auto-changing reportedDate', async () => {
+  await click('New field update');
+  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
+  const initialDate = dateInput.value;
+
+  await edit('#field-report', 'Hydrostatic testing completed today at Manifold A');
+
+  const region = container.querySelector('[role="region"][aria-label="Date and time suggestions from narrative"]');
+  expect(region).not.toBeNull();
+  expect(region?.textContent).toContain('Asia/Kolkata (IST)');
+  expect(region?.textContent).toContain('“today”');
+  expect(region?.textContent).toContain('Completed field work');
+
+  // Verify reportedDate was NOT modified automatically
+  expect(dateInput.value).toBe(initialDate);
+});
+
+it('shows explicit choices for ambiguous "kal" and updates reportedDate on click without altering narrative', async () => {
+  await click('New field update');
+  const textarea = container.querySelector<HTMLTextAreaElement>('#field-report')!;
+  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+  await edit('#field-report', 'Kal welding shuru hogi');
+
+  const region = container.querySelector('[role="region"]');
+  expect(region).not.toBeNull();
+  expect(region?.textContent).toContain('Planned future work (Advisory)');
+  expect(region?.textContent).toContain('“kal”');
+
+  const buttons = Array.from(region!.querySelectorAll('button'));
+  const tomBtn = buttons.find(b => b.textContent?.includes('Tomorrow (Planned work:'));
+  const yestBtn = buttons.find(b => b.textContent?.includes('Yesterday (Past work:'));
+  expect(tomBtn).toBeDefined();
+  expect(yestBtn).toBeDefined();
+
+  // Click tomorrow
+  await act(async () => {
+    tomBtn!.click();
+  });
+
+  // Verify date input updated
+  expect(dateInput.value).not.toBe('');
+  expect(tomBtn?.textContent).toContain('(Selected)');
+
+  // Critical rule: original narrative text must remain completely intact
+  expect(textarea.value).toBe('Kal welding shuru hogi');
+});
+
+it('parses Hindi Devanagari phrase with advisory time and preserves narrative', async () => {
+  await click('New field update');
+  const textarea = container.querySelector<HTMLTextAreaElement>('#field-report')!;
+  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+  await edit('#field-report', 'आज सुबह ९:३० बजे पंप अलाइनमेंट पूरा हुआ');
+
+  const region = container.querySelector('[role="region"]');
+  expect(region).not.toBeNull();
+  expect(region?.textContent).toContain('09:30 AM (Morning)');
+  expect(region?.textContent).toContain('Completed field work');
+
+  const applyBtn = Array.from(region!.querySelectorAll('button')).find(b => b.textContent?.includes('Today ('));
+  expect(applyBtn).toBeDefined();
+
+  await act(async () => {
+    applyBtn!.click();
+  });
+
+  expect(dateInput.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect(textarea.value).toBe('आज सुबह ९:३० बजे पंप अलाइनमेंट पूरा हुआ');
+});
+
+it('separates completed work from planned future work in compound sentence', async () => {
+  await click('New field update');
+  await edit('#field-report', 'Aaj inspection complete hua, kal welding hogi');
+
+  const region = container.querySelector('[role="region"]');
+  expect(region).not.toBeNull();
+
+  expect(region?.textContent).toContain('Completed field work');
+  expect(region?.textContent).toContain('Planned future work (Advisory)');
+
+  // Verify "kal" has both yesterday and tomorrow options
+  expect(region?.textContent).toContain('Yesterday (Past work:');
+  expect(region?.textContent).toContain('Tomorrow (Planned work:');
+});
+
+it('allows dismissing individual suggestion and dismissing all suggestions', async () => {
+  await click('New field update');
+  await edit('#field-report', 'Aaj inspection complete hua, kal welding hogi');
+
+  let region = container.querySelector('[role="region"]');
+  expect(region).not.toBeNull();
+
+  // Dismiss individual suggestion
+  const dismissKalBtn = region?.querySelector('button[aria-label=\'Dismiss suggestion for "kal"\']') as HTMLButtonElement | null;
+  expect(dismissKalBtn).not.toBeNull();
+
+  await act(async () => {
+    dismissKalBtn!.click();
+  });
+
+  // "kal" is dismissed, but "aaj" remains
+  expect(region?.textContent).not.toContain('“kal”');
+  expect(region?.textContent).toContain('“aaj”');
+
+  // Dismiss all
+  const dismissAllBtn = Array.from(region!.querySelectorAll('button')).find(b => b.textContent?.includes('Dismiss all'));
+  expect(dismissAllBtn).toBeDefined();
+
+  await act(async () => {
+    dismissAllBtn!.click();
+  });
+
+  region = container.querySelector('[role="region"]');
+  expect(region).toBeNull();
+});
+
+it('preserves manual date selection and never overwrites without user action', async () => {
+  await click('New field update');
+  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+  // Manual date change
+  await edit('input[type="date"]', '2026-05-15');
+  expect(dateInput.value).toBe('2026-05-15');
+
+  // Type narrative with temporal expression
+  await edit('#field-report', 'Piping inspection passed yesterday');
+
+  // dateInput must remain 2026-05-15
+  expect(dateInput.value).toBe('2026-05-15');
+
+  // Explicit click updates date
+  const region = container.querySelector('[role="region"]')!;
+  const useBtn = Array.from(region.querySelectorAll('button')).find(b => b.textContent?.includes('Yesterday ('));
+  expect(useBtn).toBeDefined();
+
+  await act(async () => {
+    useBtn!.click();
+  });
+
+  expect(dateInput.value).not.toBe('2026-05-15');
+});
+
+it('submits field update payload with chosen suggestion date without contract changes', async () => {
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-TEST-123' });
+  await click('New field update');
+  await edit('#field-report', 'Testing finished yesterday');
+
+  const region = container.querySelector('[role="region"]')!;
+  const useYestBtn = Array.from(region.querySelectorAll('button')).find(b => b.textContent?.includes('Yesterday ('))!;
+  await act(async () => {
+    useYestBtn.click();
+  });
+
+  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
+  const chosenDate = dateInput.value;
+
+  // Submit form
+  await act(async () => {
+    container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
+
+  expect(state.submit).toHaveBeenCalledWith({
+    fieldText: 'Testing finished yesterday',
+    siteLocation: 'Duliajan Manifold Area A',
+    reportedDate: chosenDate,
+    reportedBy: 'Ramesh Borah (Site Supervisor)',
+  });
+});
