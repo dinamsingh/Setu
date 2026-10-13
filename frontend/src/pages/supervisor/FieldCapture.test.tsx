@@ -295,3 +295,49 @@ it('disables voice input and stops listening while report submission is in fligh
   expect(langSelect.disabled).toBe(false);
   expect(container.querySelector<HTMLButtonElement>('[aria-label="Add attachment"]')?.disabled).toBe(false);
 });
+
+it('displays updated privacy disclosure regarding browser speech and external speech services', async () => {
+  await draft();
+  const paragraphs = Array.from(container.querySelectorAll('p'));
+  const notice = paragraphs.find(p => p.textContent && p.textContent.includes('Voice input:'));
+  expect(notice).toBeTruthy();
+  expect(notice?.textContent).toContain('Speech recognition is processed by your browser and may send audio to an external speech service');
+  expect(notice?.textContent).toContain('SETU does not record or store raw audio');
+});
+
+it('prevents late speech results from mutating fieldText after report submission starts', async () => {
+  await draft();
+  const micButton = container.querySelector<HTMLButtonElement>('[aria-label="Start voice input"]')!;
+  await act(async () => { micButton.click(); });
+  const recognition = MockSpeechRecognition.instances[0];
+
+  let finish: (value: { success: boolean; error: string }) => void = () => {};
+  state.submit.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+
+  // Trigger form submission
+  await act(async () => {
+    container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
+
+  // Late speech result attempts to arrive while submission is in-flight
+  await act(async () => {
+    recognition.onresult?.({
+      resultIndex: 0,
+      results: [
+        {
+          isFinal: true,
+          0: { transcript: 'late speech chunk during submission' },
+        },
+      ],
+    });
+  });
+
+  const textarea = container.querySelector<HTMLTextAreaElement>('#field-report')!;
+  expect(textarea.value).not.toContain('late speech chunk during submission');
+
+  // Complete submission
+  await act(async () => finish({ success: true, error: '' }));
+  expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
+    fieldText: expect.not.stringContaining('late speech chunk during submission'),
+  }));
+});

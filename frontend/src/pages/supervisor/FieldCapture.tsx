@@ -94,12 +94,17 @@ export const FieldCapture: React.FC = () => {
   const [reportedBy, setReportedBy] = useState('Ramesh Borah (Site Supervisor)');
   const [showReporter, setShowReporter] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
+  useEffect(() => {
+    isSubmittingRef.current = isSubmitting;
+  }, [isSubmitting]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [sent, setSent] = useState<SentReport | null>(null);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
 
   const handleFinalTranscript = (chunk: string) => {
+    if (isSubmittingRef.current) return;
     setFieldText(prev => {
       if (!prev) return chunk;
       return /\s$/.test(prev) ? `${prev}${chunk}` : `${prev} ${chunk}`;
@@ -123,9 +128,11 @@ export const FieldCapture: React.FC = () => {
     event.preventDefault();
     if (!fieldText.trim() || isSubmitting) return;
     setIsSubmitting(true);
+    isSubmittingRef.current = true;
     setSubmitError(null);
     const result = await submitFieldUpdate({ fieldText, siteLocation, reportedDate, reportedBy });
     setIsSubmitting(false);
+    isSubmittingRef.current = false;
     if (!result.success) {
       setSubmitError(result.error || 'Could not send your update. Please try again.');
       return;
@@ -249,7 +256,7 @@ export const FieldCapture: React.FC = () => {
             )}
             <div className="mt-2 flex flex-col gap-1 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[11px] leading-tight text-slate-500">
-                Voice input: Mixed-language (Hinglish) accuracy is best-effort. Speech is processed by your browser and not stored or recorded by SETU.
+                Voice input: Mixed-language (Hinglish) accuracy is best-effort. Speech recognition is processed by your browser and may send audio to an external speech service. SETU does not record or store raw audio.
               </p>
               <p className="shrink-0 text-right tabular-nums">{fieldText.length} characters</p>
             </div>
