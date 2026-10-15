@@ -10,7 +10,7 @@ import { completedImport } from '../../test/importFixtures';
 
 const state = vi.hoisted(() => ({ submit: vi.fn(), act: vi.fn(), signOut: vi.fn(), rpc: vi.fn() }));
 vi.mock('../../lib/supabase', () => ({ supabase: { rpc: state.rpc } }));
-vi.mock('../../hooks/useFieldUpdates', () => ({ useFieldUpdates: () => ({ updates: [], loading: false, error: null, refetch: vi.fn(), submitFieldUpdate: state.submit }) }));
+vi.mock('../../hooks/useFieldUpdates', () => ({ useFieldUpdates: () => ({ updates: [], loading: false, error: null, refetch: vi.fn(), submitFieldUpdate: state.submit, submitSupervisorFieldUpdate: state.submit }) }));
 vi.mock('../../hooks/useWorkflow', () => ({ useWorkflow: () => ({ rounds: [], loading: false, error: null, act: state.act }) }));
 vi.mock('../../lib/AuthContext', () => ({ useAuth: () => ({ user: { id: 'site', email: 'site@example.test' }, role: 'site', signOut: state.signOut }) }));
 let root: Root; let container: HTMLDivElement;
@@ -463,12 +463,11 @@ it('prompts targeted clarification when narrative claims work completed yesterda
   const yestBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Kal hua tha'))!;
   await act(async () => { yestBtn.click(); });
   expect(state.submit).toHaveBeenCalledTimes(1);
-  expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
-    fieldText: 'Kal kaam complete hua tha',
-    clarification: expect.objectContaining({
-      answer: expect.stringContaining('Kal hua tha'),
-    }),
-  }));
+  const submittedCall = state.submit.mock.calls[0][0];
+  expect(submittedCall.fieldText).toBe('Kal kaam complete hua tha');
+  expect(submittedCall.reportedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect(submittedCall.clarification.answer).toContain('Kal hua tha');
+  expect(submittedCall.idempotencyKey).toBeDefined();
 });
 
 it('preserves manual reported-date override and respects user change without silent overwriting', async () => {
@@ -529,4 +528,54 @@ it('displays subtle loading feedback "SETU aapki update check kar raha hai…" w
   expect(sendButton.disabled).toBe(true);
   await act(async () => { finish({ success: true, updateId: 'UPD-2026-FIN' }); });
   expect(container.textContent).toContain('Update sent');
+});
+
+it('resolves clarification with Today and passes today reported date directly to submission', async () => {
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-TODAY' });
+  await click('New field update');
+  await edit('#field-report', 'Kal kaam complete hua tha');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  const dialog = container.querySelector('[role="dialog"]');
+  expect(dialog).not.toBeNull();
+  const todayBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Aaj hua tha'))!;
+  expect(todayBtn).toBeDefined();
+  await act(async () => { todayBtn.click(); });
+  expect(state.submit).toHaveBeenCalledTimes(1);
+  const callArgs = state.submit.mock.calls[0][0];
+  expect(callArgs.fieldText).toBe('Kal kaam complete hua tha');
+  expect(callArgs.reportedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect(callArgs.clarification.answer).toContain('Aaj hua tha');
+});
+
+it('invalidates previous clarification when narrative text or mic input is edited', async () => {
+  await click('New field update');
+  await edit('#field-report', 'Kal kaam complete hua tha');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+
+  // Supervisor types new clarification into the narrative
+  await edit('#field-report', 'Kal kaam complete hua tha aur aaj handover diya');
+  // Clarification dialog should be dismissed/invalidated
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it('passes stable idempotency key on failure retry preventing duplicate reports', async () => {
+  state.submit.mockResolvedValueOnce({ success: false, error: 'Network socket closed' });
+  await click('New field update');
+  await edit('#field-report', 'Pipeline testing completed with 10 bar pressure');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  expect(state.submit).toHaveBeenCalledTimes(1);
+  const firstKey = state.submit.mock.calls[0][0].idempotencyKey;
+  expect(firstKey).toBeDefined();
+
+  // Retry submission
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-RETRY-STABLE' });
+  const retryBtn = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Dobara koshish karein'))!;
+  await act(async () => { retryBtn.click(); });
+  expect(state.submit).toHaveBeenCalledTimes(2);
+  const secondKey = state.submit.mock.calls[1][0].idempotencyKey;
+  expect(secondKey).toBe(firstKey);
 });

@@ -117,6 +117,7 @@ export function useFieldUpdates() {
     reportedDate?: string;
     discipline?: string;
     sourceType?: 'manual_text' | 'voice_transcript';
+    idempotencyKey?: string;
     interpretation?: unknown;
     clarification?: unknown;
   }) => {
@@ -133,6 +134,7 @@ export function useFieldUpdates() {
 
       const nextId = createFieldUpdateId();
       const nowIso = getKolkataReferenceDate().yyyyMmDd;
+      const idempotencyKey = options.idempotencyKey || nextId;
 
       const { data, error: rpcError } = await supabase.rpc('submit_supervisor_field_update', {
         p_field_text: options.fieldText.trim(),
@@ -142,6 +144,7 @@ export function useFieldUpdates() {
         p_discipline: options.discipline || null,
         p_source_type: options.sourceType || 'manual_text',
         p_client_update_id: nextId,
+        p_idempotency_key: idempotencyKey,
         p_interpretation: options.interpretation || null,
         p_clarification: options.clarification || null,
       });
@@ -150,7 +153,8 @@ export function useFieldUpdates() {
 
       await fetchUpdates();
       const updateId = (data as any)?.update_id || nextId;
-      return { success: true, data, updateId };
+      const replayed = Boolean((data as any)?.replayed);
+      return { success: true, data, updateId, replayed };
     } catch (err: any) {
       console.error('Error submitting supervisor field update:', err);
       return { success: false, error: err.message || 'Failed to submit field update' };

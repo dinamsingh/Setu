@@ -6,7 +6,7 @@ import {
   PenLine, Plus, RefreshCw, Send, Settings2, UserRound,
 } from 'lucide-react';
 import { VoiceInputControl } from '../../components/supervisor/VoiceInputControl';
-import { getKolkataReferenceDate } from '../../lib/temporalParser';
+import { getKolkataReferenceDate, offsetKolkataDate } from '../../lib/temporalParser';
 import {
   analyzeSupervisorNarrative,
   type ClarificationOption,
@@ -80,7 +80,7 @@ function FieldUpdateRow({ update, rounds, onClick }: {
 export const FieldCapture: React.FC = () => {
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
-  const { submitFieldUpdate, updates, loading, error, refetch } = useFieldUpdates();
+  const { submitSupervisorFieldUpdate, updates, loading, error, refetch } = useFieldUpdates();
   const workflow = useWorkflow(() => refetch(true));
   const [screen, setScreen] = useState<Screen>('home');
   const [importLocked, setImportLocked] = useState(false);
@@ -111,6 +111,7 @@ export const FieldCapture: React.FC = () => {
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const [pendingClarification, setPendingClarification] = useState<MaterialAmbiguity | null>(null);
   const [resolvedAmbiguity, setResolvedAmbiguity] = useState<ClarificationOption | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const handleFinalTranscript = (chunk: string) => {
     if (isSubmittingRef.current) return;
@@ -138,26 +139,31 @@ export const FieldCapture: React.FC = () => {
 
   const executeSubmission = async (
     analysis: SupervisorAnalysisResult,
-    clarificationOpt?: ClarificationOption | null
+    clarificationOpt?: ClarificationOption | null,
+    resolvedDateOverride?: string
   ) => {
     if (isSubmittingRef.current) return;
     setIsSubmitting(true);
     isSubmittingRef.current = true;
     setSubmitError(null);
 
-    const result = await submitFieldUpdate({
+    const effectiveDate = resolvedDateOverride || reportedDate;
+
+    const result = await submitSupervisorFieldUpdate({
       fieldText: fieldText.trim(),
       siteLocation: siteLocation.trim() || 'Site Area',
-      reportedDate,
+      reportedDate: effectiveDate,
       reportedBy: reportedBy.trim(),
       discipline,
       sourceType: 'manual_text',
+      idempotencyKey,
       interpretation: analysis.summary,
       clarification: clarificationOpt
         ? {
             question: analysis.materialAmbiguity?.question,
             answer: clarificationOpt.label,
             resolution: clarificationOpt.resolution,
+            resolvedDate: effectiveDate,
           }
         : null,
     });
@@ -175,12 +181,13 @@ export const FieldCapture: React.FC = () => {
       text: fieldText.trim(),
       location: siteLocation.trim(),
       discipline,
-      date: reportedDate,
+      date: effectiveDate,
       reporter: reportedBy.trim(),
     });
     setFieldText('');
     setPendingClarification(null);
     setResolvedAmbiguity(null);
+    setIdempotencyKey(crypto.randomUUID());
     setScreen('sent');
   };
 
@@ -207,19 +214,23 @@ export const FieldCapture: React.FC = () => {
   };
 
   const handleResolveClarification = async (opt: ClarificationOption) => {
+    let targetDate = reportedDate;
+    if (opt.targetDate) {
+      targetDate = opt.targetDate;
+    } else if (opt.resolution === 'yesterday') {
+      targetDate = offsetKolkataDate(getKolkataReferenceDate(), -1).yyyyMmDd;
+    } else if (opt.resolution === 'today') {
+      targetDate = getKolkataReferenceDate().yyyyMmDd;
+    }
+
+    setReportedDate(targetDate);
     setResolvedAmbiguity(opt);
     setPendingClarification(null);
 
-    if (opt.resolution === 'yesterday') {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      setReportedDate(getKolkataReferenceDate(yesterday).yyyyMmDd);
-    }
-
-    const analysis = analyzeSupervisorNarrative(fieldText, reportedDate, {
+    const analysis = analyzeSupervisorNarrative(fieldText, targetDate, {
       location: siteLocation,
     });
-    await executeSubmission(analysis, opt);
+    await executeSubmission(analysis, opt, targetDate);
   };
 
   const handleSignOut = async () => {
@@ -392,7 +403,7 @@ export const FieldCapture: React.FC = () => {
                   <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><MapPin size={14}/> Site / Area</span>
                   <input
                     value={siteLocation}
-                    onChange={e => setSiteLocation(e.target.value)}
+                    onChange={e => { setSiteLocation(e.target.value); setPendingClarification(null); setResolvedAmbiguity(null); }}
                     aria-label="Site location"
                     className="w-full min-w-0 bg-transparent text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   />
@@ -403,7 +414,7 @@ export const FieldCapture: React.FC = () => {
                     required
                     type="date"
                     value={reportedDate}
-                    onChange={e => setReportedDate(e.target.value)}
+                    onChange={e => { setReportedDate(e.target.value); setPendingClarification(null); setResolvedAmbiguity(null); }}
                     aria-label="Reported date"
                     className="w-full min-w-0 bg-transparent text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   />
