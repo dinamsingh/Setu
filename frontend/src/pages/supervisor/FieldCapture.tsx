@@ -22,8 +22,9 @@ import { ReportImportWizard } from '../../components/supervisor/ReportImportWiza
 import { ReportAttachmentMenu } from '../../components/supervisor/ReportAttachmentMenu';
 import { ownSiteUpdates, siteLogDate, siteLogStatus, type SiteLogTone } from '../../lib/siteLog';
 import type { FieldUpdate } from '../../types';
+import './SupervisorV2.css';
 
-type Screen = 'home' | 'compose' | 'sent' | 'updates' | 'report' | 'account' | 'import';
+type Screen = 'home' | 'compose' | 'review' | 'sent' | 'updates' | 'report' | 'account' | 'import';
 
 type SentReport = {
   updateId: string;
@@ -97,7 +98,10 @@ export const FieldCapture: React.FC = () => {
   const [reportedDate, setReportedDate] = useState(() => {
     return getKolkataReferenceDate().yyyyMmDd;
   });
-  const [reportedBy, setReportedBy] = useState('Ramesh Borah (Site Supervisor)');
+  const [reportedBy, setReportedBy] = useState('Site Supervisor');
+  useEffect(() => { if (user?.email) setReportedBy(
+    typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name : user.email
+  ); }, [user?.id, user?.email]);
   const [showDetails, setShowDetails] = useState(false);
   const [showReporter, setShowReporter] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,6 +110,30 @@ export const FieldCapture: React.FC = () => {
     isSubmittingRef.current = isSubmitting;
   }, [isSubmitting]);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [draftStatus, setDraftStatus] = useState('On this browser only');
+  const [draftWarning, setDraftWarning] = useState<string | null>(null);
+  const [reviewAfterClarification, setReviewAfterClarification] = useState(false);
+  const draftKey = user?.id ? 'setu-supervisor-v2-draft:' + user.id : null;
+  useEffect(() => {
+    if (!draftKey) return;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const data = JSON.parse(raw) as Record<string, unknown>;
+      if (typeof data.text === 'string') setFieldText(data.text.slice(0, 4000));
+      if (typeof data.location === 'string') setSiteLocation(data.location.slice(0, 200));
+      if (typeof data.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.date)) setReportedDate(data.date);
+      if (typeof data.discipline === 'string' && disciplines.includes(data.discipline)) setDiscipline(data.discipline);
+      setDraftStatus('Saved draft restored');
+    } catch { setDraftWarning('Saved draft could not be restored.'); }
+  }, [draftKey]);
+  const saveDraft = () => {
+    if (!draftKey) { setDraftWarning('Sign in to save a draft.'); return; }
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({ text: fieldText, location: siteLocation, date: reportedDate, discipline }));
+      setDraftStatus('Draft saved locally'); setDraftWarning(null);
+    } catch { setDraftWarning('Browser storage is unavailable; keep this tab open.'); }
+  };
   const [sent, setSent] = useState<SentReport | null>(null);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
@@ -128,6 +156,7 @@ export const FieldCapture: React.FC = () => {
   const defaultLocation = ownUpdates[0]?.site_location || 'Duliajan Manifold Area A';
 
   const startNew = () => {
+    setReviewAfterClarification(false);
     setSubmitError(null);
     setInterimTranscript('');
     setVoiceStatus(null);
@@ -185,14 +214,16 @@ export const FieldCapture: React.FC = () => {
       reporter: reportedBy.trim(),
     });
     setFieldText('');
+    if (draftKey) { try { localStorage.removeItem(draftKey); } catch { /* unavailable storage */ } }
+    setDraftStatus('On this browser only');
     setPendingClarification(null);
     setResolvedAmbiguity(null);
     setIdempotencyKey(crypto.randomUUID());
     setScreen('sent');
   };
 
-  const handleSend = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSend = async (event?: React.FormEvent) => {
+    event?.preventDefault();
     if (!fieldText.trim() || isSubmitting) return;
 
     const analysis = analyzeSupervisorNarrative(fieldText, reportedDate, {
@@ -213,6 +244,21 @@ export const FieldCapture: React.FC = () => {
     await executeSubmission(analysis, resolvedAmbiguity);
   };
 
+  const handleReview = () => {
+    setSubmitError(null);
+    const analysis = analyzeSupervisorNarrative(fieldText, reportedDate, { location: siteLocation });
+    if (!analysis.isValid) { setSubmitError(analysis.validationError || 'Enter a valid field update.'); return; }
+    if (fieldText.trim().length > 4000 || !siteLocation.trim() || !reportedDate || !disciplines.includes(discipline)) {
+      setSubmitError('Check the report length, location, date and discipline.'); return;
+    }
+    if (reportedDate > getKolkataReferenceDate().yyyyMmDd) { setSubmitError('Report date cannot be in the future.'); return; }
+    if (analysis.materialAmbiguity && !resolvedAmbiguity) {
+      setReviewAfterClarification(true);
+      setPendingClarification(analysis.materialAmbiguity);
+      return;
+    }
+    setScreen('review');
+  };
   const handleResolveClarification = async (opt: ClarificationOption) => {
     let targetDate = reportedDate;
     if (opt.targetDate) {
@@ -230,6 +276,11 @@ export const FieldCapture: React.FC = () => {
     const analysis = analyzeSupervisorNarrative(fieldText, targetDate, {
       location: siteLocation,
     });
+    if (reviewAfterClarification) {
+      setReviewAfterClarification(false);
+      setScreen('review');
+      return;
+    }
     await executeSubmission(analysis, opt, targetDate);
   };
 
@@ -238,8 +289,8 @@ export const FieldCapture: React.FC = () => {
     if (!result.error) navigate('/');
   };
 
-  return <div className="min-h-screen bg-[#F7F9FC] text-[#112344] selection:bg-blue-100">
-    <header className="border-b border-slate-200/80 bg-white/95">
+  return <div className="setu-supervisor-v2 min-h-screen bg-[#F7F9FC] text-[#112344] selection:bg-blue-100">
+    <header className="setu-supervisor-v2__topbar border-b border-slate-200/80 bg-white/95">
       <div className="mx-auto flex h-[72px] w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <button type="button" disabled={importLocked} onClick={() => setScreen('home')} className={`flex items-center gap-3 rounded-lg text-left ${focus}`} aria-label="SETU Site Log home">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1557A0] text-white"><Layers3 size={21} strokeWidth={2.3}/></span>
@@ -257,7 +308,7 @@ export const FieldCapture: React.FC = () => {
       </div>
     </header>
 
-    <main className={`mx-auto w-full px-4 pb-32 pt-7 sm:px-8 sm:pt-10 ${screen === 'import' ? 'max-w-6xl' : 'max-w-4xl'}`}>
+    <main className={`setu-supervisor-v2__main mx-auto w-full px-4 pb-32 pt-7 sm:px-8 sm:pt-10 ${screen === 'import' ? 'max-w-6xl' : 'max-w-4xl'}`}>
       {screen === 'import' && <ReportImportWizard onCancel={() => setScreen('compose')}
         submitter={user ? { id: user.id, role } : undefined} onLockChange={setImportLocked} onCompleted={() => void refetch(true)} />}
       {screen === 'home' && <div className="space-y-7">
@@ -295,17 +346,19 @@ export const FieldCapture: React.FC = () => {
         </section>
       </div>}
 
-      {screen === 'compose' && <div className="mx-auto max-w-[700px]">
+      {screen === 'compose' && <div className="setu-supervisor-v2__compose mx-auto max-w-[700px]">
         <button type="button" onClick={() => setScreen('home')} className={`mb-7 inline-flex items-center gap-2 rounded-lg py-1 text-sm font-semibold text-slate-600 hover:text-[#123F77] ${focus}`}><ArrowLeft size={18}/> Site Log</button>
-        <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E5F7F0] text-[#0D8067]"><PenLine size={21}/></span>
-        <p className="mt-6 text-xs font-bold uppercase tracking-[0.14em] text-[#0C806D]">New update</p>
-        <h1 className="mt-2 text-[2rem] font-bold leading-tight tracking-tight sm:text-[2.65rem]">What happened on site?</h1>
+        <nav className="setu-supervisor-v2__breadcrumb" aria-label="Location"><span>Site Log</span><ChevronRight size={15}/><strong>New update</strong></nav>
+        <div className="setu-supervisor-v2__intro"><h1 className="setu-supervisor-v2__page-title">New site update</h1><ol className="setu-supervisor-v2__steps" aria-label="Report progress"><li aria-current="step"><span>1</span>Write</li><li><span>2</span>Review</li></ol></div>
+        <span className="setu-supervisor-v2__legacy-pen inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E5F7F0] text-[#0D8067]"><PenLine size={21}/></span>
+        <p className="setu-supervisor-v2__legacy-kicker mt-6 text-xs font-bold uppercase tracking-[0.14em] text-[#0C806D]">New update</p>
+        <h2 className="setu-supervisor-v2__composer-label mt-2 text-[2rem] font-bold leading-tight tracking-tight sm:text-[2.65rem]">What happened on site? <span>· Required</span></h2>
         <p className="mt-2 max-w-lg text-sm leading-6 text-slate-500 sm:text-base">Write naturally or use voice. SETU handles schedule linking for planner review.</p>
-        <form id="site-log-compose" onSubmit={handleSend} className="mt-7 space-y-6">
+        <form id="site-log-compose" onSubmit={handleSend} className="setu-supervisor-v2__form mt-7 space-y-6">
           <div>
             <div className="relative">
               <label htmlFor="field-report" className="sr-only">Describe field progress</label>
-              <textarea id="field-report" rows={7} value={fieldText} required
+              <textarea id="field-report" rows={7} maxLength={4000} value={fieldText} required
                 onChange={e => {
                   setFieldText(e.target.value);
                   if (pendingClarification) setPendingClarification(null);
@@ -348,7 +401,7 @@ export const FieldCapture: React.FC = () => {
               <p className="text-[11px] leading-tight text-slate-500">
                 Voice input: Mixed-language (Hinglish) accuracy is best-effort. Speech recognition is processed by your browser and may send audio to an external speech service. SETU does not record or store raw audio.
               </p>
-              <p className="shrink-0 text-right tabular-nums">{fieldText.length} characters</p>
+              <p className="shrink-0 text-right tabular-nums">{fieldText.length} / 4,000 characters</p>
             </div>
           </div>
 
@@ -451,6 +504,12 @@ export const FieldCapture: React.FC = () => {
             </div>
           </div>
 
+          <section className="setu-supervisor-v2__draftbar" aria-label="Review and save controls">
+            <div className="setu-supervisor-v2__draft-actions"><button type="button" disabled={isSubmitting} onClick={saveDraft} className="setu-supervisor-v2__quiet">Save draft</button><span role="status">{draftStatus}</span></div>
+            <button type="button" disabled={isSubmitting} onClick={handleReview} className="setu-supervisor-v2__primary">Review update <ArrowRight size={18}/></button>
+          </section>
+          {draftWarning && <p role="alert" className="text-sm text-amber-800">{draftWarning}</p>}
+          <p className="setu-supervisor-v2__attachment-note">Use Add attachment for CSV/XLSX import. Photo and PDF uploads are not enabled yet.</p>
           {/* Minimal Plain-Language Clarification Dialog */}
           {pendingClarification && (
             <div
@@ -556,7 +615,21 @@ export const FieldCapture: React.FC = () => {
         </div>
       </div>}
 
-      {screen === 'sent' && sent && <div className="mx-auto flex max-w-xl flex-col items-center pt-8 text-center sm:pt-14" role="status">
+      {screen === 'review' && <section className="setu-supervisor-v2__review mx-auto max-w-[700px]">
+        <nav className="setu-supervisor-v2__breadcrumb" aria-label="Location"><span>Site Log</span><ChevronRight size={15}/><strong>Review</strong></nav>
+        <div className="setu-supervisor-v2__intro"><h1 className="setu-supervisor-v2__page-title">Review update</h1><ol className="setu-supervisor-v2__steps" aria-label="Report progress"><li className="done"><span>1</span>Write</li><li aria-current="step"><span>2</span>Review</li></ol></div>
+        <div className="setu-supervisor-v2__review-card">
+          <h2>Site update</h2><p className="setu-supervisor-v2__review-copy">{fieldText}</p>
+          <dl className="setu-supervisor-v2__review-grid"><div><dt>Discipline</dt><dd>{discipline}</dd></div><div><dt>Site / Area</dt><dd>{siteLocation}</dd></div><div><dt>Reported date</dt><dd>{siteLogDate(reportedDate)}</dd></div></dl>
+          <div className="setu-supervisor-v2__review-reporter"><UserRound size={20}/><span><small>Reporting as</small><strong>{reportedBy}</strong><small>{user?.email || 'Signed-in SETU account'}</small></span></div>
+          <p className="setu-supervisor-v2__attachment-note">Photo and PDF upload is not available. Spreadsheet imports are reviewed separately.</p>
+          {isSubmitting && <p role="status" className="setu-supervisor-v2__notice">SETU aapki update check kar raha hai…</p>}
+          {submitError && <div role="alert" className="setu-supervisor-v2__review-error">{submitError}</div>}
+          <div className="setu-supervisor-v2__review-footer"><button type="button" disabled={isSubmitting} className="setu-supervisor-v2__quiet" onClick={() => { setSubmitError(null); setScreen('compose'); }}>Edit update</button><button type="button" disabled={isSubmitting} className="setu-supervisor-v2__primary" onClick={() => void handleSend()}>Send for plan linking <ArrowRight size={18}/></button></div>
+        </div>
+        <p className="setu-supervisor-v2__disclaimer">For AI schedule linking and planner review. Submission does not approve or change the baseline schedule.</p>
+      </section>}
+      {screen === 'sent' && sent && <div className="setu-supervisor-v2__success mx-auto flex max-w-xl flex-col items-center pt-8 text-center sm:pt-14" role="status">
         <span className="flex h-24 w-24 items-center justify-center rounded-full bg-[#E2F8F0] text-[#0E836B]"><Check size={46} strokeWidth={2.8}/></span>
         <h1 className="mt-7 text-[2.3rem] font-bold tracking-tight sm:text-[3rem]">Update sent</h1>
         <p className="mt-2 max-w-sm text-base leading-7 text-slate-500">Your field report is saved and awaiting AI schedule linking and planner review.</p>
