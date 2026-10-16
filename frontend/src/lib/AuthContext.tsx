@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { isSupabaseConfigured, SUPABASE_CONFIGURATION_ERROR, supabase } from './supabase';
 import type { UserRole } from '../types';
 
 type AppRole = Exclude<UserRole, null>;
@@ -20,9 +20,13 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(isSupabaseConfigured);
 
   const refreshRole = async (userId?: string) => {
+    if (!isSupabaseConfigured) {
+      setRole(null);
+      throw new Error(SUPABASE_CONFIGURATION_ERROR);
+    }
     const activeUserId = userId ?? session?.user?.id;
     if (!activeUserId) {
       setRole(null);
@@ -40,6 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
     let mounted = true;
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
@@ -80,10 +86,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role,
     loading,
     signIn: async (email, password) => {
+      if (!isSupabaseConfigured) {
+        return {
+          error: new Error(SUPABASE_CONFIGURATION_ERROR),
+          userId: null,
+        };
+      }
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       return { error: error ? new Error(error.message) : null, userId: data?.user?.id ?? null };
     },
     signOut: async () => {
+      if (!isSupabaseConfigured) {
+        return { error: new Error(SUPABASE_CONFIGURATION_ERROR) };
+      }
       const { error } = await supabase.auth.signOut();
       return { error: error ? new Error(error.message) : null };
     },
