@@ -3,13 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import './RoleSelection.css';
 
-type DemoRole = 'planner' | 'supervisor';
+type WorkspaceRole = 'planner' | 'supervisor';
 type FieldErrors = { email?: string; password?: string };
-
-const demoCredentials: Record<DemoRole, { email: string; password: string }> = {
-  planner: { email: 'planner@setu.local', password: 'password123' },
-  supervisor: { email: 'site@setu.local', password: 'password123' },
-};
 
 function Icon({ children, className = 'setu-login-v2__icon' }: { children: React.ReactNode; className?: string }) {
   return (
@@ -20,7 +15,7 @@ function Icon({ children, className = 'setu-login-v2__icon' }: { children: React
 }
 
 export const RoleSelection: React.FC = () => {
-  const { signIn, refreshRole } = useAuth();
+  const { signIn, refreshRole, sessionIssue } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,13 +23,7 @@ export const RoleSelection: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [signInError, setSignInError] = useState<string | null>(null);
-
-  const selectedDemo: DemoRole | null =
-    email === demoCredentials.planner.email && password === demoCredentials.planner.password
-      ? 'planner'
-      : email === demoCredentials.supervisor.email && password === demoCredentials.supervisor.password
-        ? 'supervisor'
-        : null;
+  const [selectedWorkspaceRole, setSelectedWorkspaceRole] = useState<WorkspaceRole | null>(null);
 
   const clearFieldError = (field: keyof FieldErrors) => {
     setFieldErrors((current) => (current[field] ? { ...current, [field]: undefined } : current));
@@ -65,11 +54,31 @@ export const RoleSelection: React.FC = () => {
         return;
       }
 
-      const role = await refreshRole(result.userId ?? undefined);
+      if (!result.userId) {
+        setSignInError('Sign-in did not create an active session. Please try again.');
+        return;
+      }
+
+      let role;
+      try {
+        role = await refreshRole(result.userId);
+      } catch (error: unknown) {
+        setSignInError(error instanceof Error ? error.message : 'SETU role lookup failed. Please try again.');
+        return;
+      }
+
       if (role === 'planner' || role === 'admin') {
-        navigate('/planner/command-center', { replace: true });
+        try {
+          navigate('/planner/command-center', { replace: true });
+        } catch {
+          setSignInError('Sign-in succeeded, but SETU could not open your planner workspace. Please reload.');
+        }
       } else if (role === 'site' || role === 'engineer') {
-        navigate('/supervisor/capture', { replace: true });
+        try {
+          navigate('/supervisor/capture', { replace: true });
+        } catch {
+          setSignInError('Sign-in succeeded, but SETU could not open your site workspace. Please reload.');
+        }
       } else {
         setSignInError('Authenticated account has no SETU role assignment.');
       }
@@ -80,12 +89,8 @@ export const RoleSelection: React.FC = () => {
     }
   };
 
-  const selectDemo = (role: DemoRole) => {
-    const credentials = demoCredentials[role];
-    setEmail(credentials.email);
-    setPassword(credentials.password);
-    setFieldErrors({});
-    setSignInError(null);
+  const selectWorkspaceRole = (role: WorkspaceRole) => {
+    setSelectedWorkspaceRole(role);
   };
 
   const hasMultipleFieldErrors = Boolean(fieldErrors.email && fieldErrors.password);
@@ -152,10 +157,10 @@ export const RoleSelection: React.FC = () => {
                 <a href="#setu-password" onClick={() => document.getElementById('setu-password')?.focus()}>{fieldErrors.password}</a>
               </div>
             )}
-            {signInError && (
+            {(signInError || sessionIssue) && (
               <div className="setu-login-v2__message setu-login-v2__message--error" role="alert">
-                <strong>Sign-in couldn&apos;t be completed.</strong>
-                <p>{signInError}</p>
+                <strong>{signInError ? 'Sign-in couldn&apos;t be completed.' : 'Session needs attention.'}</strong>
+                <p>{signInError ?? sessionIssue}</p>
               </div>
             )}
 
@@ -171,7 +176,7 @@ export const RoleSelection: React.FC = () => {
                 disabled={busy}
                 aria-invalid={Boolean(fieldErrors.email)}
                 aria-describedby={fieldErrors.email ? 'setu-email-error' : undefined}
-                onChange={(event) => { setEmail(event.target.value); clearFieldError('email'); setSignInError(null); }}
+                onChange={(event) => { setEmail(event.target.value); setSelectedWorkspaceRole(null); clearFieldError('email'); setSignInError(null); }}
               />
               {fieldErrors.email && <p className="setu-login-v2__field-error" id="setu-email-error" role="alert">{fieldErrors.email}</p>}
             </div>
@@ -189,7 +194,7 @@ export const RoleSelection: React.FC = () => {
                   disabled={busy}
                   aria-invalid={Boolean(fieldErrors.password)}
                   aria-describedby={fieldErrors.password ? 'setu-password-error' : undefined}
-                  onChange={(event) => { setPassword(event.target.value); clearFieldError('password'); setSignInError(null); }}
+                  onChange={(event) => { setPassword(event.target.value); setSelectedWorkspaceRole(null); clearFieldError('password'); setSignInError(null); }}
                 />
                 <button
                   className="setu-login-v2__reveal"
@@ -216,20 +221,20 @@ export const RoleSelection: React.FC = () => {
 
           <section className="setu-login-v2__demo" aria-labelledby="setu-demo-title">
             <div className="setu-login-v2__demo-heading">
-              <h2 id="setu-demo-title">Explore with a demo account</h2>
-              <p>Choose a role to fill in the sign-in details.</p>
+              <h2 id="setu-demo-title">Your workspace role</h2>
+              <p>Role selection does not grant access. Use credentials provided by your workspace administrator.</p>
             </div>
             <div className="setu-login-v2__demo-grid">
-              <button type="button" disabled={busy} aria-pressed={selectedDemo === 'planner'} onClick={() => selectDemo('planner')}>
+              <button type="button" disabled={busy} aria-pressed={selectedWorkspaceRole === 'planner'} onClick={() => selectWorkspaceRole('planner')}>
                 <Icon><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M17 10l2 2 4-4" /><circle cx="9" cy="7" r="4" /></Icon>
                 <span>Planner</span>
               </button>
-              <button type="button" disabled={busy} aria-pressed={selectedDemo === 'supervisor'} onClick={() => selectDemo('supervisor')}>
+              <button type="button" disabled={busy} aria-pressed={selectedWorkspaceRole === 'supervisor'} onClick={() => selectWorkspaceRole('supervisor')}>
                 <Icon><path d="M5 17v-3a7 7 0 0 1 5-6.7 M14 7.3A7 7 0 0 1 19 14v3 M10 12V5h4v7 M3 17h18v4H3Z" /></Icon>
                 <span>Site Engineer</span>
               </button>
             </div>
-            <p className="setu-login-v2__demo-help">Demo accounts must be enabled by your workspace administrator.</p>
+            <p className="setu-login-v2__demo-help">Account access follows the role assigned to you after sign-in.</p>
           </section>
         </div>
 

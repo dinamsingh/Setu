@@ -11,7 +11,7 @@ const auth = vi.hoisted(() => ({
 }));
 
 vi.mock('../lib/AuthContext', () => ({
-  useAuth: () => ({ signIn: auth.signIn, refreshRole: auth.refreshRole }),
+  useAuth: () => ({ signIn: auth.signIn, refreshRole: auth.refreshRole, sessionIssue: null }),
 }));
 
 let root: Root;
@@ -128,5 +128,18 @@ describe('Login V2 role selection', () => {
     expect(password?.type).toBe('text');
     expect(toggle?.getAttribute('aria-label')).toBe('Hide password');
     expect(toggle?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('selects a workspace role without injecting a demo password', async () => {
+    await render();
+    const planner = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('Planner'));
+    const password = container.querySelector<HTMLInputElement>('#setu-password');
+
+    await act(async () => planner?.click());
+
+    expect(planner?.getAttribute('aria-pressed')).toBe('true');
+    expect(password?.value).toBe('');
+    expect(container.textContent).toContain('Role selection does not grant access.');
+    expect(container.textContent).not.toContain('password123');
   });
 });
