@@ -161,11 +161,28 @@ describe('AuthContext session and callback safety', () => {
     expect(supabase.unsubscribe).toHaveBeenCalledTimes(1);
   });
 
+  it('reports a role lookup failure separately from a session restoration failure', async () => {
+    configuration.configured = true;
+    vi.useFakeTimers();
+    supabase.getSession.mockResolvedValue({ data: { session: signedInSession }, error: null });
+    supabase.maybeSingle.mockResolvedValue({ data: null, error: new Error('permission denied') });
+
+    await render();
+    await flushTimers();
+
+    expect(container.querySelector('[data-testid="session-issue"]')?.textContent).toBe('SETU role lookup failed. Please try again.');
+    expect(container.querySelector('[data-testid="role"]')?.textContent).toBe('');
+  });
+
   it('distinguishes network failures and missing active sessions during sign-in', async () => {
     configuration.configured = true;
-    supabase.signInWithPassword.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    supabase.signInWithPassword.mockResolvedValueOnce({ data: { session: null, user: null }, error: new Error('Invalid login credentials') });
     await render();
     const button = container.querySelector('button');
+    await act(async () => button?.click());
+    expect(container.querySelector('[data-testid="message"]')?.textContent).toContain('Invalid email or password');
+
+    supabase.signInWithPassword.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await act(async () => button?.click());
     expect(container.querySelector('[data-testid="message"]')?.textContent).toContain('Network error while signing in');
 
