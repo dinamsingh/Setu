@@ -10,7 +10,7 @@ import { completedImport } from '../../test/importFixtures';
 
 const state = vi.hoisted(() => ({ submit: vi.fn(), act: vi.fn(), signOut: vi.fn(), rpc: vi.fn() }));
 vi.mock('../../lib/supabase', () => ({ supabase: { rpc: state.rpc } }));
-vi.mock('../../hooks/useFieldUpdates', () => ({ useFieldUpdates: () => ({ updates: [], loading: false, error: null, refetch: vi.fn(), submitFieldUpdate: state.submit }) }));
+vi.mock('../../hooks/useFieldUpdates', () => ({ useFieldUpdates: () => ({ updates: [], loading: false, error: null, refetch: vi.fn(), submitFieldUpdate: state.submit, submitSupervisorFieldUpdate: state.submit }) }));
 vi.mock('../../hooks/useWorkflow', () => ({ useWorkflow: () => ({ rounds: [], loading: false, error: null, act: state.act }) }));
 vi.mock('../../lib/AuthContext', () => ({ useAuth: () => ({ user: { id: 'site', email: 'site@example.test' }, role: 'site', signOut: state.signOut }) }));
 let root: Root; let container: HTMLDivElement;
@@ -173,8 +173,8 @@ it('keeps ordinary text submission separate and unchanged after returning from i
   state.submit.mockResolvedValueOnce({ success: false, error: 'Mock-only submission failure' });
   await act(async () => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
   expect(state.submit).toHaveBeenCalledTimes(1);
-  expect(state.submit).toHaveBeenCalledWith({ fieldText: 'Unsent original field narrative', siteLocation: 'Rack C', reportedDate: '2026-10-08', reportedBy: 'A. Das (Field Engineer)' });
-  expect(container.querySelector('[role="alert"]')?.textContent).toBe('Mock-only submission failure'); expectDraft();
+  expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({ fieldText: 'Unsent original field narrative', siteLocation: 'Rack C', reportedDate: '2026-10-08', reportedBy: 'A. Das (Field Engineer)' }));
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain('Mock-only submission failure'); expectDraft();
 });
 it('does not allow opening attachments while the existing text submission is in flight', async () => {
   await draft();
@@ -342,205 +342,240 @@ it('prevents late speech results from mutating fieldText after report submission
   }));
 });
 
-it('displays date & time suggestions panel when narrative contains temporal references without auto-changing reportedDate', async () => {
+it('displays simple default supervisor screen with compact date/location, Change details toggle, and Update bhejo action', async () => {
   await click('New field update');
-  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
-  const initialDate = dateInput.value;
-
-  await edit('#field-report', 'Hydrostatic testing completed today at Manifold A');
-
-  const region = container.querySelector('[role="region"][aria-label="Date and time suggestions from narrative"]');
-  expect(region).not.toBeNull();
-  expect(region?.textContent).toContain('Asia/Kolkata (IST)');
-  expect(region?.textContent).toContain('“today”');
-  expect(region?.textContent).toContain('Completed field work');
-
-  // Verify reportedDate was NOT modified automatically
-  expect(dateInput.value).toBe(initialDate);
+  const textarea = container.querySelector('#field-report');
+  expect(textarea).not.toBeNull();
+  expect(container.querySelector('[aria-label="Start voice input"]')).not.toBeNull();
+  expect(container.querySelector('[aria-label="Add attachment"]')).not.toBeNull();
+  expect(container.querySelector('[data-testid="compact-date"]')).not.toBeNull();
+  expect(container.querySelector('[data-testid="compact-location"]')).not.toBeNull();
+  expect(container.querySelector('[role="region"][aria-label="Date and time suggestions from narrative"]')).toBeNull();
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'));
+  expect(sendButton).toBeDefined();
+  const changeDetailsBtn = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Change details'))!;
+  expect(changeDetailsBtn).toBeDefined();
+  expect(changeDetailsBtn.getAttribute('aria-expanded')).toBe('false');
+  await act(async () => { changeDetailsBtn.click(); });
+  expect(changeDetailsBtn.getAttribute('aria-expanded')).toBe('true');
+  expect(changeDetailsBtn.textContent).toContain('Hide details');
+  expect(container.querySelector('#report-details-panel')?.className).toContain('block');
 });
 
-it('shows explicit choices for ambiguous "kal" and updates reportedDate on click without altering narrative', async () => {
+it('submits a simple valid completed update with Update bhejo and shows sent confirmation', async () => {
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-001' });
   await click('New field update');
-  const textarea = container.querySelector<HTMLTextAreaElement>('#field-report')!;
-  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
-
-  await edit('#field-report', 'Kal welding shuru hogi');
-
-  const region = container.querySelector('[role="region"]');
-  expect(region).not.toBeNull();
-  expect(region?.textContent).toContain('Planned future work (Advisory)');
-  expect(region?.textContent).toContain('“kal”');
-
-  const buttons = Array.from(region!.querySelectorAll('button'));
-  const tomBtn = buttons.find(b => b.textContent?.includes('Tomorrow (Planned activity:'));
-  const yestBtn = buttons.find(b => b.textContent?.includes('Yesterday (Past work:'));
-  expect(tomBtn).toBeDefined();
-  expect(yestBtn).toBeDefined();
-
-  // Click tomorrow
-  await act(async () => {
-    tomBtn!.click();
-  });
-
-  // Verify date input updated
-  expect(dateInput.value).not.toBe('');
-  expect(tomBtn?.textContent).toContain('(Selected)');
-
-  // Critical rule: original narrative text must remain completely intact
-  expect(textarea.value).toBe('Kal welding shuru hogi');
+  await edit('#field-report', 'Piping spool erection finished at Manifold A today');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  expect(state.submit).toHaveBeenCalledTimes(1);
+  expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
+    fieldText: 'Piping spool erection finished at Manifold A today',
+    siteLocation: 'Duliajan Manifold Area A',
+    sourceType: 'manual_text',
+  }));
+  expect(container.querySelector('[role="status"]')?.textContent).toContain('Update sent');
+  expect(container.textContent).toContain('UPD-2026-001');
 });
 
-it('parses Hindi Devanagari phrase with advisory time and preserves narrative', async () => {
+it('cleanly submits compound narrative without extra interruption ("Aaj inspection complete hua, kal welding shuru hogi") ', async () => {
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-002' });
   await click('New field update');
-  const textarea = container.querySelector<HTMLTextAreaElement>('#field-report')!;
-  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
-  const hindiPhrase = '\u0906\u091c \u0938\u0941\u092c\u0939 \u096f:\u0969\u0966 \u092c\u091c\u0947 \u092a\u0902\u092a \u0905\u0932\u093e\u0907\u0928\u092e\u0947\u0902\u091f \u092a\u0942\u0930\u093e \u0939\u0941\u0906';
-
-  await edit('#field-report', hindiPhrase);
-
-  const region = container.querySelector('[role="region"]');
-  expect(region).not.toBeNull();
-  expect(region?.textContent).toContain('09:30 AM (Morning)');
-  expect(region?.textContent).toContain('Completed field work');
-
-  const applyBtn = Array.from(region!.querySelectorAll('button')).find(b => b.textContent?.includes('Today ('));
-  expect(applyBtn).toBeDefined();
-
-  await act(async () => {
-    applyBtn!.click();
-  });
-
-  expect(dateInput.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-  expect(textarea.value).toBe(hindiPhrase);
+  await edit('#field-report', 'Aaj inspection complete hua, kal welding shuru hogi');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+  expect(state.submit).toHaveBeenCalledTimes(1);
+  expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
+    fieldText: 'Aaj inspection complete hua, kal welding shuru hogi',
+    interpretation: expect.objectContaining({
+      hasCompletedWork: true,
+      hasFuturePlans: true,
+      originalNarrative: 'Aaj inspection complete hua, kal welding shuru hogi',
+    }),
+  }));
 });
 
-it('correctly classifies negated Hindi narrative as Needs confirmation and does not claim completion', async () => {
+it('never classifies negated Hindi narrative as completed ("Inspection complete nahi hua") ', async () => {
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-003' });
   await click('New field update');
-  const negatedHindi = '\u0906\u091c \u0928\u093f\u0930\u0940\u0915\u094d\u0937\u0923 \u092a\u0942\u0930\u093e \u0928\u0939\u0940\u0902 \u0939\u0941\u0906';
-
-  await edit('#field-report', negatedHindi);
-
-  const region = container.querySelector('[role="region"]');
-  expect(region).not.toBeNull();
-  expect(region?.textContent).toContain('Needs confirmation');
-  expect(region?.textContent).not.toContain('Completed field work');
+  await edit('#field-report', 'Inspection complete nahi hua');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  expect(state.submit).toHaveBeenCalledTimes(1);
+  expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
+    fieldText: 'Inspection complete nahi hua',
+    interpretation: expect.objectContaining({
+      hasCompletedWork: false,
+      hasUncertainty: true,
+    }),
+  }));
 });
 
-it('separates completed work from planned future work in compound sentence', async () => {
+it('interrupts with one plain-language question when material ambiguity exists ("Kal welding") and resolves cleanly', async () => {
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-004' });
   await click('New field update');
-  await edit('#field-report', 'Aaj inspection complete hua, kal welding hogi');
-
-  const region = container.querySelector('[role="region"]');
-  expect(region).not.toBeNull();
-
-  expect(region?.textContent).toContain('Completed field work');
-  expect(region?.textContent).toContain('Planned future work (Advisory)');
-
-  // Verify "kal" has both yesterday and tomorrow options
-  expect(region?.textContent).toContain('Yesterday (Past work:');
-  expect(region?.textContent).toContain('Tomorrow (Planned activity:');
+  await edit('#field-report', 'Kal welding at Manifold Area');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  const dialog = container.querySelector('[role="dialog"]');
+  expect(dialog).not.toBeNull();
+  expect(dialog?.textContent).toContain('Kripya spashth karein');
+  expect(dialog?.textContent).toContain('Ye kaam kal hua tha ya aage plan hai?');
+  expect(state.submit).not.toHaveBeenCalled();
+  const pastBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Kal hua tha'))!;
+  expect(pastBtn).toBeDefined();
+  await act(async () => { pastBtn.click(); });
+  expect(state.submit).toHaveBeenCalledTimes(1);
+  expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
+    fieldText: 'Kal welding at Manifold Area',
+    clarification: expect.objectContaining({
+      question: 'Ye kaam kal hua tha ya aage plan hai?',
+      answer: expect.stringContaining('Kal hua tha'),
+    }),
+  }));
 });
 
-it('safely handles date-less time-only narrative without offering inferred date button', async () => {
+it('prompts targeted clarification for conflicting activity status ("Welding complete hui hai ya kal shuru hogi?") and allows editing', async () => {
   await click('New field update');
-  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
-  const initialDate = dateInput.value;
-
-  await edit('#field-report', '14:30 pump alignment check');
-
-  const region = container.querySelector('[role="region"]');
-  expect(region).not.toBeNull();
-  expect(region?.textContent).toContain('14:30 (02:30 PM)');
-  expect(region?.textContent).toContain('No date specified in narrative. Current reported date is preserved.');
-
-  // Date input remains intact
-  expect(dateInput.value).toBe(initialDate);
-
-  // No date application buttons
-  const dateButtons = Array.from(region!.querySelectorAll('button')).filter(b => b.textContent?.includes('Use ') || b.textContent?.includes('Set future date:'));
-  expect(dateButtons).toHaveLength(0);
+  await edit('#field-report', 'Feeder line welding complete ho gayi lekin kal shuru hogi testing');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  const dialog = container.querySelector('[role="dialog"]');
+  expect(dialog).not.toBeNull();
+  expect(dialog?.textContent).toContain('Welding complete hui hai ya kal shuru hogi?');
+  const editBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Update badlein'))!;
+  await act(async () => { editBtn.click(); });
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+  expect((container.querySelector('#field-report') as HTMLTextAreaElement)?.value).toContain('Feeder line welding complete');
+  expect(state.submit).not.toHaveBeenCalled();
 });
 
-it('allows dismissing individual suggestion and dismissing all suggestions', async () => {
+it('prompts targeted clarification when narrative claims work completed yesterday but reported date is today', async () => {
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-005' });
   await click('New field update');
-  await edit('#field-report', 'Aaj inspection complete hua, kal welding hogi');
-
-  let region = container.querySelector('[role="region"]');
-  expect(region).not.toBeNull();
-
-  // Dismiss individual suggestion
-  const dismissKalBtn = region?.querySelector('button[aria-label=\'Dismiss suggestion for "kal"\']') as HTMLButtonElement | null;
-  expect(dismissKalBtn).not.toBeNull();
-
-  await act(async () => {
-    dismissKalBtn!.click();
-  });
-
-  // "kal" is dismissed, but "aaj" remains
-  expect(region?.textContent).not.toContain('“kal”');
-  expect(region?.textContent).toContain('“aaj”');
-
-  // Dismiss all
-  const dismissAllBtn = Array.from(region!.querySelectorAll('button')).find(b => b.textContent?.includes('Dismiss all'));
-  expect(dismissAllBtn).toBeDefined();
-
-  await act(async () => {
-    dismissAllBtn!.click();
-  });
-
-  region = container.querySelector('[role="region"]');
-  expect(region).toBeNull();
+  await edit('#field-report', 'Kal kaam complete hua tha');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  const dialog = container.querySelector('[role="dialog"]');
+  expect(dialog).not.toBeNull();
+  expect(dialog?.textContent).toContain('Ye kaam aaj hua tha ya kal?');
+  const yestBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Kal hua tha'))!;
+  await act(async () => { yestBtn.click(); });
+  expect(state.submit).toHaveBeenCalledTimes(1);
+  const submittedCall = state.submit.mock.calls[0][0];
+  expect(submittedCall.fieldText).toBe('Kal kaam complete hua tha');
+  expect(submittedCall.reportedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect(submittedCall.clarification.answer).toContain('Kal hua tha');
+  expect(submittedCall.idempotencyKey).toBeDefined();
 });
 
-it('preserves manual date selection and never overwrites without user action', async () => {
+it('preserves manual reported-date override and respects user change without silent overwriting', async () => {
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-006' });
   await click('New field update');
-  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
-
-  // Manual date change
+  const changeDetailsBtn = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Change details'))!;
+  await act(async () => { changeDetailsBtn.click(); });
   await edit('input[type="date"]', '2026-05-15');
-  expect(dateInput.value).toBe('2026-05-15');
-
-  // Type narrative with temporal expression
-  await edit('#field-report', 'Piping inspection passed yesterday');
-
-  // dateInput must remain 2026-05-15
-  expect(dateInput.value).toBe('2026-05-15');
-
-  // Explicit click updates date
-  const region = container.querySelector('[role="region"]')!;
-  const useBtn = Array.from(region.querySelectorAll('button')).find(b => b.textContent?.includes('Yesterday ('));
-  expect(useBtn).toBeDefined();
-
-  await act(async () => {
-    useBtn!.click();
-  });
-
-  expect(dateInput.value).not.toBe('2026-05-15');
+  await edit('#field-report', 'Testing finished successfully at Manifold A');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
+    reportedDate: '2026-05-15',
+    fieldText: 'Testing finished successfully at Manifold A',
+  }));
 });
 
-it('submits field update payload with chosen suggestion date without contract changes', async () => {
-  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-TEST-123' });
+it('preserves unsent draft on submission failure, shows Update nahi bheji gayi and provides Retry', async () => {
+  state.submit.mockResolvedValueOnce({ success: false, error: 'Database network timeout' });
   await click('New field update');
-  await edit('#field-report', 'Testing finished yesterday');
+  await edit('#field-report', 'Critical pump alignment completed at Station 3');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  const errorAlert = container.querySelector('[role="alert"]');
+  expect(errorAlert).not.toBeNull();
+  expect(errorAlert?.textContent).toContain('Update nahi bheji gayi');
+  expect(errorAlert?.textContent).toContain('Database network timeout');
+  expect((container.querySelector('#field-report') as HTMLTextAreaElement)?.value).toBe('Critical pump alignment completed at Station 3');
+  const retryBtn = [...errorAlert!.querySelectorAll('button')].find(b => b.textContent?.includes('Dobara koshish karein'));
+  expect(retryBtn).toBeDefined();
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-RETRY-001' });
+  await act(async () => { retryBtn!.click(); });
+  expect(state.submit).toHaveBeenCalledTimes(2);
+  expect(container.textContent).toContain('Update sent');
+});
 
-  const region = container.querySelector('[role="region"]')!;
-  const useYestBtn = Array.from(region.querySelectorAll('button')).find(b => b.textContent?.includes('Yesterday ('))!;
-  await act(async () => {
-    useYestBtn.click();
-  });
-
-  const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]')!;
-  const chosenDate = dateInput.value;
-
-  // Submit form
+it('prevents submission when narrative is empty or too short without calling submit', async () => {
+  await click('New field update');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  expect(sendButton.disabled).toBe(true);
+  await edit('#field-report', 'ok');
   await act(async () => {
     container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
   });
+  expect(state.submit).not.toHaveBeenCalled();
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain('Narrative is too short');
+});
 
-  expect(state.submit).toHaveBeenCalledWith({
-    fieldText: 'Testing finished yesterday',
-    siteLocation: 'Duliajan Manifold Area A',
-    reportedDate: chosenDate,
-    reportedBy: 'Ramesh Borah (Site Supervisor)',
-  });
+it('displays subtle loading feedback "SETU aapki update check kar raha hai…" while submission is in-flight', async () => {
+  let finish: (res: any) => void = () => {};
+  state.submit.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  await click('New field update');
+  await edit('#field-report', 'Pressure test passed with zero drop');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  const statusEl = container.querySelector('[role="status"]');
+  expect(statusEl?.textContent).toContain('SETU aapki update check kar raha hai…');
+  expect(sendButton.disabled).toBe(true);
+  await act(async () => { finish({ success: true, updateId: 'UPD-2026-FIN' }); });
+  expect(container.textContent).toContain('Update sent');
+});
+
+it('resolves clarification with Today and passes today reported date directly to submission', async () => {
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-TODAY' });
+  await click('New field update');
+  await edit('#field-report', 'Kal kaam complete hua tha');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  const dialog = container.querySelector('[role="dialog"]');
+  expect(dialog).not.toBeNull();
+  const todayBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Aaj hua tha'))!;
+  expect(todayBtn).toBeDefined();
+  await act(async () => { todayBtn.click(); });
+  expect(state.submit).toHaveBeenCalledTimes(1);
+  const callArgs = state.submit.mock.calls[0][0];
+  expect(callArgs.fieldText).toBe('Kal kaam complete hua tha');
+  expect(callArgs.reportedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect(callArgs.clarification.answer).toContain('Aaj hua tha');
+});
+
+it('invalidates previous clarification when narrative text or mic input is edited', async () => {
+  await click('New field update');
+  await edit('#field-report', 'Kal kaam complete hua tha');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+
+  // Supervisor types new clarification into the narrative
+  await edit('#field-report', 'Kal kaam complete hua tha aur aaj handover diya');
+  // Clarification dialog should be dismissed/invalidated
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it('passes stable idempotency key on failure retry preventing duplicate reports', async () => {
+  state.submit.mockResolvedValueOnce({ success: false, error: 'Network socket closed' });
+  await click('New field update');
+  await edit('#field-report', 'Pipeline testing completed with 10 bar pressure');
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  await act(async () => { sendButton.click(); });
+  expect(state.submit).toHaveBeenCalledTimes(1);
+  const firstKey = state.submit.mock.calls[0][0].idempotencyKey;
+  expect(firstKey).toBeDefined();
+
+  // Retry submission
+  state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-RETRY-STABLE' });
+  const retryBtn = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Dobara koshish karein'))!;
+  await act(async () => { retryBtn.click(); });
+  expect(state.submit).toHaveBeenCalledTimes(2);
+  const secondKey = state.submit.mock.calls[1][0].idempotencyKey;
+  expect(secondKey).toBe(firstKey);
 });
