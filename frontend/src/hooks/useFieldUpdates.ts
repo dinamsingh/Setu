@@ -149,7 +149,26 @@ export function useFieldUpdates() {
         p_clarification: options.clarification || null,
       });
 
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        // Detect missing RPC in environment
+        if (
+          rpcError.code === 'PGRST202' ||
+          rpcError.message?.includes('submit_supervisor_field_update') ||
+          rpcError.message?.includes('does not exist')
+        ) {
+          return {
+            success: false,
+            error: 'Backend submission RPC is not deployed in this environment (Migration 014 required).',
+            backendMissing: true,
+            deploymentLocked: true,
+          };
+        }
+        throw rpcError;
+      }
+
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response received from submission RPC.');
+      }
 
       await fetchUpdates();
       const updateId = (data as any)?.update_id || nextId;
@@ -157,7 +176,19 @@ export function useFieldUpdates() {
       return { success: true, data, updateId, replayed };
     } catch (err: any) {
       console.error('Error submitting supervisor field update:', err);
-      return { success: false, error: err.message || 'Failed to submit field update' };
+      const isNetworkError =
+        !err.code &&
+        (err.name === 'TypeError' ||
+          err.message?.toLowerCase().includes('fetch') ||
+          err.message?.toLowerCase().includes('network') ||
+          err.message?.toLowerCase().includes('failed to fetch'));
+
+      return {
+        success: false,
+        error: err.message || 'Failed to submit field update',
+        errorCode: err.code,
+        isNetworkError: Boolean(isNetworkError),
+      };
     }
   };
 

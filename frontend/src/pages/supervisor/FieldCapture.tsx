@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { VoiceInputControl } from '../../components/supervisor/VoiceInputControl';
 import { getKolkataReferenceDate, offsetKolkataDate } from '../../lib/temporalParser';
+import { isSupervisorSubmissionEnabled } from '../../lib/supervisorSubmissionDeployment';
 import {
   analyzeSupervisorNarrative,
   type ClarificationOption,
@@ -112,6 +113,13 @@ export const FieldCapture: React.FC = () => {
   const [pendingClarification, setPendingClarification] = useState<MaterialAmbiguity | null>(null);
   const [resolvedAmbiguity, setResolvedAmbiguity] = useState<ClarificationOption | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const lastAttemptedPayloadRef = useRef<{
+    text: string;
+    location: string;
+    date: string;
+    discipline: string;
+  } | null>(null);
+  const [unresolvedNetworkError, setUnresolvedNetworkError] = useState(false);
 
   const handleFinalTranscript = (chunk: string) => {
     if (isSubmittingRef.current) return;
@@ -133,6 +141,9 @@ export const FieldCapture: React.FC = () => {
     setVoiceStatus(null);
     setPendingClarification(null);
     setResolvedAmbiguity(null);
+    setUnresolvedNetworkError(false);
+    lastAttemptedPayloadRef.current = null;
+    setIdempotencyKey(crypto.randomUUID());
     setScreen('compose');
   };
   const openReport = (update: FieldUpdate) => { setSelectedReport(update.id); setScreen('report'); };
@@ -148,15 +159,41 @@ export const FieldCapture: React.FC = () => {
     setSubmitError(null);
 
     const effectiveDate = resolvedDateOverride || reportedDate;
+    const currentPayload = {
+      text: fieldText.trim(),
+      location: siteLocation.trim() || 'Site Area',
+      date: effectiveDate,
+      discipline,
+    };
+
+    // Robust Idempotency Lifecycle:
+    // If the payload changed from previous attempt, issue a fresh key to prevent 23505 mismatch error.
+    // If identical retry, preserve the key so server dedupes/replays safely.
+    let activeKey = idempotencyKey;
+    const lastAttempt = lastAttemptedPayloadRef.current;
+    const isPayloadChanged = Boolean(
+      lastAttempt &&
+      (lastAttempt.text !== currentPayload.text ||
+       lastAttempt.location !== currentPayload.location ||
+       lastAttempt.date !== currentPayload.date ||
+       lastAttempt.discipline !== currentPayload.discipline)
+    );
+
+    if (isPayloadChanged) {
+      activeKey = crypto.randomUUID();
+      setIdempotencyKey(activeKey);
+      setUnresolvedNetworkError(false);
+    }
+    lastAttemptedPayloadRef.current = currentPayload;
 
     const result = await submitSupervisorFieldUpdate({
-      fieldText: fieldText.trim(),
-      siteLocation: siteLocation.trim() || 'Site Area',
-      reportedDate: effectiveDate,
+      fieldText: currentPayload.text,
+      siteLocation: currentPayload.location,
+      reportedDate: currentPayload.date,
       reportedBy: reportedBy.trim(),
       discipline,
       sourceType: 'manual_text',
-      idempotencyKey,
+      idempotencyKey: activeKey,
       interpretation: analysis.summary,
       clarification: clarificationOpt
         ? {
@@ -172,14 +209,22 @@ export const FieldCapture: React.FC = () => {
     isSubmittingRef.current = false;
 
     if (!result.success) {
-      setSubmitError(result.error || 'Update nahi bheji gayi. Kripya dobara koshish karein.');
+      if ((result as any).isNetworkError) {
+        setUnresolvedNetworkError(true);
+        setSubmitError(
+          'Network connection interrupted. Click "Update bhejo" to retry safely without creating duplicates.'
+        );
+      } else {
+        setUnresolvedNetworkError(false);
+        setSubmitError(result.error || 'Update nahi bheji gayi. Kripya dobara koshish karein.');
+      }
       return;
     }
 
     setSent({
       updateId: result.updateId || 'Submitted',
-      text: fieldText.trim(),
-      location: siteLocation.trim(),
+      text: currentPayload.text,
+      location: currentPayload.location,
       discipline,
       date: effectiveDate,
       reporter: reportedBy.trim(),
@@ -187,6 +232,8 @@ export const FieldCapture: React.FC = () => {
     setFieldText('');
     setPendingClarification(null);
     setResolvedAmbiguity(null);
+    lastAttemptedPayloadRef.current = null;
+    setUnresolvedNetworkError(false);
     setIdempotencyKey(crypto.randomUUID());
     setScreen('sent');
   };
@@ -301,6 +348,17 @@ export const FieldCapture: React.FC = () => {
         <p className="mt-6 text-xs font-bold uppercase tracking-[0.14em] text-[#0C806D]">New update</p>
         <h1 className="mt-2 text-[2rem] font-bold leading-tight tracking-tight sm:text-[2.65rem]">What happened on site?</h1>
         <p className="mt-2 max-w-lg text-sm leading-6 text-slate-500 sm:text-base">Write naturally or use voice. SETU handles schedule linking for planner review.</p>
+        {!isSupervisorSubmissionEnabled() && (
+          <div role="region" aria-label="Deployment status" className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="flex items-center gap-2 font-semibold">
+              <AlertCircle size={18} className="shrink-0 text-amber-700" />
+              <span>Supervisor submission temporarily paused</span>
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-amber-800">
+              Backend deployment verification (Migration 014) is currently in progress. Your written update will remain saved as a draft until submissions are enabled.
+            </p>
+          </div>
+        )}
         <form id="site-log-compose" onSubmit={handleSend} className="mt-7 space-y-6">
           <div>
             <div className="relative">
@@ -514,6 +572,11 @@ export const FieldCapture: React.FC = () => {
                   <div>
                     <p className="font-bold text-rose-950">Update nahi bheji gayi</p>
                     <p className="mt-0.5 text-xs text-rose-800">{submitError}</p>
+                    {unresolvedNetworkError && (
+                      <p className="mt-1 text-xs font-medium text-rose-700">
+                        Network response confirm nahi hua. Dobara koshish karne par duplicate report nahi banegi.
+                      </p>
+                    )}
                   </div>
                 </div>
                 <button

@@ -1,8 +1,17 @@
--- Phase 4: Supervisor Safe Submission Boundary
--- Authoritative server validation, duplicate prevention, and direct-insert boundary.
--- Staged deployment: RPC and receipt table deployed first; direct-insert restriction
--- activated following verified frontend rollout to prevent downtime.
+-- Phase 4: Supervisor Safe Submission Boundary (Stage A: Backend Expansion)
+-- Authoritative server validation RPC and receipts table for transactional idempotency.
+-- Staged Rollout Strategy:
+--   Stage A (This Migration 014): Non-breaking backend expansion. Deploys the secure RPC
+--     and idempotency receipt infrastructure while keeping legacy writes functional.
+--   Stage B (Frontend PR): Transitions Supervisor UI to call submit_supervisor_field_update.
+--   Stage C (Manual Release Barrier): Located in database/staged_rollout/015_lockdown_direct_field_update_inserts.sql.
+--     Revokes direct table INSERT privileges from authenticated/anon roles once Stage B is verified in production.
 begin;
+
+-- Clean up any premature or flawed trigger if previously created in test/dev environments
+drop trigger if exists trg_protect_manual_field_update on public.field_updates;
+drop trigger if exists trg_protect_field_update_insert_boundary on public.field_updates;
+drop function if exists public.protect_field_update_insert_boundary();
 
 -- 1. Supervisor Submission Receipts Table (Idempotency and Audit)
 create table if not exists public.supervisor_submission_receipts (
@@ -18,7 +27,8 @@ create table if not exists public.supervisor_submission_receipts (
 );
 
 alter table public.supervisor_submission_receipts enable row level security;
-revoke all on public.supervisor_submission_receipts from public, anon, authenticated, service_role;
+revoke all on public.supervisor_submission_receipts from public, anon, authenticated;
+grant all on public.supervisor_submission_receipts to service_role;
 
 -- 2. Authoritative Server Validation RPC for Supervisor Field Updates
 create or replace function public.submit_supervisor_field_update(
@@ -58,16 +68,16 @@ begin
 
     v_role := coalesce(public.current_user_role(), '');
     if v_role not in ('site', 'engineer') then
-        raise exception 'Only authenticated site or engineer users may submit supervisor updates' using errcode = '42501';
+        raise exception 'Forbidden: Supervisor submission requires site or engineer role' using errcode = '42501';
     end if;
 
     -- B. Authoritative Field Validation
     v_field_text := pg_catalog.btrim(p_field_text);
     if v_field_text is null or pg_catalog.length(v_field_text) < 3 then
-        raise exception 'Narrative text must be at least 3 characters' using errcode = '22023';
+        raise exception 'Field text must be at least 3 characters' using errcode = '22023';
     end if;
     if pg_catalog.length(v_field_text) > 4000 then
-        raise exception 'Narrative text cannot exceed 4000 characters' using errcode = '22023';
+        raise exception 'Field text cannot exceed 4000 characters' using errcode = '22023';
     end if;
 
     v_site_location := pg_catalog.btrim(p_site_location);
@@ -174,7 +184,7 @@ begin
     end if;
 
     -- D. Insertion into public.field_updates with Enforced Baseline Safety Defaults
-    -- Fix 4: p_interpretation and p_clarification are untrusted client metadata
+    -- Untrusted client semantic metadata (interpretation, clarification) is recorded in receipts
     -- and MUST NOT be stored in candidate_matches or validation_results.
     -- candidate_matches and validation_results remain canonical empty arrays.
     insert into public.field_updates (
@@ -234,54 +244,12 @@ begin
 end;
 $$;
 
--- Revoke all public execution rights and grant only to authenticated users
+-- Revoke all public execution rights and grant only to authenticated users and service_role
 revoke execute on function public.submit_supervisor_field_update(text, text, date, text, text, text, text, text, jsonb, jsonb)
     from public, anon, authenticated, service_role;
 grant execute on function public.submit_supervisor_field_update(text, text, date, text, text, text, text, text, jsonb, jsonb)
     to authenticated;
-
--- 3. Authoritative Database Protection Trigger
--- Fix 2: Blocks ANY direct client insert from authenticated/anon roles regardless of source_type.
--- Does not trust client-controlled source types (like 'text' or 'custom') or custom session flags.
--- Only security definer RPCs (running under definer role) or service_role can write to field_updates.
-create or replace function public.protect_field_update_insert_boundary()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-    -- Service role is always permitted (background workers, migrations, system tasks)
-    if auth.role() = 'service_role' then
-        return new;
-    end if;
-
-    -- Direct client insert from authenticated or anon is forbidden regardless of source_type.
-    -- In a direct client call, pg_catalog.current_user is 'authenticated' or 'anon'.
-    -- In a security definer RPC (submit_supervisor_field_update, import_field_reports),
-    -- pg_catalog.current_user is the database owner (definer).
-    if pg_catalog.current_user in ('authenticated', 'anon', 'public') then
-        raise exception 'Direct client insert on field_updates is forbidden. Submissions must use the authoritative RPC submit_supervisor_field_update or import_field_reports.' using errcode = '42501';
-    end if;
-
-    -- Whitelist source_type validation across all valid server writers
-    if new.source_type not in (
-        'manual_text', 'voice_transcript', 'spreadsheet_xlsx', 'spreadsheet_csv', 'whatsapp_log', 'text'
-    ) then
-        raise exception 'Invalid source_type: %', new.source_type using errcode = '22023';
-    end if;
-
-    return new;
-end;
-$$;
-
-revoke execute on function public.protect_field_update_insert_boundary()
-    from public, anon, authenticated, service_role;
-
-drop trigger if exists trg_protect_manual_field_update on public.field_updates;
-drop trigger if exists trg_protect_field_update_insert_boundary on public.field_updates;
-create trigger trg_protect_field_update_insert_boundary
-before insert on public.field_updates
-for each row execute function public.protect_field_update_insert_boundary();
+grant execute on function public.submit_supervisor_field_update(text, text, date, text, text, text, text, text, jsonb, jsonb)
+    to service_role;
 
 commit;
