@@ -65,3 +65,9 @@
 }
 @media(max-width:374px){.setu-supervisor-v2__form,.setu-supervisor-v2__review-card{padding:14px;}.setu-supervisor-v2__steps{gap:12px;}}
 @media(prefers-reduced-motion:reduce){.setu-supervisor-v2 *, .setu-supervisor-v2 *::before,.setu-supervisor-v2 *::after{transition:none!important;animation:none!important;}}
+
+/* The production V2 path uses explicit Review before submitting.
+   Retain the original handler as a compatibility path while migrating tests. */
+.setu-supervisor-v2__compose #site-log-compose>button[type="submit"]{display:none!important;}
+.setu-supervisor-v2__compose>div.fixed:has(button[form="site-log-compose"]){display:none!important;}
+.setu-supervisor-v2__compose .setu-supervisor-v2__draftbar button:disabled{opacity:.5;cursor:not-allowed;}
