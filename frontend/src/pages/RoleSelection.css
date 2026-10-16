@@ -1,0 +1,167 @@
+.setu-login-v2 {
+  --setu-login-bg: #ffffff;
+  --setu-login-surface: #f5f5f7;
+  --setu-login-ink: #1d1d1f;
+  --setu-login-muted: #6e6e73;
+  --setu-login-border: #d2d2d7;
+  --setu-login-border-soft: #e8e8ed;
+  --setu-login-blue: #0071e3;
+  --setu-login-blue-active: #0066cc;
+  --setu-login-dark: #000000;
+  --setu-login-dark-text: #f5f5f7;
+  --setu-login-dark-muted: #a1a1a6;
+  --setu-login-dark-line: #363639;
+  --setu-login-error: #b42318;
+  --setu-login-error-bg: #fff4f2;
+  --setu-login-font: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --setu-login-display: "SF Pro Display", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --setu-login-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+}
+
+.setu-login-v2,
+.setu-login-v2 * { box-sizing: border-box; }
+
+.setu-login-v2 {
+  display: grid;
+  grid-template-columns: minmax(0, .94fr) minmax(0, 1.06fr);
+  min-height: 100vh;
+  min-height: 100svh;
+  width: 100%;
+  background: var(--setu-login-bg);
+  color: var(--setu-login-ink);
+  font-family: var(--setu-login-font);
+  font-size: 17px;
+  line-height: 1.55;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.setu-login-v2 :where(h1, h2, p) { margin: 0; }
+.setu-login-v2 :where(button, input) { font: inherit; }
+.setu-login-v2 button { cursor: pointer; }
+.setu-login-v2 button:disabled { cursor: wait; }
+.setu-login-v2 :where(button, a, input):focus-visible { outline: 2px solid var(--setu-login-blue-active); outline-offset: 4px; }
+.setu-login-v2__icon { display: block; width: 20px; height: 20px; flex: none; stroke-width: 1.75; }
+.setu-login-v2__eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .14em; line-height: 1.5; }
+
+.setu-login-v2__story,
+.setu-login-v2__access {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 48px;
+  padding: 48px 64px 32px;
+}
+
+.setu-login-v2__story { background: var(--setu-login-dark); color: var(--setu-login-dark-text); }
+.setu-login-v2__brand,
+.setu-login-v2__access-header,
+.setu-login-v2__access-footer,
+.setu-login-v2__submit,
+.setu-login-v2__demo-grid button { display: flex; align-items: center; }
+.setu-login-v2__brand { align-self: flex-start; gap: 12px; }
+.setu-login-v2__brand-mark { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid var(--setu-login-dark-line); border-radius: 8px; }
+.setu-login-v2__brand-mark .setu-login-v2__icon { width: 24px; height: 24px; }
+.setu-login-v2__brand-name { font-family: var(--setu-login-display); font-size: 28px; font-weight: 600; letter-spacing: .08em; line-height: 1; }
+.setu-login-v2__story-main { display: flex; width: 100%; flex-direction: column; gap: 32px; padding-block: 24px; }
+.setu-login-v2__story-main > .setu-login-v2__eyebrow,
+.setu-login-v2__story-footer { color: var(--setu-login-dark-muted); }
+.setu-login-v2__story-title,
+.setu-login-v2__form-heading h1 { font-family: var(--setu-login-display); font-weight: 600; letter-spacing: -.015em; }
+.setu-login-v2__story-title { font-size: clamp(40px, 4.5vw, 64px); line-height: 1.08; }
+.setu-login-v2__story-title span { display: block; }
+.setu-login-v2__muted-title { color: var(--setu-login-dark-muted); }
+.setu-login-v2__story-description { max-width: 34ch; color: var(--setu-login-dark-muted); line-height: 1.65; overflow-wrap: anywhere; }
+.setu-login-v2__bridge { display: block; width: 100%; height: auto; margin-block: 8px; color: var(--setu-login-dark-muted); }
+.setu-login-v2__workflow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; border-top: 1px solid var(--setu-login-dark-line); padding-top: 24px; }
+.setu-login-v2__workflow div { display: grid; gap: 8px; }
+.setu-login-v2__workflow span { color: var(--setu-login-dark-muted); font-family: var(--setu-login-mono); font-size: 12px; }
+.setu-login-v2__workflow strong { font-size: 16px; font-weight: 500; }
+.setu-login-v2__story-footer { display: grid; gap: 8px; font-size: 14px; }
+
+.setu-login-v2__access-header { gap: 8px; color: var(--setu-login-muted); }
+.setu-login-v2__header-icon { width: 16px; height: 16px; }
+.setu-login-v2__form-wrap { width: 100%; max-width: 400px; align-self: center; }
+.setu-login-v2__form-heading { display: grid; gap: 12px; margin-bottom: 32px; }
+.setu-login-v2__form-heading h1 { font-size: 40px; line-height: 1.15; }
+.setu-login-v2__form-heading p,
+.setu-login-v2__demo-heading p,
+.setu-login-v2__demo-help { color: var(--setu-login-muted); }
+.setu-login-v2__form { display: grid; gap: 24px; }
+.setu-login-v2__field { display: grid; gap: 8px; }
+.setu-login-v2__field label { color: var(--setu-login-ink); font-size: 16px; font-weight: 600; }
+.setu-login-v2__field label span { color: var(--setu-login-muted); font-size: 12px; font-weight: 400; }
+.setu-login-v2__field input { display: block; min-width: 0; min-height: 56px; width: 100%; padding: 16px; border: 1px solid var(--setu-login-border); border-radius: 8px; background: var(--setu-login-bg); color: var(--setu-login-ink); line-height: 1.4; outline: none; }
+.setu-login-v2__field input::placeholder { color: var(--setu-login-muted); opacity: 1; }
+.setu-login-v2__field input:focus { border-color: var(--setu-login-blue); box-shadow: 0 0 0 4px rgba(0, 113, 227, .35); }
+.setu-login-v2__field input[aria-invalid="true"] { border-color: var(--setu-login-error); }
+.setu-login-v2__field input:disabled { background: var(--setu-login-surface); color: #424245; }
+.setu-login-v2__password { display: flex; gap: 0; border: 1px solid var(--setu-login-border); border-radius: 8px; background: var(--setu-login-bg); }
+.setu-login-v2__password:focus-within { border-color: var(--setu-login-blue); box-shadow: 0 0 0 4px rgba(0, 113, 227, .35); }
+.setu-login-v2__password--invalid { border-color: var(--setu-login-error); }
+.setu-login-v2__password input { border: 0; box-shadow: none !important; background: transparent; }
+.setu-login-v2__reveal { display: grid; min-width: 44px; min-height: 44px; margin-right: 4px; place-items: center; padding: 12px; border: 0; border-radius: 8px; background: transparent; color: #424245; }
+.setu-login-v2__field-error { color: var(--setu-login-error); font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.setu-login-v2__message { display: grid; gap: 8px; padding: 16px; border: 1px solid var(--setu-login-border); border-radius: 8px; background: var(--setu-login-surface); color: #424245; font-size: 16px; overflow-wrap: anywhere; }
+.setu-login-v2__message strong { font-weight: 600; }
+.setu-login-v2__message--error { border-color: var(--setu-login-error); background: var(--setu-login-error-bg); color: var(--setu-login-error); }
+.setu-login-v2__message a { color: inherit; text-underline-offset: 4px; }
+.setu-login-v2__submit { min-height: 56px; width: 100%; justify-content: center; gap: 8px; padding: 16px 24px; border: 0; border-radius: 980px; background: var(--setu-login-blue); color: #fff; font-size: 17px; font-weight: 500; line-height: 1.4; transition: transform 150ms cubic-bezier(.28, 0, .22, 1), background 150ms cubic-bezier(.28, 0, .22, 1); }
+.setu-login-v2__submit:active { background: var(--setu-login-blue-active); transform: scale(.99); }
+.setu-login-v2__submit:disabled { background: var(--setu-login-blue-active); opacity: .65; }
+.setu-login-v2__demo { margin-top: 32px; border-top: 1px solid var(--setu-login-border-soft); padding-top: 32px; }
+.setu-login-v2__demo-heading { display: grid; gap: 8px; margin-bottom: 16px; }
+.setu-login-v2__demo-heading h2 { font-size: 16px; font-weight: 600; letter-spacing: 0; }
+.setu-login-v2__demo-heading p,
+.setu-login-v2__demo-help { font-size: 14px; line-height: 1.55; }
+.setu-login-v2__demo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.setu-login-v2__demo-grid button { min-height: 56px; justify-content: center; gap: 12px; padding: 16px 12px; border: 1px solid var(--setu-login-border); border-radius: 12px; background: var(--setu-login-bg); color: #424245; font-size: 16px; font-weight: 500; line-height: 1.3; }
+.setu-login-v2__demo-grid button[aria-pressed="true"] { border-color: var(--setu-login-ink); background: var(--setu-login-surface); color: var(--setu-login-ink); }
+.setu-login-v2__demo-grid button:disabled { opacity: .6; }
+.setu-login-v2__demo-help { margin-top: 12px; }
+.setu-login-v2__access-footer { justify-content: center; gap: 8px; color: var(--setu-login-muted); font-size: 14px; line-height: 1.5; text-align: center; }
+
+@media (hover: hover) {
+  .setu-login-v2__submit:not(:disabled):hover { background: var(--setu-login-blue-active); }
+  .setu-login-v2__demo-grid button:not(:disabled):hover { border-color: #424245; background: var(--setu-login-surface); }
+  .setu-login-v2__reveal:not(:disabled):hover { background: var(--setu-login-surface); color: var(--setu-login-ink); }
+}
+
+@media (min-width: 1440px) {
+  .setu-login-v2__story, .setu-login-v2__access { padding-inline: 80px; }
+  .setu-login-v2__story-main { max-width: 520px; align-self: center; }
+}
+
+@media (max-width: 1023px) {
+  .setu-login-v2 { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+  .setu-login-v2__story, .setu-login-v2__access { padding: 32px 40px; }
+  .setu-login-v2__story-title { font-size: clamp(40px, 4.5vw, 48px); }
+  .setu-login-v2__story-main { gap: 24px; }
+}
+
+@media (max-width: 767px) {
+  .setu-login-v2 { display: block; }
+  .setu-login-v2__story { gap: 24px; padding: 24px; }
+  .setu-login-v2__story-main { gap: 16px; padding-block: 8px; }
+  .setu-login-v2__story-title { font-size: 40px; }
+  .setu-login-v2__story-title span { display: inline; }
+  .setu-login-v2__muted-title { display: block !important; }
+  .setu-login-v2__story-description {
+    inline-size: min(100%, calc(100vw - 48px));
+    max-inline-size: calc(100vw - 48px);
+    min-width: 0;
+    white-space: normal;
+  }
+  .setu-login-v2__bridge { max-width: min(360px, calc(100vw - 48px)); align-self: center; }
+  .setu-login-v2__workflow { padding-top: 16px; }
+  .setu-login-v2__story-footer { display: flex; flex-wrap: wrap; gap: 12px; }
+  .setu-login-v2__access { gap: 32px; padding: 32px 24px; }
+  .setu-login-v2__access-header { align-self: center; }
+  .setu-login-v2__form-heading h1 { font-size: 36px; }
+}
+
+@media (max-width: 374px) {
+  .setu-login-v2__story, .setu-login-v2__access { padding-inline: 16px; }
+  .setu-login-v2__demo-grid { grid-template-columns: 1fr; }
+}
