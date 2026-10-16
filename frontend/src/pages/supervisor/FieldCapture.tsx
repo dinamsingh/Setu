@@ -248,10 +248,10 @@ export const FieldCapture: React.FC = () => {
     setSubmitError(null);
     const analysis = analyzeSupervisorNarrative(fieldText, reportedDate, { location: siteLocation });
     if (!analysis.isValid) { setSubmitError(analysis.validationError || 'Enter a valid field update.'); return; }
-    if (fieldText.trim().length > 4000 || !siteLocation.trim() || !reportedDate || !disciplines.includes(discipline)) {
+    if (fieldText.trim().length > 4000 || siteLocation.trim().length < 2 || siteLocation.trim().length > 200 || reportedBy.trim().length < 2 || reportedBy.trim().length > 100 || !reportedDate || !disciplines.includes(discipline)) {
       setSubmitError('Check the report length, location, date and discipline.'); return;
     }
-    if (reportedDate > getKolkataReferenceDate().yyyyMmDd) { setSubmitError('Report date cannot be in the future.'); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(reportedDate) || Number.isNaN(Date.parse(reportedDate)) || reportedDate > getKolkataReferenceDate().yyyyMmDd) { setSubmitError('Report date cannot be in the future.'); return; }
     if (analysis.materialAmbiguity && !resolvedAmbiguity) {
       setReviewAfterClarification(true);
       setPendingClarification(analysis.materialAmbiguity);
