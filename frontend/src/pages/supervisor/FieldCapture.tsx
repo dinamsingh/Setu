@@ -505,7 +505,7 @@ export const FieldCapture: React.FC = () => {
           </div>
 
           <section className="setu-supervisor-v2__draftbar" aria-label="Review and save controls">
-            <div className="setu-supervisor-v2__draft-actions"><button type="button" disabled={isSubmitting} onClick={saveDraft} className="setu-supervisor-v2__quiet">Save draft</button><span role="status">{draftStatus}</span></div>
+            <div className="setu-supervisor-v2__draft-actions"><button type="button" disabled={isSubmitting} onClick={saveDraft} className="setu-supervisor-v2__quiet">Save draft</button><span aria-live="polite">{draftStatus}</span></div>
             <button type="button" disabled={isSubmitting} onClick={handleReview} className="setu-supervisor-v2__primary">Review update <ArrowRight size={18}/></button>
           </section>
           {draftWarning && <p role="alert" className="text-sm text-amber-800">{draftWarning}</p>}
