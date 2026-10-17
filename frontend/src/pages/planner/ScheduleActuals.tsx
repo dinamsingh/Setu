@@ -1,3 +1,4 @@
+import './PlannerV2.css';
 import { useEffect, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Header } from '../../components/common/Header';
@@ -16,7 +17,7 @@ export function ScheduleActuals() {
     if (selectedId) evidenceRef.current?.scrollIntoView?.({ block: 'start' });
   }, [selectedId]);
   function refresh() { setSelection(null); refetch(); }
-  return <div className="min-h-screen bg-setu-slate-100 flex flex-col">
+  return <div className="setu-planner-v2 setu-planner-v2--schedule-actuals min-h-screen bg-setu-slate-100 flex flex-col">
     <Header currentRole="planner"/>
     <div className="flex-1 flex flex-col md:flex-row"><Sidebar/>
       <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-[100rem]">

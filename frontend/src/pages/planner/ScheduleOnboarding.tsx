@@ -1,3 +1,4 @@
+import './PlannerV2.css';
 import React, { useState } from 'react';
 import { 
   UploadCloud, 
@@ -73,7 +74,7 @@ export const ScheduleOnboarding: React.FC = () => {
   ).length;
 
   return (
-    <div className="min-h-screen bg-setu-slate-100 flex flex-col">
+    <div className="setu-planner-v2 setu-planner-v2--onboarding min-h-screen bg-setu-slate-100 flex flex-col">
       <Header currentRole="planner" />
 
       <div className="flex-1 flex flex-col md:flex-row">

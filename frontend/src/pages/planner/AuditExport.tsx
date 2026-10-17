@@ -1,3 +1,4 @@
+import './PlannerV2.css';
 import React, { useState, useMemo } from 'react';
 import { 
   Download, 
@@ -69,7 +70,7 @@ export const AuditExport: React.FC = () => {
   }, [updates]);
 
   return (
-    <div className="min-h-screen bg-setu-slate-100 flex flex-col">
+    <div className="setu-planner-v2 setu-planner-v2--audit-export min-h-screen bg-setu-slate-100 flex flex-col">
       <Header currentRole="planner" />
 
       <div className="flex-1 flex flex-col md:flex-row">
