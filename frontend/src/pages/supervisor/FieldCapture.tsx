@@ -59,7 +59,7 @@ function FieldUpdateRow({ update, rounds, onClick }: {
   onClick: () => void;
 }) {
   return <button type="button" onClick={onClick}
-    className={`group flex w-full items-start gap-3 border-b border-slate-100 px-4 py-4 text-left transition-colors last:border-0 hover:bg-slate-50 sm:px-5 ${focus}`}>
+    className={`setu-supervisor-v2__report-row group flex w-full items-start gap-3 border-b border-slate-100 px-4 py-4 text-left transition-colors last:border-0 hover:bg-slate-50 sm:px-5 ${focus}`}>
     <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[#1557A0]">
       <FileText size={19} aria-hidden="true" />
     </span>
@@ -311,39 +311,46 @@ export const FieldCapture: React.FC = () => {
     <main className={`setu-supervisor-v2__main mx-auto w-full px-4 pb-32 pt-7 sm:px-8 sm:pt-10 ${screen === 'import' ? 'max-w-6xl' : 'max-w-4xl'}`}>
       {screen === 'import' && <ReportImportWizard onCancel={() => setScreen('compose')}
         submitter={user ? { id: user.id, role } : undefined} onLockChange={setImportLocked} onCompleted={() => void refetch(true)} />}
-      {screen === 'home' && <div className="space-y-7">
-        <section className="relative overflow-hidden rounded-[1.7rem] bg-[#EAF2FC] px-6 py-7 sm:px-9 sm:py-9">
-          <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full border-[35px] border-white/45" aria-hidden="true" />
-          <div className="relative max-w-xl">
-            <p className="text-[11px] font-bold uppercase tracking-[0.17em] text-[#55769E]">Duliajan project · Field workspace</p>
-            <h1 className="mt-3 text-[2rem] font-bold leading-tight tracking-tight sm:text-[2.65rem]">Site Log</h1>
-            <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600"><MapPin size={16} aria-hidden="true" />{defaultLocation}</p>
-            <p className="mt-1 text-sm text-slate-500">Record field progress. SETU handles schedule linking.</p>
-            <button type="button" onClick={startNew}
-              className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#123F77] px-5 py-4 text-sm font-semibold text-white shadow-[0_12px_25px_-14px_rgba(18,63,119,0.8)] transition-colors hover:bg-[#0C315D] sm:w-auto sm:min-w-[220px] ${focus}`}>
-              <Plus size={19} aria-hidden="true" /> New field update <ArrowRight size={17} aria-hidden="true" />
-            </button>
+      {screen === 'home' && <div className="setu-supervisor-v2__home">
+        <nav className="setu-supervisor-v2__breadcrumb" aria-label="Location"><span>Site Log</span><ChevronRight size={15} aria-hidden="true"/><strong>Overview</strong></nav>
+        <section className="setu-supervisor-v2__home-intro" aria-labelledby="site-log-home-title">
+          <div className="setu-supervisor-v2__home-copy">
+            <p className="setu-supervisor-v2__eyebrow">FIELD WORKSPACE · OIL INDIA LIMITED</p>
+            <h1 id="site-log-home-title" className="setu-supervisor-v2__page-title">Site Log</h1>
+            <p className="setu-supervisor-v2__home-description">Capture site progress and follow every update from the field into planner review.</p>
+            <div className="setu-supervisor-v2__home-location"><MapPin size={17} aria-hidden="true"/><span>{defaultLocation}</span></div>
+          </div>
+          <div className="setu-supervisor-v2__home-cta">
+            <button type="button" onClick={startNew} className="setu-supervisor-v2__primary"><Plus size={18} aria-hidden="true"/><span>New field update</span><ArrowRight size={18} aria-hidden="true"/></button>
+            <p>Write, review, then send for plan linking.</p>
           </div>
         </section>
+        <section className="setu-supervisor-v2__home-metrics" aria-label="Workspace activity">
+          <div className="setu-supervisor-v2__metric"><span>My updates</span><strong>{ownUpdates.length}</strong><small>Reports submitted from this account</small></div>
+          <div className="setu-supervisor-v2__metric"><span>Pending review</span><strong>{ownUpdates.filter(update => update.status === 'pending').length}</strong><small>Awaiting a planner decision</small></div>
+          <div className="setu-supervisor-v2__metric"><span>Clarification rounds</span><strong>{actionableRounds.length}</strong><small>Open or responded requests</small></div>
+        </section>
 
-        {workflow.error && <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800">Clarification updates unavailable: {workflow.error}</p>}
-        {actionableRounds.length > 0 && user && <div className={`${card} overflow-hidden p-4 sm:p-5`}>
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#123F77]"><ClipboardList size={18}/> Planner requested clarification</div>
+        {workflow.error && <p role="alert" className="setu-supervisor-v2__home-error">Clarification updates unavailable: {workflow.error}</p>}
+        {actionableRounds.length > 0 && user && <section className="setu-supervisor-v2__home-clarifications" aria-labelledby="supervisor-clarifications-title">
+          <div className="setu-supervisor-v2__section-heading"><div><p className="setu-supervisor-v2__eyebrow">NEEDS ATTENTION</p><h2 id="supervisor-clarifications-title">Planner requested clarification</h2></div><ClipboardList size={22} aria-hidden="true"/></div>
           <NeedsClarification rounds={actionableRounds} updates={updates} userId={user.id} act={workflow.act} available={!workflow.loading && !workflow.error} />
-        </div>}
+        </section>}
 
-        <section aria-labelledby="recent-heading">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div><h2 id="recent-heading" className="text-xl font-bold tracking-tight sm:text-2xl">Recent updates</h2>
-              <p className="text-sm text-slate-500">Your site observations awaiting planner review</p></div>
-            <button type="button" onClick={() => setScreen('updates')} className={`text-sm font-semibold text-[#1557A0] ${focus}`}>View all ({ownUpdates.length})</button>
+        <section className="setu-supervisor-v2__home-recent" aria-labelledby="recent-heading">
+          <div className="setu-supervisor-v2__section-heading">
+            <div><p className="setu-supervisor-v2__eyebrow">FIELD ACTIVITY</p><h2 id="recent-heading">Recent updates</h2>
+              <p>Your most recent reports and their planner review status</p></div>
+            <button type="button" onClick={() => setScreen('updates')} className="setu-supervisor-v2__view-all">View all ({ownUpdates.length}) <ArrowRight size={17} aria-hidden="true"/></button>
           </div>
-          <div className={`${card} overflow-hidden`}>
-            {loading ? <p className="p-6 text-sm text-slate-500">Loading updates…</p> : error ? <p role="alert" className="p-6 text-sm text-rose-700">{error}</p> :
+          <div className="setu-supervisor-v2__home-list">
+            {loading ? <p className="setu-supervisor-v2__home-empty" role="status">Loading updates…</p> :
+              error ? <p role="alert" className="setu-supervisor-v2__home-error">{error}</p> :
               ownUpdates.length ? ownUpdates.slice(0, 3).map(u => <FieldUpdateRow key={u.id} update={u} rounds={ownRounds} onClick={() => openReport(u)}/>) :
-              <p className="p-6 text-sm text-slate-500">You haven't sent any updates yet.</p>}
+              <div className="setu-supervisor-v2__home-empty"><FileText size={28} aria-hidden="true"/><h3>No updates yet</h3><p>You haven't sent any updates yet.</p><button type="button" onClick={startNew} className="setu-supervisor-v2__view-all">New field update <ArrowRight size={17} aria-hidden="true"/></button></div>}
           </div>
         </section>
+        <footer className="setu-supervisor-v2__home-footer">Reports are submitted for schedule linking and human planner review. They do not automatically change the approved project plan.</footer>
       </div>}
 
       {screen === 'compose' && <div className="setu-supervisor-v2__compose mx-auto max-w-[700px]">
@@ -647,7 +654,7 @@ export const FieldCapture: React.FC = () => {
         <button type="button" onClick={startNew} className={`mt-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#1557A0] ${focus}`}>Send another update</button>
       </div>}
 
-      {screen === 'updates' && <section className="mx-auto max-w-2xl">
+      {screen === 'updates' && <section className="setu-supervisor-v2__list-page mx-auto max-w-2xl">
         <button type="button" onClick={() => setScreen('home')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> Site Log</button>
         <div className="mb-6 flex items-center justify-between"><h1 className="text-2xl font-bold tracking-tight">My updates</h1>
           <span className="text-sm font-medium text-slate-500">{ownUpdates.length} total</span></div>
@@ -658,7 +665,7 @@ export const FieldCapture: React.FC = () => {
         </div>
       </section>}
 
-      {screen === 'report' && <section className="mx-auto max-w-2xl">
+      {screen === 'report' && <section className="setu-supervisor-v2__detail-page mx-auto max-w-2xl">
         <button type="button" onClick={() => setScreen('updates')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> My updates</button>
         {currentReport ? <>
           <div className="mb-6 flex flex-wrap items-center gap-3"><h1 className="break-all font-mono text-xl font-bold sm:text-2xl">{currentReport.update_id}</h1><Status update={currentReport} rounds={ownRounds}/></div>
@@ -675,7 +682,7 @@ export const FieldCapture: React.FC = () => {
         </> : <p className="text-sm text-slate-500">Report no longer available in your list.</p>}
       </section>}
 
-      {screen === 'account' && <section className="mx-auto max-w-md">
+      {screen === 'account' && <section className="setu-supervisor-v2__account-page mx-auto max-w-md">
         <button type="button" onClick={() => setScreen('home')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> Site Log</button>
         <h1 className="text-3xl font-bold tracking-tight">Account</h1>
         <div className={`${card} mt-6 space-y-5 p-6`}><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-800"><UserRound size={22}/></span>
