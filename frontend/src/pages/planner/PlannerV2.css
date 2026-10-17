@@ -1,0 +1,244 @@
+/* SETU Planner V2: CSS port of planner 2.zip's Apple/SETU tokens.
+ * This stylesheet is scoped to planner page roots; backend modules untouched. */
+.setu-planner-v2 {
+  --pl2-bg:#fff;--pl2-surface:#f5f5f7;--pl2-warm:#fbfbfd;
+  --pl2-fg:#1d1d1f;--pl2-mid:#424245;--pl2-muted:#6e6e73;
+  --pl2-border:#d2d2d7;--pl2-soft:#e8e8ed;--pl2-blue:#0071e3;
+  --pl2-blue-active:#0066cc;--pl2-black:#000;--pl2-dark-surface:#202023;
+  --pl2-dark-muted:#a1a1a6;--pl2-dark-border:#363639;
+  --pl2-green:#17623b;--pl2-green-bg:#edf7f0;--pl2-amber:#805000;
+  --pl2-amber-bg:#fff7e5;--pl2-red:#a12b22;--pl2-red-bg:#fff0ed;
+  --pl2-font:"SF Pro Text","SF Pro Icons","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --pl2-display:"SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --pl2-radius:12px;--pl2-radius-lg:18px;
+  background:var(--pl2-surface);color:var(--pl2-fg);
+  font-family:var(--pl2-font);font-size:16px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;min-height:100svh;
+}
+.setu-planner-v2,.setu-planner-v2 *{box-sizing:border-box}
+.setu-planner-v2 :where(button,a,input,select,textarea,[role="tab"]):focus-visible{
+  outline:2px solid var(--pl2-blue-active);outline-offset:3px;
+}
+.setu-planner-v2 :where(button,input,select,textarea){font-family:inherit}
+.setu-planner-v2 button:disabled{cursor:not-allowed;opacity:.55}
+.setu-planner-v2 > header {
+  min-height:72px;background:#fff!important;color:var(--pl2-fg)!important;
+  border-color:var(--pl2-soft)!important;box-shadow:none!important;
+}
+.setu-planner-v2 > header > div {max-width:none;padding-inline:32px}
+.setu-planner-v2 > header a.group {color:var(--pl2-fg)}
+.setu-planner-v2 > header a.group > div:first-child{
+  background:var(--pl2-blue)!important;border-radius:10px;
+}
+.setu-planner-v2 > header a.group .text-white,
+.setu-planner-v2 > header a.group .text-setu-slate-200 {color:var(--pl2-fg)!important}
+.setu-planner-v2 > header a.group .text-setu-slate-200{
+  color:var(--pl2-muted)!important;border-color:var(--pl2-soft)!important;
+  border-radius:6px
+}
+.setu-planner-v2 > header a.group .text-setu-slate-300 {color:var(--pl2-muted)!important}
+.setu-planner-v2 > header >div >div >div.border-l {
+  color:var(--pl2-muted);border-color:var(--pl2-soft);font-size:12px;
+}
+.setu-planner-v2 > header .bg-setu-navy-dark,
+.setu-planner-v2 > header button[title="Sign out of SETU"] {
+  background:#fff!important;color:var(--pl2-fg)!important;border:1px solid var(--pl2-soft)!important;border-radius:8px;
+}
+.setu-planner-v2 > header .text-setu-blue-light {color:var(--pl2-blue)!important}
+.setu-planner-v2 > header .text-setu-slate-400 {color:var(--pl2-muted)!important}
+.setu-planner-v2 > header .bg-setu-navy-dark .text-white {color:var(--pl2-fg)!important}
+.setu-planner-v2 > header button[title="Sign out of SETU"] .text-white {color:var(--pl2-fg)!important}
+.setu-planner-v2 > header button[title="Sign out of SETU"]:hover{
+  color:var(--pl2-red)!important;border-color:#f2c5c1!important;background:var(--pl2-red-bg)!important;
+}
+/* Navigation remains the original NavLinks/RBAC, re-skinned to match exported rail. */
+.setu-planner-v2 > .flex-1 > aside{
+  background:var(--pl2-black)!important;color:var(--pl2-dark-muted)!important;
+  border-color:var(--pl2-dark-border)!important;border-radius:0;
+  min-width:0;
+}
+.setu-planner-v2 > .flex-1 > aside > div{padding:30px 16px}
+.setu-planner-v2 > .flex-1 > aside h2{font-weight:500!important;color:#fff!important;font-size:17px}
+.setu-planner-v2 > .flex-1 > aside nav{gap:7px}
+.setu-planner-v2 > .flex-1 > aside nav a,
+.setu-planner-v2 > .flex-1 > aside a[href="/planner/onboarding"]{
+  min-height:48px;display:flex;align-items:center;gap:12px;
+  border:0!important;border-radius:8px;padding:12px 14px;
+  color:var(--pl2-dark-muted)!important;background:transparent!important;
+  font-size:14px;font-weight:500;line-height:1.35;
+}
+.setu-planner-v2 > .flex-1 > aside nav a svg,
+.setu-planner-v2 > .flex-1 > aside a[href="/planner/onboarding"] svg{width:20px;height:20px;flex:none}
+.setu-planner-v2 > .flex-1 > aside nav a[aria-current="page"],
+.setu-planner-v2 > .flex-1 > aside a[href="/planner/onboarding"][aria-current="page"] {
+  background:var(--pl2-dark-surface)!important;color:#fff!important;font-weight:600;
+}
+.setu-planner-v2 > .flex-1 > aside nav a:hover,
+.setu-planner-v2 > .flex-1 > aside a[href="/planner/onboarding"]:hover{
+  background:var(--pl2-dark-surface)!important;color:#fff!important;
+}
+.setu-planner-v2 > .flex-1 > aside > div > div.border-t{
+  border-color:var(--pl2-dark-border)!important
+}
+.setu-planner-v2 > .flex-1 > aside .text-setu-slate-500{color:var(--pl2-dark-muted)!important}
+.setu-planner-v2 > .flex-1 > main{
+  width:100%;max-width:1480px;margin-inline:auto;
+  padding:34px clamp(16px,3.1vw,48px) 60px;
+  color:var(--pl2-fg);
+}
+.setu-planner-v2 > .flex-1 > main > section:first-child{
+  border-radius:0;border-left:0!important;background:transparent;box-shadow:none;
+  padding:0 0 12px;
+}
+.setu-planner-v2 > .flex-1 > main > section:first-child h1,
+.setu-planner-v2 > .flex-1 > main > div:first-child h1{
+  font-family:var(--pl2-display);font-size:clamp(28px,3.1vw,40px);
+  font-weight:600;line-height:1.14;letter-spacing:-.02em;color:var(--pl2-fg)!important;
+}
+.setu-planner-v2 > .flex-1 > main > section:first-child p,
+.setu-planner-v2 > .flex-1 > main > div:first-child p{
+  color:var(--pl2-muted);line-height:1.55
+}
+.setu-planner-v2 > .flex-1 > main > section:first-child p.uppercase{
+  font-size:12px;letter-spacing:.12em;font-weight:600;color:var(--pl2-muted)!important;
+}
+.setu-planner-v2 .text-setu-navy,
+.setu-planner-v2 .text-setu-slate-900,
+.setu-planner-v2 .text-setu-slate-800{color:var(--pl2-fg)!important}
+.setu-planner-v2 .text-setu-slate-700{color:var(--pl2-mid)!important}
+.setu-planner-v2 .text-setu-slate-600,
+.setu-planner-v2 .text-setu-slate-500{color:var(--pl2-muted)!important}
+.setu-planner-v2 .text-setu-blue{color:var(--pl2-blue)!important}
+.setu-planner-v2 .bg-setu-slate-50{background:var(--pl2-warm)!important}
+.setu-planner-v2 :is(.border-setu-slate-200,.border-setu-slate-300){
+  border-color:var(--pl2-soft)!important;
+}
+.setu-planner-v2 :is(section.bg-white,article.bg-white,div.bg-white){
+  border-radius:var(--pl2-radius-lg);box-shadow:none;
+}
+.setu-planner-v2 :where(button[class*="bg-setu-blue"],a[class*="bg-setu-blue"]){
+  background:var(--pl2-blue)!important;color:#fff!important;
+  border-radius:980px!important;min-height:44px;
+  font-weight:600;
+}
+.setu-planner-v2 :where(button[class*="bg-setu-blue"],a[class*="bg-setu-blue"]):not(:disabled):hover{
+  background:var(--pl2-blue-active)!important;
+}
+.setu-planner-v2 :where(button[class*="border-setu-slate"],button[class*="bg-white"]){
+  border-radius:8px;
+}
+.setu-planner-v2 :where(input,select,textarea){
+  border-radius:8px;accent-color:var(--pl2-blue);
+}
+.setu-planner-v2 :where(table){width:100%;border-collapse:collapse}
+.setu-planner-v2 :where(th){
+  color:var(--pl2-muted);font-size:12px;letter-spacing:.05em;
+  text-transform:uppercase;font-weight:600;
+}
+.setu-planner-v2 :where(td){color:var(--pl2-mid);font-size:13px}
+.setu-planner-v2 :where(tbody tr:hover){background:var(--pl2-warm)}
+.setu-planner-v2 :where([role="dialog"]){
+  border-radius:var(--pl2-radius-lg);
+  max-height:calc(100svh - 32px);overflow-y:auto;
+}
+.setu-planner-v2 :where([role="alert"]){border-radius:10px}
+.setu-planner-v2 :where([role="status"]){font-variant-numeric:tabular-nums}
+/* Control Room: actionable live counts, audit log, baseline overview. */
+.setu-planner-v2--command-center main [aria-labelledby="attention-heading"]{
+  border-radius:var(--pl2-radius-lg);
+}
+.setu-planner-v2--command-center main [aria-labelledby="attention-heading"] button{
+  color:var(--pl2-fg);border-radius:12px;
+}
+.setu-planner-v2--command-center main [aria-labelledby="attention-heading"] .font-mono{
+  font-family:var(--pl2-display);font-size:clamp(25px,2.6vw,36px);
+  font-weight:600;font-variant-numeric:tabular-nums;
+}
+.setu-planner-v2--command-center main button.min-h-36{
+  min-height:158px;border:1px solid var(--pl2-soft)!important;border-radius:18px;
+  background:#fff!important;
+}
+.setu-planner-v2--command-center main button.min-h-36:hover{
+  background:var(--pl2-warm)!important
+}
+.setu-planner-v2--command-center main button.min-h-36 p.font-mono{
+  font-family:var(--pl2-display);font-size:clamp(28px,2.8vw,43px);font-weight:600
+}
+.setu-planner-v2--command-center main aside.bg-setu-navy{
+  background:var(--pl2-black)!important;border-radius:18px;
+}
+/* Review: tabs and filters remain wired to current workflow and permissions. */
+.setu-planner-v2--review main [data-testid="queue-list"]{
+  border-radius:var(--pl2-radius-lg);overflow:hidden
+}
+.setu-planner-v2--review main [data-testid="queue-list"] button:focus-visible{
+  outline:2px solid var(--pl2-blue-active);outline-offset:2px;
+}
+.setu-planner-v2--review main section.bg-white{
+  border-radius:var(--pl2-radius-lg);
+}
+.setu-planner-v2--review main section button[class*="bg-setu-navy"]{
+  background:var(--pl2-fg)!important;color:white!important;border-radius:8px
+}
+/* Schedule Actuals: read-only evidence surface; preserve warning semantics. */
+.setu-planner-v2--schedule-actuals main section[aria-label="Schedule actuals overlay"]{
+  border-radius:var(--pl2-radius-lg);overflow:hidden
+}
+.setu-planner-v2--schedule-actuals main section[aria-label="Schedule actuals overlay"]>div:first-child{
+  background:var(--pl2-warm);
+}
+/* Audit & Export and Baseline: preserve actual CSV and governance actions. */
+.setu-planner-v2--audit-export main :is(section,article).bg-white,
+.setu-planner-v2--onboarding main :is(section,article).bg-white{
+  border-radius:var(--pl2-radius-lg);
+}
+.setu-planner-v2--audit-export main :where(.overflow-x-auto),
+.setu-planner-v2--onboarding main :where(.overflow-x-auto){
+  max-width:100%;scrollbar-width:thin;
+}
+.setu-planner-v2--onboarding main .border-dashed{
+  border-radius:14px;background:var(--pl2-warm);
+}
+.setu-planner-v2--onboarding main input[type="file"]{
+  max-width:100%;
+}
+/* Global planner page responsiveness; do not alter the Supervisor or Login roots. */
+@media(min-width:768px){
+  .setu-planner-v2 > .flex-1 > aside{
+    position:sticky;top:72px;align-self:flex-start;
+    min-height:calc(100svh - 72px);width:232px;max-width:232px;
+  }
+  .setu-planner-v2 > .flex-1{align-items:stretch;min-width:0}
+}
+@media(max-width:1023px){
+  .setu-planner-v2 > header >div{padding-inline:20px}
+  .setu-planner-v2 > .flex-1 > aside{width:208px;max-width:208px}
+  .setu-planner-v2 > .flex-1 > main{padding-inline:22px}
+}
+@media(max-width:767px){
+  .setu-planner-v2{font-size:15px}
+  .setu-planner-v2 > header{min-height:64px}
+  .setu-planner-v2 > header >div{padding-inline:16px}
+  .setu-planner-v2 > .flex-1 > aside{
+    width:100%;max-width:none;min-height:0;border-bottom:1px solid var(--pl2-dark-border);
+  }
+  .setu-planner-v2 > .flex-1 > aside >div{padding:13px 16px}
+  .setu-planner-v2 > .flex-1 > aside nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .setu-planner-v2 > .flex-1 > aside nav a{font-size:12px;gap:8px;padding:10px}
+  .setu-planner-v2 > .flex-1 > aside a[href="/planner/onboarding"]{font-size:12px}
+  .setu-planner-v2 > .flex-1 > main{padding:25px 16px 50px}
+  .setu-planner-v2 > .flex-1 > main > section:first-child h1{
+    font-size:clamp(27px,6.7vw,34px);
+  }
+  .setu-planner-v2--command-center main button.min-h-36{min-height:140px}
+  .setu-planner-v2 main :where(.overflow-x-auto){-webkit-overflow-scrolling:touch}
+}
+@media(max-width:370px){
+ .setu-planner-v2 > .flex-1 > aside nav a{font-size:11px;padding:9px}
+ .setu-planner-v2 > .flex-1 > main{padding-inline:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ .setu-planner-v2 *, .setu-planner-v2 *::before,.setu-planner-v2 *::after{
+   animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important;
+ }
+}
