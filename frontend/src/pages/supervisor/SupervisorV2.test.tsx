@@ -50,6 +50,25 @@ async function enterReport(value: string) {
   });
 }
 
+describe('Supervisor V2 home dashboard', () => {
+  it('renders the V2 overview using live hook data instead of screenshot placeholders', () => {
+    expect(container.querySelector('#site-log-home-title')?.textContent).toBe('Site Log');
+    expect(container.querySelector('.setu-supervisor-v2__home-metrics')?.textContent).toContain('My updates');
+    expect(container.querySelector('.setu-supervisor-v2__home-metrics')?.textContent).toContain('Pending review');
+    expect(container.querySelector('.setu-supervisor-v2__home-list')?.textContent).toContain("You haven't sent any updates yet.");
+  });
+
+  it('opens My updates and returns home without submitting anything', async () => {
+    const viewAll = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('View all (0)'));
+    expect(viewAll).toBeTruthy();
+    await act(async () => viewAll!.click());
+    expect(container.querySelector('h1')?.textContent).toBe('My updates');
+    expect(state.submit).not.toHaveBeenCalled();
+    await clickByText('Site Log');
+    expect(container.querySelector('#site-log-home-title')?.textContent).toBe('Site Log');
+  });
+});
+
 describe('Supervisor V2 review and draft flow', () => {
   it('shows the supplied Write and Review progress and preserves the legacy Supervisor home', async () => {
     expect(container.querySelector('h1')?.textContent).toBe('Site Log');
