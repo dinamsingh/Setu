@@ -1,6 +1,6 @@
 # Evaluator demonstration verification — 23 October 2026
 
-Status: local independent walkthrough passes the automated checks below. **The submitted live URL is not yet evaluator-ready for this change:** it has not been deployed, the PPT was unavailable, and the final published artifact must be checked after approved deployment.
+**Release update (23 October 2026):** [PR #19](https://github.com/dinamsingh/Setu/pull/19) subsequently merged into `main` at `412b849`; both Cloudflare Pages deployment checks reported success. The submitting team confirmed the public six-step walkthrough is working at [the submitted landing URL](https://setu-1so.pages.dev/#product). The original local test counts and screenshots below remain historical evidence; they do **not** replace independent authenticated production/backend testing. The PPT was supplied and reviewed separately after this original QA report; this report does not alter the PPT or its feature scope.
 
 Repository: `dinamsingh/Setu`. Branch: `feat/sih-evaluator-demo`, based on `120b5e7`. Worktree: `D:\SETU\.worktrees\sih-evaluator`. Existing staged/unstaged work in `D:\SETU` was preserved. Scope: public landing, evaluator documentation, test fixtures and screenshots only.
 
@@ -8,7 +8,7 @@ Repository: `dinamsingh/Setu`. Branch: `feat/sih-evaluator-demo`, based on `120b
 
 The submitted page returned HTTP 200. Its HTML matched `landing/index.html` on base commit `120b5e7` after newline normalization. `c18bf0b`, the latest landing change, has successful public check runs for separate Cloudflare Pages projects `setu` and `setu-app`. The repository's static `landing/build.js` creates `landing/dist`. README deployment settings specify root `landing`, build `npm run build`, output `dist`. Cloudflare dashboard settings were not inspected.
 
-No merge or deploy was performed. Feature commits use `[CF-Pages-Skip]` to suppress Pages deployment. [Cloudflare documents this prefix](https://developers.cloudflare.com/pages/configuration/git-integration/github-integration/). Merge/deployment needs explicit approval and subsequent fresh-browser acceptance checks at the submitted URL.
+**Original branch-verification context:** No merge or deployment was performed during the local tests documented below. The feature commits used `[CF-Pages-Skip]` to suppress branch Pages builds ([Cloudflare documentation](https://developers.cloudflare.com/pages/configuration/git-integration/github-integration/)). PR #19 was later merged and the live deployment was checked as summarized above.
 
 ## Results
 
@@ -31,7 +31,7 @@ The first screen states the purpose and offers a credential-free public demo. Th
 
 No Supabase configuration, Auth, RLS, RBAC, API, migration, account or report was modified or bypassed. This demonstration never accesses the protected application's records. Its CSP disallows connections and forms. The live application's sign-in shell can be inspected without credentials; authenticated functions and backend health remain unverified.
 
-No human timed comprehension/usability study, real-device test, screen-reader study, Firefox/Safari run, production end-to-end authorization test, or PPT review was performed. Dependencies retained from the existing landing reported **9 npm audit findings (2 moderate, 7 high)** at install; dependency remediation is outside this static-demo change. The deployed static page does not ship those npm packages.
+At the time of this original local test run, no human timed comprehension/usability study, real-device test, screen-reader study, Firefox/Safari run, production end-to-end authorization test, or PPT review was performed. Dependencies retained from the existing landing reported **9 npm audit findings (2 moderate, 7 high)** at install; dependency remediation is outside this static-demo change. The deployed static page does not ship those npm packages.
 
 ## Review screenshots
 

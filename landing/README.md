@@ -1,5 +1,11 @@
 # SETU public evaluator landing page
 
+## Current release status (23 October 2026)
+
+[PR #19](https://github.com/dinamsingh/Setu/pull/19) was merged into `main` at commit `412b849`. GitHub reports successful Cloudflare Pages checks for the submitted [landing page](https://setu-1so.pages.dev/) and the separate authenticated application. The submitting team confirmed the published six-step walkthrough works. The PPT's link to [`#prototype`](https://setu-1so.pages.dev/#prototype) points to a section with a direct link to the no-login demo at [`#product`](https://setu-1so.pages.dev/#product).
+
+The **public demo** is a read-only synthetic illustration. It is intentionally distinct from the authenticated application's production feature set; this README does not reclassify or remove any feature described in the PPT. Authenticated end-to-end operations require separate verification.
+
 The deployed entry point is **static `index.html`**, with `assets/evaluator-demo.js` and local images. `src/` contains earlier React components and is not used by `npm run build`. No environment variables, credentials, model downloads or database access are required by the public demo.
 
 ## Local preview and verification
@@ -23,7 +29,7 @@ Tests use installed Google Chrome with a fresh isolated context per test, deskto
 
 ## Source and deployment provenance
 
-Verified 23 October 2026:
+Original pre-merge source/deployment verification from 23 October 2026 (preserved for provenance):
 
 - Submitted URL: https://setu-1so.pages.dev/
 - Repository: https://github.com/dinamsingh/Setu, directory `landing/`.
@@ -33,7 +39,7 @@ Verified 23 October 2026:
 - Documented Pages settings: root `landing`, command `npm run build`, output `dist`. Dashboard settings and production branch configuration were not directly inspected. There is no repository Pages deploy workflow; `.github/workflows/phase5-verification.yml` runs application checks.
 - The authenticated prototype's public shell returned HTTP 200 at https://setu-app.pages.dev/. Authenticated/backend behavior was not tested.
 
-Do not deploy or merge as part of this review. Commit prefix `[CF-Pages-Skip]` suppresses automatic Pages builds, per [Cloudflare documentation](https://developers.cloudflare.com/pages/configuration/git-integration/github-integration/). After explicit deployment approval, verify the exact published artifact again in a fresh browser.
+Historical context: the evaluator demo branch used the commit prefix `[CF-Pages-Skip]` to suppress automatic Pages builds, per [Cloudflare documentation](https://developers.cloudflare.com/pages/configuration/git-integration/github-integration/). PR #19 was subsequently merged and the submitted public walkthrough was checked by the submitting team, as noted above. Do not infer authenticated application readiness from that public check.
 
 ## Reproducible demo data and boundary
 
