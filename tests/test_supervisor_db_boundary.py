@@ -18,8 +18,10 @@ COMPACT_SQL = re.sub(r"\s+", " ", SQL)
 
 def test_boundary_trigger_rejects_arbitrary_source_types_on_direct_insert():
     """Verify that protect_field_update_insert_boundary catches all direct client inserts."""
-    # The trigger does NOT filter by source_type before checking current_user.
-    # It catches ALL direct client inserts from 'authenticated' or 'anon'.
+    # Direct browser INSERT privilege is revoked independently of RLS policy.
+    assert "revoke insert on table public.field_updates from public, anon, authenticated;" in SQL
+    # The trigger must use INVOKER, otherwise current_user becomes its owner.
+    assert "protect_field_update_insert_boundary()\nreturns trigger\nlanguage plpgsql\nsecurity invoker" in SQL
     assert "if pg_catalog.current_user in ('authenticated', 'anon', 'public') then" in SQL
     assert "direct client insert on field_updates is forbidden" in SQL
 
