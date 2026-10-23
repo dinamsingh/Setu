@@ -6,7 +6,9 @@ SETU links unstructured site observations to read-only Primavera P6 schedule act
 
 On the submitted landing page, select **Explore SETU Demo**. Use **Next**, **Back**, stage buttons and **Restart**. The indicator shows the current stage out of six. Choose another example to restart with different evidence.
 
-This branch has not been deployed. Until deployment is explicitly approved, use the [local preview instructions](../landing/README.md). The submitted site retains its previous four-stage sample. A PPT was not provided or modified; its screenshots, claims and landing link still need checking before submission.
+**Release status (23 October 2026):** [PR #19](https://github.com/dinamsingh/Setu/pull/19) has been merged into `main` at `412b849`, and both Cloudflare Pages deployment checks completed successfully. The six-stage demo is published at [the submitted SETU landing page](https://setu-1so.pages.dev/#product); its walkthrough has also been manually checked by the submitting team. The already-submitted PPT's page-5 link targets [`#prototype`](https://setu-1so.pages.dev/#prototype), where **Explore SETU Demo · No Login** leads to this same walkthrough. The PPT was not modified as part of this documentation update.
+
+**Scope note:** This guide describes the public, read-only evaluator sample, not the full set of features described in the PPT or available through the authenticated SETU application. The public sample deliberately performs no backend operations. This clarification does not withdraw, remove, or reclassify any application feature; authenticated deployment capabilities must be verified on their own terms.
 
 ## Six-step text walkthrough: Spool fit-up
 
