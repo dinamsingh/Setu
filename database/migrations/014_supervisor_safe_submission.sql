@@ -267,7 +267,7 @@ begin
     -- In a direct client call, pg_catalog.current_user is 'authenticated' or 'anon'.
     -- In a security definer RPC (submit_supervisor_field_update, import_field_reports),
     -- pg_catalog.current_user is the database owner (definer).
-    if pg_catalog.current_user in ('authenticated', 'anon', 'public') then
+    if current_user in ('authenticated', 'anon', 'public') then
         raise exception 'Direct client insert on field_updates is forbidden. Submissions must use the authoritative RPC submit_supervisor_field_update or import_field_reports.' using errcode = '42501';
     end if;
 
