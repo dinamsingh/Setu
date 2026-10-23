@@ -235,6 +235,11 @@ export const RoleSelection: React.FC = () => {
               </button>
             </div>
             <p className="setu-login-v2__demo-help">Account access follows the role assigned to you after sign-in.</p>
+            <div className="setu-login-v2__evaluator-access">
+              <span>Evaluating SETU without credentials?</span>
+              <a href="/demo.html">Explore a 2-minute illustrative walkthrough <span aria-hidden="true">→</span></a>
+              <small>No account needed. Example data only; no database actions.</small>
+            </div>
           </section>
         </div>
 
