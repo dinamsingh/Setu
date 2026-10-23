@@ -44,7 +44,11 @@ jobs:
           sudo apt-get install -y postgresql-17 postgresql-client-17
           pg_lsclusters
           sudo pg_ctlcluster 16 main stop 2>/dev/null || true
-          sudo pg_ctlcluster 17 main start || sudo pg_ctlcluster 17 main status
+          # On hosted Ubuntu runners the v17 package may not auto-create a cluster.
+          if ! pg_lsclusters -h | awk '$1=="17" && $2=="main" {found=1} END {exit !found}'; then
+            sudo pg_createcluster 17 main --port 5433
+          fi
+          sudo pg_ctlcluster 17 main start
           PORT="$(pg_lsclusters -h | awk '$1=="17" && $2=="main" && $4=="online" {print $3}')"
           test -n "$PORT"
           echo "PGPORT=$PORT" >> "$GITHUB_ENV"
