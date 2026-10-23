@@ -238,7 +238,7 @@ $$;
 -- Revoke all public execution rights and grant only to authenticated users
 revoke execute on function public.submit_supervisor_field_update(text, text, date, text, text, text, text, text, jsonb, jsonb)
     from public, anon, authenticated, service_role;
-grant execute on function public.submit_supervisor_field_update(text, text, date, text, text, text, text, text, text, jsonb, jsonb)
+grant execute on function public.submit_supervisor_field_update(text, text, date, text, text, text, text, text, jsonb, jsonb)
     to authenticated;
 
 -- Table grants are the primary protection: RLS INSERT policies alone do not
