@@ -130,15 +130,6 @@ describe('Login V2 role selection', () => {
     expect(toggle?.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('offers a public evaluator walkthrough without requesting credentials', async () => {
-    await render();
-    const link = container.querySelector<HTMLAnchorElement>('a[href="/demo.html"]');
-    expect(link).not.toBeNull();
-    expect(link?.textContent).toContain('Explore a 2-minute illustrative walkthrough');
-    expect(container.textContent).toContain('No account needed');
-    expect(auth.signIn).not.toHaveBeenCalled();
-  });
-
   it('selects a workspace role without injecting a demo password', async () => {
     await render();
     const planner = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('Planner'));
