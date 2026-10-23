@@ -61,7 +61,7 @@ describe('014 supervisor safe submission static migration contracts', () => {
     expect(lower).toContain('revoke insert on table public.field_updates from public, anon, authenticated;');
     expect(lower).toContain('protect_field_update_insert_boundary() returns trigger language plpgsql security invoker');
     expect(lower).toContain('create or replace function public.protect_field_update_insert_boundary()');
-    expect(lower).toContain("if pg_catalog.current_user in ('authenticated', 'anon', 'public') then");
+    expect(lower).toContain("if current_user in ('authenticated', 'anon', 'public') then");
     expect(lower).toContain('direct client insert on field_updates is forbidden');
     expect(lower).toContain('trg_protect_field_update_insert_boundary');
     expect(lower).toContain('revoke execute on function public.protect_field_update_insert_boundary()');
