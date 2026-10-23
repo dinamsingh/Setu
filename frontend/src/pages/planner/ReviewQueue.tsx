@@ -1,3 +1,4 @@
+import './PlannerV2.css';
 import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -275,7 +276,7 @@ export const ReviewQueue: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-setu-slate-100 flex flex-col">
+    <div className="setu-planner-v2 setu-planner-v2--review min-h-screen bg-setu-slate-100 flex flex-col">
       <Header currentRole="planner" />
       <div className="flex-1 flex flex-col md:flex-row">
         <Sidebar />
