@@ -1,0 +1,81 @@
+name: SETU isolated PostgreSQL 17 migration verification
+
+on:
+  push:
+    branches: [fix/sih-evaluator-secure-submission-preflight]
+    paths:
+      - database/migrations/013_secure_field_report_import.sql
+      - database/migrations/014_supervisor_safe_submission.sql
+      - tests/isolated_pg17_*
+      - .github/workflows/isolated-pg17-migration-check.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - database/migrations/013_secure_field_report_import.sql
+      - database/migrations/014_supervisor_safe_submission.sql
+      - tests/isolated_pg17_*
+      - .github/workflows/isolated-pg17-migration-check.yml
+
+permissions:
+  contents: read
+
+jobs:
+  pg17-native:
+    name: PostgreSQL 17 live SQL (no Docker)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Native PostgreSQL packages, not a container; no Supabase remote access.
+      - name: Install native PostgreSQL 17
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          if ! apt-cache show postgresql-17 >/dev/null 2>&1; then
+            sudo apt-get install -y postgresql-common ca-certificates
+            sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+            sudo apt-get update -qq
+          fi
+          sudo apt-get install -y postgresql-17 postgresql-client-17
+          pg_lsclusters
+          sudo pg_ctlcluster 16 main stop 2>/dev/null || true
+          sudo pg_ctlcluster 17 main start || sudo pg_ctlcluster 17 main status
+          PORT="$(pg_lsclusters -h | awk '$1=="17" && $2=="main" && $4=="online" {print $3}')"
+          test -n "$PORT"
+          echo "PGPORT=$PORT" >> "$GITHUB_ENV"
+          echo "ISOLATED_PG17_URL=postgresql://postgres:pg17_ci_fixture_only@127.0.0.1:${PORT}/setu_verify" >> "$GITHUB_ENV"
+
+      - name: Create throwaway local DB and synthetic Supabase-shaped fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo -u postgres psql -p "$PGPORT" -v ON_ERROR_STOP=1 -c "ALTER USER postgres WITH PASSWORD 'pg17_ci_fixture_only'"
+          sudo -u postgres createdb -p "$PGPORT" setu_verify
+          export PGPASSWORD=pg17_ci_fixture_only
+          psql -h 127.0.0.1 -p "$PGPORT" -U postgres -d setu_verify -v ON_ERROR_STOP=1 -f tests/isolated_pg17_setup.sql
+
+      - name: Apply actual Migration 013 then 014 in throwaway DB
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PGPASSWORD=pg17_ci_fixture_only
+          psql -h 127.0.0.1 -p "$PGPORT" -U postgres -d setu_verify -v ON_ERROR_STOP=1 -f database/migrations/013_secure_field_report_import.sql
+          psql -h 127.0.0.1 -p "$PGPORT" -U postgres -d setu_verify -v ON_ERROR_STOP=1 -f database/migrations/014_supervisor_safe_submission.sql
+
+      - name: Check actual security, replay, roles and CSV/XLSX import
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install "psycopg[binary]==3.2.10"
+          python tests/isolated_pg17_runtime.py
+
+      - name: Cleanup CI-only database
+        if: always()
+        shell: bash
+        run: |
+          sudo pg_ctlcluster 17 main stop 2>/dev/null || true
