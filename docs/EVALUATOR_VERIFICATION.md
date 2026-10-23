@@ -18,6 +18,7 @@ No merge or deploy was performed. Feature commits use `[CF-Pages-Skip]` to suppr
 - `npm test`: **20 passed, 0 failed, 0 skipped, 0 flaky**, 74.9 seconds. Real installed Google Chrome, fresh isolated incognito-equivalent contexts, no login. Two projects: desktop 1440×1000 and mobile 390×844.
 - All 3 examples × both projects completed observation → interpretation → matching → validation → planner review → audit, including Back, Restart and reset after selecting another report.
 - All homepage internal anchors and useful CTA destinations checked; every live-app link explains sign-in. Source links and unique element IDs checked. External destination evidence is recorded separately in `evaluator-public-links.json`.
+- **10 unique public homepage destinations returned HTTP 200**. GitHub initially rate-limited the benchmark page (429); a fresh browser navigation returned 200, recorded with both statuses. Fresh Chrome navigations also confirmed the live application's sign-in screen and public source repository. No login was performed.
 - **12 axe WCAG A/AA scans**, six stages in each project, **0 violations**. Initial toolbar contrast defect was fixed. Automated checks do not establish full accessibility conformance; no assistive-technology user study was performed.
 - Responsive overflow checked at **320, 390, 768 and 1440 pixels** in both projects. Keyboard activation, focus transfer, skip link, mobile menu and Escape tested.
 - Healthy local flow: **0 console errors, 0 failed assets, 0 backend requests**; only same-origin GETs. **0 cookies, 0 localStorage/sessionStorage entries**. Reload resets the example.
@@ -40,6 +41,9 @@ No human timed comprehension/usability study, real-device test, screen-reader st
 - [Mobile demo](evaluator-screenshots/mobile-demo.png)
 - [Desktop audit](evaluator-screenshots/desktop-audit.png)
 - [Mobile audit](evaluator-screenshots/mobile-audit.png)
+- [Live prototype sign-in boundary](evaluator-screenshots/live-prototype-sign-in.png)
+
+All modified paths are listed in [EVALUATOR_CHANGED_FILES.txt](EVALUATOR_CHANGED_FILES.txt). Machine-readable evidence: [test counts](evaluator-test-summary.json) and [public destination checks](evaluator-public-links.json).
 
 ## Local walkthrough
 

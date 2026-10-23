@@ -1,0 +1,55 @@
+[
+  {
+    "url": "https://setu-app.pages.dev/",
+    "status": 200
+  },
+  {
+    "url": "https://github.com/dinamsingh/Setu/blob/feat/sih-evaluator-demo/docs/EVALUATOR_GUIDE.md",
+    "status": 200
+  },
+  {
+    "url": "https://setu-app.pages.dev/supervisor/capture",
+    "status": 200
+  },
+  {
+    "url": "https://setu-app.pages.dev/planner/review",
+    "status": 200
+  },
+  {
+    "url": "https://setu-app.pages.dev/planner/command-center",
+    "status": 200
+  },
+  {
+    "url": "https://github.com/dinamsingh/Setu",
+    "status": 200
+  },
+  {
+    "url": "https://github.com/dinamsingh/Setu/blob/main/engine/ensemble_matcher.py",
+    "status": 200
+  },
+  {
+    "url": "https://github.com/dinamsingh/Setu/blob/main/engine/validators.py",
+    "status": 200
+  },
+  {
+    "url": "https://github.com/dinamsingh/Setu/blob/main/docs/BENCHMARK.md",
+    "status": 200,
+    "initialStatus": 429,
+    "retry": "Fresh browser navigation after GitHub rate limit"
+  },
+  {
+    "url": "https://github.com/dinamsingh/Setu/tree/main/landing",
+    "status": 200
+  },
+  {
+    "browser": "live prototype unauthenticated shell",
+    "url": "https://setu-app.pages.dev/",
+    "signInExplained": true,
+    "protectedSession": false
+  },
+  {
+    "browser": "public source repository",
+    "url": "https://github.com/dinamsingh/Setu",
+    "repositoryVisible": true
+  }
+]

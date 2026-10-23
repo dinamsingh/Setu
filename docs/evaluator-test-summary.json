@@ -1,0 +1,25 @@
+﻿{
+    "command":  "npm test",
+    "date":  "2026-10-23",
+    "browser":  "Installed Google Chrome, fresh isolated contexts",
+    "stats":  {
+                  "startTime":  "2026-10-23T09:51:33.488Z",
+                  "duration":  74898.775,
+                  "expected":  20,
+                  "skipped":  0,
+                  "unexpected":  0,
+                  "flaky":  0
+              },
+    "projects":  [
+                     "desktop 1440x1000",
+                     "mobile 390x844"
+                 ],
+    "axe_scans":  12,
+    "axe_violations":  0,
+    "responsive_widths":  [
+                              320,
+                              390,
+                              768,
+                              1440
+                          ]
+}
