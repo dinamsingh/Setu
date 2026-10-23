@@ -68,7 +68,7 @@ def test_migration_014_authoritative_direct_insert_protection():
     # not distinguish a direct authenticated INSERT from an owner-executed RPC.
     assert "protect_field_update_insert_boundary()\nreturns trigger\nlanguage plpgsql\nsecurity invoker" in SQL
     assert "create or replace function public.protect_field_update_insert_boundary" in SQL
-    assert "if pg_catalog.current_user in ('authenticated', 'anon', 'public') then" in SQL
+    assert "if current_user in ('authenticated', 'anon', 'public') then" in SQL
     assert "direct client insert on field_updates is forbidden" in SQL
     assert "trg_protect_field_update_insert_boundary" in SQL
     assert "revoke execute on function public.protect_field_update_insert_boundary" in SQL
