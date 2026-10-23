@@ -165,17 +165,3 @@
   .setu-login-v2__story, .setu-login-v2__access { padding-inline: 16px; }
   .setu-login-v2__demo-grid { grid-template-columns: 1fr; }
 }
-
-/* Optional self-guided evaluator access. Normal account sign-in remains unchanged. */
-.setu-login-v2__evaluator-access {
-  display:grid;gap:7px;margin-top:21px;padding:19px 18px;
-  border:1px solid var(--setu-login-border);border-radius:12px;
-  background:var(--setu-login-surface);
-}
-.setu-login-v2__evaluator-access>span{font-size:14px;font-weight:650;color:var(--setu-login-ink)}
-.setu-login-v2__evaluator-access>a{
-  font-size:15px;line-height:1.5;color:var(--setu-login-blue);
-  font-weight:650;text-decoration:underline;text-underline-offset:3px;
-}
-.setu-login-v2__evaluator-access>a:focus-visible{outline:2px solid var(--setu-login-blue);outline-offset:3px}
-.setu-login-v2__evaluator-access>small{color:var(--setu-login-muted);font-size:12px;line-height:1.5}
