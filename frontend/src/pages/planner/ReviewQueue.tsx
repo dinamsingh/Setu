@@ -274,6 +274,7 @@ export const ReviewQueue: React.FC = () => {
     { value: 'reprocessing', label: 'Reprocessing', count: workflow.loading || workflow.error ? null : counts.reprocessing },
     { value: 'remap', label: 'Remap proposals', count: workflow.loading || workflow.error ? null : counts.remapPending + counts.readyToConfirm },
   ];
+  const activeAdvancedView = advancedViews.find(option => option.value === view);
 
   return (
     <div className="setu-planner-v2 setu-planner-v2--review min-h-screen bg-setu-slate-100 flex flex-col">
@@ -413,6 +414,13 @@ export const ReviewQueue: React.FC = () => {
                     >
                       History <span className="ml-1 font-mono text-xs opacity-70">{historyCount}</span>
                     </button>
+                    {activeAdvancedView && (
+                      <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-setu-navy px-2.5 py-1 text-xs font-bold text-white">
+                        {activeAdvancedView.label}
+                        <span className="font-mono opacity-70">{activeAdvancedView.count ?? '—'}</span>
+                        <button type="button" aria-label="Show all pending" onClick={() => setFilter('view', 'unresolved')} className="ml-0.5 rounded-full px-1 hover:bg-setu-slate-700 focus:outline-none focus:ring-2 focus:ring-white/50">×</button>
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {hasSecondaryFilters && (
@@ -459,6 +467,7 @@ export const ReviewQueue: React.FC = () => {
                 {/* Compact filter disclosure */}
                 {filtersOpen && (
                   <div className="border-t border-setu-slate-200 px-4 py-3 bg-setu-slate-50 space-y-3">
+                    <p className="text-xs font-bold text-setu-slate-700">Filter by workflow stage</p>
                     {/* Advanced category buttons */}
                     <div className="flex flex-wrap gap-1.5">
                       {advancedViews.map((option) => (
@@ -476,8 +485,21 @@ export const ReviewQueue: React.FC = () => {
                         </button>
                       ))}
                     </div>
+                    <p className="pt-1 text-xs font-bold text-setu-slate-700">Filter by detail</p>
                     {/* Detail selects */}
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                      <select
+                        aria-label="Filter by status"
+                        value={status}
+                        onChange={(event) => setFilter('status', event.target.value)}
+                        className="border border-setu-slate-200 bg-white px-3 py-2 text-sm rounded focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+                      >
+                        <option value="All">All statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="remapped">Remapped</option>
+                      </select>
                       <select
                         aria-label="Filter by discipline"
                         value={discipline}
