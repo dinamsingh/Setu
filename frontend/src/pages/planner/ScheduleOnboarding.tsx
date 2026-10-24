@@ -135,12 +135,12 @@ export const ScheduleOnboarding: React.FC = () => {
             </div>
             <div className="p-4 rounded-xl bg-white border border-setu-slate-200">
               <span className="text-xs font-bold uppercase tracking-wider text-setu-slate-400">Disciplines</span>
-              <div className="text-2xl font-extrabold text-setu-teal mt-1">{loading ? '-' : disciplines.length}</div>
+              <div className="text-2xl font-extrabold text-setu-navy mt-1">{loading ? '-' : disciplines.length}</div>
               <p className="text-[11px] text-setu-slate-500 mt-0.5">Piping, Civil, Pipeline, etc.</p>
             </div>
             <div className="p-4 rounded-xl bg-white border border-setu-slate-200">
               <span className="text-xs font-bold uppercase tracking-wider text-setu-slate-400">Dated activities</span>
-              <div className="text-2xl font-extrabold text-setu-blue mt-1">{loading ? '-' : datedActivities}</div>
+              <div className="text-2xl font-extrabold text-setu-navy mt-1">{loading ? '-' : datedActivities}</div>
               <p className="text-[11px] text-setu-slate-500 mt-0.5">Planned start and finish available</p>
             </div>
           </div>
@@ -264,7 +264,7 @@ export const ScheduleOnboarding: React.FC = () => {
                   placeholder="Search activity ID or name..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full text-xs pl-8 pr-3 py-2 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-setu-blue"
+                  className="w-full text-sm pl-8 pr-3 py-2.5 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
                 />
               </div>
             </div>

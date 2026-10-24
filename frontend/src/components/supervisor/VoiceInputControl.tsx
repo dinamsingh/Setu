@@ -287,7 +287,7 @@ export function VoiceInputControl({
         onChange={e => setLanguage(e.target.value as SpeechLanguage)}
         disabled={isListening || isStarting || disabled}
         title="Select voice input language (Mixed-language Hinglish accuracy is best-effort)"
-        className="h-9 rounded-xl border border-slate-200 bg-white/95 px-2 text-xs font-semibold text-[#123F77] shadow-xs outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-9 rounded-xl border border-slate-200 bg-white/95 px-2 text-xs font-semibold text-[#007AFF] shadow-xs outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <option value="en-IN">EN (IN)</option>
         <option value="hi-IN">HI (हिन्दी)</option>
@@ -303,7 +303,7 @@ export function VoiceInputControl({
         className={`flex h-11 w-11 items-center justify-center rounded-full border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 ${
           isListening
             ? 'border-rose-300 bg-rose-50 text-rose-600 ring-2 ring-rose-400 ring-offset-1 animate-pulse focus-visible:ring-rose-500'
-            : 'border-slate-200 bg-slate-50 text-[#123F77] hover:bg-blue-50 focus-visible:ring-blue-500'
+            : 'border-slate-200 bg-slate-50 text-[#007AFF] hover:bg-blue-50 focus-visible:ring-blue-500'
         }`}
       >
         {isListening ? (

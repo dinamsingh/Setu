@@ -7,12 +7,12 @@ import { reviewStage } from '../../lib/guidedReview';
 import type { ProgressEvent } from '../../types/progressEvents';
 
 export type WorkflowAction = (name: string, params: Record<string, unknown>) => Promise<WorkflowResult>;
-const inputClass = 'mt-1 w-full border border-setu-slate-300 bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-setu-blue/30';
-const buttonClass = 'border border-setu-slate-300 px-3 py-2 text-xs font-bold hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-40';
-const primaryClass = 'bg-setu-navy px-3 py-2 text-xs font-bold text-white hover:bg-setu-blue focus:outline-none focus:ring-2 focus:ring-setu-teal disabled:opacity-40';
+const inputClass = 'mt-1 w-full border border-setu-slate-300 bg-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-setu-blue/30';
+const buttonClass = 'border border-setu-slate-300 rounded-lg px-4 py-2.5 text-[13px] font-bold hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-40';
+const primaryClass = 'bg-[#007AFF] rounded-lg px-4 py-2.5 text-[13px] font-bold text-white hover:bg-[#0066D6] focus:outline-none focus:ring-2 focus:ring-[#007AFF] disabled:opacity-40';
 
 export function ImpactSelect({ value, onChange }: { value: string; onChange: (value: ClarificationImpact) => void }) {
-  return <label className="block text-xs font-bold">Impact (required)
+  return <label className="block text-sm font-bold">Impact (required)
     <select required aria-label="Clarification impact" className={inputClass} value={value} onChange={e => onChange(e.target.value as ClarificationImpact)}>
       <option value="">Choose impact explicitly</option>
       {Object.entries(impactLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -25,8 +25,8 @@ export function ClarificationHistory({ rounds }: { rounds: Clarification[] }) {
   const [expanded, setExpanded] = useState(false);
   if (!rounds.length) return null;
   return <details open={expanded} onToggle={e => setExpanded(e.currentTarget.open)} className="mt-3 border border-setu-slate-200">
-    <summary aria-expanded={expanded} className="cursor-pointer px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">Clarification history ({rounds.length})</summary>
-    <ol className="divide-y divide-setu-slate-200 px-3 text-xs">{rounds.map(c => <li key={c.id} className="py-3 space-y-1">
+    <summary aria-expanded={expanded} className="cursor-pointer px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">Clarification history ({rounds.length})</summary>
+    <ol className="divide-y divide-setu-slate-200 px-3 text-[13px]">{rounds.map(c => <li key={c.id} className="py-3 space-y-1">
       <p className="font-bold">{c.mode === 'resolve_now' ? 'Resolved directly' : 'Requested response'} · {c.status} · {c.created_at}</p>
       <p>Question: {c.question}</p><p>Response: {c.response || 'Not received'}</p>
       {c.communication_method && <p>Method: {c.communication_method} · Supplied by: {c.supplied_by || c.responded_by_user_id}</p>}
@@ -107,8 +107,8 @@ export function WorkflowActions({ update, rounds, proposals, activities, act, av
     if (mode === 'accept' && stage.canApprove) void run('accept_current_field_update', { ...base, p_remarks: note.trim() || null });
   }
 
-  if (state === 'Finalized') return <p className="border-l-4 border-setu-slate-500 bg-setu-slate-50 px-4 py-3 text-xs">Finalized planner decision. This report is read-only. {update.planner_remarks}</p>;
-  return <div className="space-y-3 text-xs">
+  if (state === 'Finalized') return <p className="border-l-4 border-setu-slate-500 bg-setu-slate-50 px-4 py-3 text-sm">Finalized planner decision. This report is read-only. {update.planner_remarks}</p>;
+  return <div className="space-y-3 text-[13px]">
     {!available && <p role="alert" className="text-rose-900">Workflow data unavailable. Decision controls are locked until it loads.</p>}
     {error && <p role="alert" className="border-l-4 border-rose-500 bg-rose-50 px-3 py-2 text-rose-900">{error}</p>}
     {state === 'Awaiting Field Response' && <p className="border-l-4 border-setu-blue bg-blue-50 px-3 py-3">Awaiting Field Response. The question is available to the original submitter in SETU. Accept and Remap are locked.</p>}

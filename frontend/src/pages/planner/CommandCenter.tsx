@@ -5,6 +5,7 @@ import {
   AlertOctagon,
   ArrowRight,
   CalendarClock,
+  ChevronRight,
   CircleDashed,
   ClipboardCheck,
   FileQuestion,
@@ -50,11 +51,11 @@ export const CommandCenter: React.FC = () => {
   );
 
   const workflowMetrics = [
-    { label: 'Response Received', value: counts.needsTriage, detail: 'Planner triage required', icon: FileQuestion, view: 'triage', tone: 'border-setu-blue bg-blue-50/50 text-setu-blue-dark' },
-    { label: 'Awaiting Field Response', value: counts.awaitingResponse, detail: 'Requests available in SETU', icon: CalendarClock, view: 'response', tone: 'border-setu-slate-400 bg-setu-slate-50' },
-    { label: 'Reprocessing Evidence', value: counts.reprocessing, detail: 'Current evidence awaiting validation', icon: RefreshCw, view: 'reprocessing', tone: 'border-setu-amber bg-amber-50/60' },
-    { label: 'Validating Selected Activity', value: counts.remapPending, detail: 'Manual targets awaiting worker validation', icon: ClipboardCheck, view: 'remap', tone: 'border-setu-blue bg-blue-50/50' },
-    { label: 'Ready to Confirm Remap', value: counts.readyToConfirm, detail: 'Validated targets awaiting planner decision', icon: ListChecks, view: 'remap', tone: 'border-setu-teal bg-teal-50/50' },
+    { label: 'Response Received', value: counts.needsTriage, detail: 'Planner triage required', icon: FileQuestion, view: 'triage', iconClass: 'text-[#007AFF]' },
+    { label: 'Awaiting Field Response', value: counts.awaitingResponse, detail: 'Requests available in SETU', icon: CalendarClock, view: 'response', iconClass: 'text-setu-slate-500' },
+    { label: 'Reprocessing Evidence', value: counts.reprocessing, detail: 'Current evidence awaiting validation', icon: RefreshCw, view: 'reprocessing', iconClass: 'text-amber-600' },
+    { label: 'Validating Selected Activity', value: counts.remapPending, detail: 'Manual targets awaiting worker validation', icon: ClipboardCheck, view: 'remap', iconClass: 'text-[#007AFF]' },
+    { label: 'Ready to Confirm Remap', value: counts.readyToConfirm, detail: 'Validated targets awaiting planner decision', icon: ListChecks, view: 'remap', iconClass: 'text-emerald-700' },
   ];
   const metrics = [
     {
@@ -63,7 +64,7 @@ export const CommandCenter: React.FC = () => {
       detail: 'Pending reports with matching complete',
       icon: ListChecks,
       view: 'unresolved',
-      tone: 'border-setu-blue bg-blue-50/50 text-setu-blue-dark',
+      iconClass: 'text-[#007AFF]',
     },
     {
       label: 'Blocked',
@@ -71,7 +72,7 @@ export const CommandCenter: React.FC = () => {
       detail: 'Report or selected-target validation block',
       icon: AlertOctagon,
       view: 'blocked',
-      tone: 'border-setu-red bg-rose-50/60 text-setu-red-dark',
+      iconClass: 'text-rose-600',
     },
     {
       label: 'Low confidence',
@@ -79,7 +80,7 @@ export const CommandCenter: React.FC = () => {
       detail: 'Pending reports in Low confidence tier',
       icon: FileQuestion,
       view: 'low',
-      tone: 'border-setu-amber bg-amber-50/60 text-setu-amber-dark',
+      iconClass: 'text-amber-600',
     },
     {
       label: 'Unmatched',
@@ -87,7 +88,7 @@ export const CommandCenter: React.FC = () => {
       detail: 'Matching complete, no valid activity',
       icon: CircleDashed,
       view: 'unmatched',
-      tone: 'border-setu-slate-400 bg-setu-slate-50 text-setu-slate-800',
+      iconClass: 'text-setu-slate-500',
     },
     {
       label: 'Awaiting AI',
@@ -95,7 +96,7 @@ export const CommandCenter: React.FC = () => {
       detail: 'Submitted and waiting for matching worker',
       icon: RefreshCw,
       view: 'awaiting',
-      tone: 'border-setu-teal bg-teal-50/60 text-setu-teal-dark',
+      iconClass: 'text-[#007AFF]',
     },
   ];
 
@@ -159,24 +160,13 @@ export const CommandCenter: React.FC = () => {
                       Work requiring attention
                     </h2>
                     <p className="text-xs text-setu-slate-500">
-                      Counts come from currently visible Supabase records.
+                      Live counts from current records.
                     </p>
                   </div>
-                  <p className="text-[11px] text-setu-slate-500">
-                    Attention views overlap; do not add these counts together.
-                  </p>
                 </div>
 
-                <div className="grid grid-cols-1 divide-y divide-setu-slate-200 border border-setu-slate-200 bg-white sm:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-y-0">
-                  {workflowMetrics.map(metric => <button key={metric.label} type="button"
-                    onClick={() => navigate(`/planner/review?view=${metric.view}`)}
-                    className="px-3 py-3 text-left text-xs hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue/30">
-                    <p className="font-semibold text-setu-slate-700">{metric.label}</p>
-                    <p className="mt-1 font-mono text-xl font-bold tabular-nums text-setu-navy">{workflow.error ? '—' : metric.value}</p>
-                    <p className="mt-1 text-[10px] text-setu-slate-500">{metric.detail}</p>
-                  </button>)}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+                <h3 className="pl-metric-subhead">By outcome</h3>
+                <div className="pl-metric-list">
                   {metrics.map((metric) => {
                     const Icon = metric.icon;
                     return (
@@ -184,22 +174,37 @@ export const CommandCenter: React.FC = () => {
                         key={metric.label}
                         type="button"
                         onClick={() => navigate(`/planner/review?view=${metric.view}`)}
-                        className={`group min-h-36 border-l-4 border-y border-r border-y-setu-slate-200 border-r-setu-slate-200 p-4 text-left transition-colors hover:bg-white focus:outline-none focus:ring-2 focus:ring-setu-blue/30 ${metric.tone}`}
+                        className="pl-metric-row"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <span className="text-xs font-bold text-setu-slate-700">{metric.label}</span>
-                          <Icon className="h-4 w-4 shrink-0" />
-                        </div>
-                        <div className="mt-4 font-mono text-3xl font-extrabold tabular-nums">
-                          {workflow.error ? '—' : metric.value}
-                        </div>
-                        <p className="mt-2 text-[11px] leading-4 text-setu-slate-600">
-                          {metric.detail}
-                        </p>
+                        <span className="pl-metric-main">
+                          <span className="pl-metric-label"><Icon className={`h-4 w-4 shrink-0 ${(metric as any).iconClass || 'text-setu-slate-500'}`} />{metric.label}</span>
+                          <span className="pl-metric-detail">{metric.detail}</span>
+                        </span>
+                        <span className="pl-metric-value">{workflow.error ? '—' : metric.value}<ChevronRight className="h-4 w-4 text-setu-slate-400" /></span>
                       </button>
                     );
                   })}
                 </div>
+                <h3 className="pl-metric-subhead">By workflow stage</h3>
+                <div className="pl-metric-list">
+                  {workflowMetrics.map(metric => {
+                    const Icon = metric.icon;
+                    return (
+                      <button key={metric.label} type="button"
+                        onClick={() => navigate(`/planner/review?view=${metric.view}`)}
+                        className="pl-metric-row">
+                        <span className="pl-metric-main">
+                          <span className="pl-metric-label"><Icon className={`h-4 w-4 shrink-0 ${(metric as any).iconClass || 'text-setu-slate-500'}`} />{metric.label}</span>
+                          <span className="pl-metric-detail">{metric.detail}</span>
+                        </span>
+                        <span className="pl-metric-value">{workflow.error ? '—' : metric.value}<ChevronRight className="h-4 w-4 text-setu-slate-400" /></span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-setu-slate-500">
+                  Outcome and workflow-stage counts overlap; do not add them together.
+                </p>
               </section>
 
               <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.5fr_1fr]">
@@ -264,7 +269,7 @@ export const CommandCenter: React.FC = () => {
                     </div>
                   </div>
                   <p className="mt-4 text-xs leading-5 text-setu-slate-300">
-                    Baseline remains read-only. Review indexed activities or validate a local CSV structure in project setup.
+                    Baseline is read-only.
                   </p>
                   <button
                     type="button"

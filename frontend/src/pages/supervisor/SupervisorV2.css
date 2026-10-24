@@ -28,7 +28,7 @@
 .setu-supervisor-v2__compose>p:not(.setu-supervisor-v2__composer-label){color:var(--sv-muted);}
 .setu-supervisor-v2__form{background:var(--sv-surface);border:1px solid var(--sv-soft);border-radius:18px;overflow:hidden;padding:32px;margin-top:18px;}
 .setu-supervisor-v2__form textarea#field-report{min-height:230px;padding:22px 20px 76px;border-radius:12px;border:1px solid var(--sv-border);box-shadow:none;color:var(--sv-fg);font-size:17px;line-height:1.47;}
-.setu-supervisor-v2__form textarea#field-report:focus{border-color:var(--sv-blue);box-shadow:0 0 0 4px #0071e32b;outline:none;}
+.setu-supervisor-v2__form textarea#field-report:focus{border-color:var(--sv-blue);box-shadow:0 0 0 4px #007aff2b;outline:none;}
 .setu-supervisor-v2__form .rounded-2xl.border{border-color:var(--sv-soft);border-radius:12px;box-shadow:none;}
 .setu-supervisor-v2__form select,.setu-supervisor-v2__form input{accent-color:var(--sv-blue);}
 .setu-supervisor-v2__form button:focus-visible,.setu-supervisor-v2__review button:focus-visible{outline:2px solid var(--sv-blue);outline-offset:3px;}

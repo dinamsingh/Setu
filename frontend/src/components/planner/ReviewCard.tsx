@@ -72,8 +72,8 @@ function ValidationCheck({ check }: { check: ValidationCheckResult }) {
         <div className="flex items-start gap-2">
           <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <div>
-            <p className="text-[11px] font-bold">{check.name}</p>
-            <p className="mt-0.5 text-[11px] leading-4 opacity-85">
+            <p className="text-xs font-bold">{check.name}</p>
+            <p className="mt-0.5 text-xs leading-5 opacity-85">
               {check.message || check.reason || 'No validation message was stored.'}
             </p>
           </div>
@@ -83,7 +83,7 @@ function ValidationCheck({ check }: { check: ValidationCheckResult }) {
         </span>
       </div>
       {check.evidence && Object.keys(check.evidence).length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1 border-t border-current/10 pt-2 font-mono text-[9px] opacity-75">
+        <div className="mt-2 flex flex-wrap gap-1 border-t border-current/10 pt-2 font-mono text-[10px] opacity-75">
           {Object.entries(check.evidence).map(([key, value]) => (
             <span key={key}>
               {key}: {typeof value === 'object' ? JSON.stringify(value) : String(value)}
@@ -97,7 +97,7 @@ function ValidationCheck({ check }: { check: ValidationCheckResult }) {
 
 const SectionLabel = ({ number, children, id }: { number: number; children: React.ReactNode; id?: string }) => (
   <div className="mb-3 flex items-center gap-2 border-b border-setu-slate-200 pb-2">
-    <span className="flex h-5 w-5 items-center justify-center bg-setu-navy font-mono text-[10px] font-bold text-white">
+    <span className="flex h-5 w-5 items-center justify-center bg-[#007AFF] font-mono text-[10px] font-bold text-white">
       {number}
     </span>
     <h2 id={id} className="text-xs font-bold tracking-tight text-setu-slate-700">
@@ -330,7 +330,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 <button
                   type="button"
                   onClick={scrollToValidation}
-                  className="border border-current/30 bg-white px-2.5 py-1.5 text-[11px] font-bold transition-colors hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-current/30"
+                  className="border border-current/30 bg-white px-3 py-2 text-xs font-bold transition-colors hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-current/30"
                 >
                   Review failed checks
                 </button>
@@ -341,7 +341,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                       type="button"
                       disabled={isSubmitting}
                       onClick={() => openDecisionAction('accept')}
-                      className="bg-setu-green px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-setu-green-dark focus:outline-none focus:ring-2 focus:ring-setu-green/40 disabled:opacity-50"
+                      className="bg-setu-green px-3 py-2 text-xs font-bold text-white hover:bg-setu-green-dark focus:outline-none focus:ring-2 focus:ring-setu-green/40 disabled:opacity-50"
                     >
                       Accept
                     </button>
@@ -350,7 +350,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => onOpenRemap(update)}
-                    className="border border-setu-blue bg-white px-2.5 py-1.5 text-[11px] font-bold text-setu-blue hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-50"
+                    className="border border-setu-blue bg-white px-3 py-2 text-xs font-bold text-setu-blue hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-50"
                   >
                     Remap
                   </button>
@@ -359,7 +359,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               <button
                 type="button"
                 onClick={openMoreActions}
-                className="inline-flex items-center gap-1 border border-current/30 bg-white px-2.5 py-1.5 text-[11px] font-bold hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-current/30"
+                className="inline-flex items-center gap-1 border border-current/30 bg-white px-3 py-2 text-xs font-bold hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-current/30"
               >
                 <MoreHorizontal className="h-3.5 w-3.5" />
                 More actions
@@ -390,7 +390,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 {awaiting ? (
                   <span className="bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-800">Awaiting matching</span>
                 ) : update.matched_activity_id ? (
-                  <span className="bg-setu-navy px-2 py-0.5 font-mono text-[10px] font-bold text-white">{update.matched_activity_id}</span>
+                  <span className="bg-[#007AFF] px-2 py-0.5 font-mono text-[10px] font-bold text-white">{update.matched_activity_id}</span>
                 ) : (
                   <span className="bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-900">Unmatched</span>
                 )}
@@ -748,9 +748,9 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             <a href="/planner/audit-export" className="mt-2 inline-block text-setu-blue underline">Open append-only planner audit trail</a>
           </details>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            {update.status !== 'rejected' && <a href="/planner/schedule-actuals" className="bg-setu-navy px-4 py-2.5 text-sm font-bold text-white rounded hover:bg-setu-blue focus:outline-none focus:ring-2 focus:ring-setu-teal">View Schedule Actuals</a>}
+            {update.status !== 'rejected' && <a href="/planner/schedule-actuals" className="bg-[#007AFF] px-4 py-2.5 text-sm font-bold text-white rounded hover:bg-[#0066D6] focus:outline-none focus:ring-2 focus:ring-[#007AFF]">View Schedule Actuals</a>}
             {onReviewNext && <button type="button" onClick={onReviewNext} className={update.status === 'rejected'
-              ? 'bg-setu-navy px-4 py-2.5 text-sm font-bold text-white rounded focus:outline-none focus:ring-2 focus:ring-setu-teal'
+              ? 'bg-[#007AFF] px-4 py-2.5 text-sm font-bold text-white rounded focus:outline-none focus:ring-2 focus:ring-[#007AFF]'
               : 'px-4 py-2.5 text-sm font-semibold text-setu-blue hover:underline focus:outline-none focus:ring-2 focus:ring-setu-blue/30'}>Review next item</button>}
             {onBackToQueue && <button type="button" onClick={onBackToQueue} className="px-4 py-2.5 text-sm font-semibold text-setu-slate-500 hover:text-setu-navy focus:outline-none focus:ring-2 focus:ring-setu-blue/30">Back to Review Queue</button>}
           </div>
@@ -774,7 +774,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                   type="button"
                   onClick={() => onOpenOverride?.(update)}
                   disabled={isSubmitting}
-                  className="bg-setu-navy px-4 py-2 text-sm font-bold text-white rounded hover:bg-setu-blue focus:outline-none focus:ring-2 focus:ring-setu-teal disabled:opacity-50"
+                  className="bg-[#007AFF] px-4 py-2 text-sm font-bold text-white rounded hover:bg-[#0066D6] focus:outline-none focus:ring-2 focus:ring-[#007AFF] disabled:opacity-50"
                 >
                   Resolve validation issue
                 </button>

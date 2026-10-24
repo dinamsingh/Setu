@@ -9,8 +9,8 @@ export function NeedsClarification({ rounds, updates, userId, act, available }: 
 }) {
   const addressed = addressedRequests(rounds, userId);
   return <section className="mb-6 border border-setu-slate-300 bg-white">
-    <header className="border-l-4 border-setu-teal bg-setu-slate-50 px-4 py-3">
-      <h2 className="text-sm font-bold text-setu-navy">Needs Clarification</h2>
+    <header className="border-l-4 border-[#007AFF] bg-setu-slate-50 px-4 py-3">
+      <h2 className="text-sm font-bold text-[#1D1D1F]">Needs Clarification</h2>
       <p className="mt-1 text-xs text-setu-slate-600">Planner questions about your reports. Original submissions stay unchanged.</p>
     </header>
     {!available && <p role="alert" className="p-4 text-xs text-rose-900">Clarification data unavailable. Refresh to try again.</p>}
@@ -47,9 +47,9 @@ function FieldResponse({ clarification: c, update, act, available }: {
     {c.status === 'open' && !sent ? <form onSubmit={submit} className="space-y-2">
       <label className="block font-bold">Your response<textarea required aria-label={`Response for ${update?.update_id || c.id}`}
         value={response} onChange={e => setResponse(e.target.value)} rows={3}
-        className="mt-1 w-full border border-setu-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-setu-teal/30" /></label>
+        className="mt-1 w-full border border-setu-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-[#007AFF]" /></label>
       <button disabled={busy || !available || !update || update.status !== 'pending' || !response.trim()} type="submit"
-        className="bg-setu-teal px-3 py-2 font-bold text-white focus:outline-none focus:ring-2 focus:ring-setu-teal/30 disabled:opacity-40">{busy ? 'Sending response…' : 'Submit Response'}</button>
+        className="bg-[#007AFF] px-3 py-2 font-bold text-white focus:outline-none focus:ring-2 focus:ring-[#007AFF] disabled:opacity-40">{busy ? 'Sending response…' : 'Submit Response'}</button>
     </form> : <div className="bg-setu-slate-50 px-3 py-2">
       <p>{c.response || response}</p><p className="mt-1 font-bold">{c.status === 'responded' || sent ? 'Response sent / awaiting planner review' : `Read-only · ${c.status}`}</p>
     </div>}

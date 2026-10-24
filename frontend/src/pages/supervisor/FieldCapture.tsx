@@ -37,7 +37,7 @@ type SentReport = {
 
 const disciplines = ['Piping', 'Pipeline', 'Civil', 'Electrical', 'Mechanical', 'Instrumentation'];
 const toneClasses: Record<SiteLogTone, string> = {
-  blue: 'bg-blue-50 text-blue-800',
+  blue: 'bg-[rgba(0,122,255,0.12)] text-[#007AFF]',
   amber: 'bg-amber-50 text-amber-800',
   green: 'bg-emerald-50 text-emerald-800',
   neutral: 'bg-slate-100 text-slate-600',
@@ -522,7 +522,7 @@ export const FieldCapture: React.FC = () => {
                         key={i}
                         type="button"
                         onClick={() => handleResolveClarification(opt)}
-                        className="rounded-xl bg-[#123F77] px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#0C315D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="rounded-xl bg-[#007AFF] px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#0066D6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       >
                         {opt.label}
                       </button>
@@ -583,7 +583,7 @@ export const FieldCapture: React.FC = () => {
           <button
             type="submit"
             disabled={isSubmitting || !fieldText.trim()}
-            className={`hidden w-full items-center justify-center gap-2 rounded-2xl bg-[#123F77] px-6 py-4 text-base font-semibold text-white transition-colors hover:bg-[#0C315D] disabled:cursor-not-allowed disabled:opacity-50 sm:flex ${focus}`}
+            className={`hidden w-full items-center justify-center gap-2 rounded-xl bg-[#007AFF] px-6 py-4 text-base font-semibold text-white transition-colors hover:bg-[#0066D6] disabled:cursor-not-allowed disabled:opacity-50 sm:flex ${focus}`}
           >
             <Send size={18}/>
             {isSubmitting ? 'SETU aapki update check kar raha hai…' : 'Update bhejo'}
@@ -596,7 +596,7 @@ export const FieldCapture: React.FC = () => {
             type="submit"
             form="site-log-compose"
             disabled={isSubmitting || !fieldText.trim()}
-            className={`flex w-full items-center justify-center gap-2 rounded-2xl bg-[#123F77] px-5 py-4 font-semibold text-white disabled:opacity-50 ${focus}`}
+            className={`flex w-full items-center justify-center gap-2 rounded-xl bg-[#007AFF] px-5 py-4 font-semibold text-white disabled:opacity-50 ${focus}`}
           >
             <Send size={18}/>
             {isSubmitting ? 'SETU aapki update check kar raha hai…' : 'Update bhejo'}
@@ -606,8 +606,11 @@ export const FieldCapture: React.FC = () => {
       </div>}
 
       {screen === 'review' && <section className="setu-supervisor-v2__review mx-auto max-w-[700px]">
-        <nav className="setu-supervisor-v2__breadcrumb" aria-label="Location"><span>Site Log</span><ChevronRight size={15}/><strong>Review</strong></nav>
-        <div className="setu-supervisor-v2__intro"><h1 className="setu-supervisor-v2__page-title">Review update</h1><ol className="setu-supervisor-v2__steps" aria-label="Report progress"><li className="done"><span>1</span>Write</li><li aria-current="step"><span>2</span>Review</li></ol></div>
+        <div className="setu-supervisor-v2__compose-head">
+          <button type="button" onClick={() => setScreen('compose')} className={`inline-flex items-center gap-1 rounded-lg py-1 text-sm text-[#007AFF] ${focus}`}><ArrowLeft size={18}/> Compose</button>
+          <h1 className="setu-supervisor-v2__page-title">Review update</h1>
+          <p className="setu-supervisor-v2__compose-step" aria-label="Report progress">2 / 2</p>
+        </div>
         <div className="setu-supervisor-v2__review-card">
           <h2>Site update</h2><p className="setu-supervisor-v2__review-copy">{fieldText}</p>
           <dl className="setu-supervisor-v2__review-grid"><div><dt>Discipline</dt><dd>{discipline}</dd></div><div><dt>Site / Area</dt><dd>{siteLocation}</dd></div><div><dt>Reported date</dt><dd>{siteLogDate(reportedDate)}</dd></div></dl>
@@ -632,15 +635,15 @@ export const FieldCapture: React.FC = () => {
           <div className="py-4 text-sm"><p className="text-xs text-slate-500">Submitted by</p><p className="mt-1 font-semibold">{sent.reporter}</p></div>
         </div>
         <button type="button" onClick={() => setScreen('home')}
-          className={`mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#123F77] px-5 py-4 font-semibold text-white hover:bg-[#0C315D] ${focus}`}>
+          className={`mt-7 w-full setu-supervisor-v2__primary ${focus}`}>
           Back to Site Log <ArrowRight size={18}/>
         </button>
-        <button type="button" onClick={() => { setUpdatesFilter('all'); setScreen('updates'); }} className={`mt-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#1557A0] ${focus}`}>View in My updates</button>
-        <button type="button" onClick={startNew} className={`mt-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#1557A0] ${focus}`}>Send another update</button>
+        <button type="button" onClick={() => { setUpdatesFilter('all'); setScreen('updates'); }} className={`mt-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#007AFF] ${focus}`}>View in My updates</button>
+        <button type="button" onClick={startNew} className={`mt-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#007AFF] ${focus}`}>Send another update</button>
       </div>}
 
       {screen === 'updates' && <section className="setu-supervisor-v2__list-page mx-auto max-w-2xl">
-        <button type="button" onClick={() => setScreen('home')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> Site Log</button>
+        <button type="button" onClick={() => setScreen('home')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#007AFF] ${focus}`}><ArrowLeft size={17}/> Site Log</button>
         <div className="mb-6 flex items-center justify-between"><h1 className="text-2xl font-bold tracking-tight">My updates</h1>
           <span className="text-sm font-medium text-slate-500">{filteredUpdates.length} shown · {ownUpdates.length} total</span></div>
         <input aria-label="Search my updates" value={updatesSearch} onChange={e => setUpdatesSearch(e.target.value)} placeholder="Search by ID, location or text"
@@ -665,7 +668,7 @@ export const FieldCapture: React.FC = () => {
       </section>}
 
       {screen === 'report' && <section className="setu-supervisor-v2__detail-page mx-auto max-w-2xl">
-        <button type="button" onClick={() => setScreen(reportReturn)} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> {reportReturn === 'updates' ? 'My updates' : 'Site Log'}</button>
+        <button type="button" onClick={() => setScreen(reportReturn)} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#007AFF] ${focus}`}><ArrowLeft size={17}/> {reportReturn === 'updates' ? 'My updates' : 'Site Log'}</button>
         {currentReport ? <>
           <div className="mb-6 flex flex-wrap items-center gap-3"><h1 className="break-all font-mono text-xl font-bold sm:text-2xl">{currentReport.update_id}</h1><Status update={currentReport} rounds={ownRounds}/></div>
           <div className={`${card} divide-y divide-slate-100 px-5 sm:px-7`}>
@@ -679,8 +682,12 @@ export const FieldCapture: React.FC = () => {
           </div>
           <div className={`${card} mt-4 px-5 py-5 sm:px-7`}>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status timeline</p>
-            <p className="mt-2 text-sm leading-6">Submitted {siteLogDate(currentReport.reported_date)} · Current status: {siteLogStatus(currentReport, ownRounds).label}</p>
-            <p className="mt-1 text-sm leading-6 text-slate-500">AI recommendations and planner decisions are separate from the original field report.</p>
+            <ol className="mt-4 space-y-4">
+              <li className="flex gap-3"><span className="mt-1 flex h-2.5 w-2.5 shrink-0 rounded-full bg-[#007AFF]" aria-hidden="true" /><span><span className="block text-sm font-semibold">Submitted</span><span className="block text-sm text-slate-500">{siteLogDate(currentReport.reported_date)}</span></span></li>
+              <li className="flex gap-3"><span className={`mt-1 flex h-2.5 w-2.5 shrink-0 rounded-full ${currentReport.status === 'pending' ? 'bg-[#007AFF]' : 'bg-slate-300'}`} aria-hidden="true" /><span><span className="block text-sm font-semibold">Planner review</span><span className="block text-sm text-slate-500">Current status: {siteLogStatus(currentReport, ownRounds).label}</span></span></li>
+              <li className="flex gap-3"><span className={`mt-1 flex h-2.5 w-2.5 shrink-0 rounded-full ${currentReport.status === 'pending' ? 'bg-slate-300' : 'bg-[#007AFF]'}`} aria-hidden="true" /><span><span className="block text-sm font-semibold">Decision</span><span className="block text-sm text-slate-500">{currentReport.status === 'pending' ? 'Awaiting planner decision' : siteLogStatus(currentReport, ownRounds).label}</span></span></li>
+            </ol>
+            <p className="mt-4 text-sm leading-6 text-slate-500">AI recommendations and planner decisions are separate from the original field report.</p>
           </div>
           {user && <div className="mt-4">
             <NeedsClarification rounds={ownRounds.filter(r => r.field_update_id === currentReport.id)} updates={updates} userId={user.id} act={workflow.act} available={!workflow.loading && !workflow.error} />
@@ -689,9 +696,9 @@ export const FieldCapture: React.FC = () => {
       </section>}
 
       {screen === 'account' && <section className="setu-supervisor-v2__account-page mx-auto max-w-md">
-        <button type="button" onClick={() => setScreen('home')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> Site Log</button>
+        <button type="button" onClick={() => setScreen('home')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#007AFF] ${focus}`}><ArrowLeft size={17}/> Site Log</button>
         <h1 className="text-3xl font-bold tracking-tight">Account</h1>
-        <div className={`${card} mt-6 space-y-5 p-6`}><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-800"><UserRound size={22}/></span>
+        <div className={`${card} mt-6 space-y-5 p-6`}><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(0,122,255,0.12)] text-[#007AFF]"><UserRound size={22}/></span>
           <div><p className="font-semibold">{reportedBy}</p><p className="text-sm text-slate-500">{user?.email || 'Signed-in account'}</p></div></div>
           <p className="text-sm text-slate-500">Role: {role === 'engineer' ? 'Field Engineer' : 'Site Supervisor'}</p>
           <button type="button" onClick={() => void handleSignOut()} className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-rose-700 ${focus}`}>
@@ -705,7 +712,7 @@ export const FieldCapture: React.FC = () => {
       <div className="grid grid-cols-4 py-2">
         {([{ name:'Site Log', page:'home' as Screen, Icon: ClipboardList }, { name:'My updates', page:'updates' as Screen, Icon: FileText }, { name:'New', page:'compose' as Screen, Icon: Plus }, { name:'Account', page:'account' as Screen, Icon: UserRound }]).map(n =>
           <button type="button" key={n.page} onClick={() => { if (n.page === 'compose') startNew(); else setScreen(n.page); }} aria-current={screen === n.page ? 'page' : undefined}
-            className={`flex flex-col items-center gap-1 rounded-lg py-2 text-[11px] font-semibold ${screen === n.page ? 'text-[#1557A0]' : 'text-slate-500'} ${focus}`}>
+            className={`flex flex-col items-center gap-1 rounded-lg py-2 text-[11px] font-semibold ${screen === n.page ? 'text-[#007AFF]' : 'text-slate-500'} ${focus}`}>
             <n.Icon size={20} aria-hidden="true"/>{n.name}
           </button>)}
       </div>

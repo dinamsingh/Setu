@@ -16,9 +16,16 @@ interface ReviewQueueItemProps {
 
 function queueState(update: FieldUpdate, matchedActivity?: ScheduleActivity) {
   if (update.status !== 'pending') {
+    const label = update.status.charAt(0).toUpperCase() + update.status.slice(1);
     return {
-      label: update.status,
-      className: 'bg-setu-slate-100 text-setu-slate-600',
+      label,
+      className: update.status === 'approved'
+        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+        : update.status === 'remapped'
+        ? 'bg-purple-100 text-purple-800 border border-purple-200'
+        : update.status === 'rejected'
+        ? 'bg-rose-100 text-rose-800 border border-rose-200'
+        : 'bg-setu-slate-100 text-setu-slate-600',
       icon: FileText,
     };
   }
@@ -64,7 +71,7 @@ export const ReviewQueueItem: React.FC<ReviewQueueItemProps> = ({
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded ${state.className}`}>
             <StateIcon className="h-3 w-3" />
-            {workflowLabel || state.label}
+            {workflowLabel === 'Finalized' || workflowLabel === 'Reviewable' ? state.label : (workflowLabel || state.label)}
           </span>
           <ChevronRight className="h-4 w-4 text-setu-slate-300 group-hover:text-setu-slate-500 transition-colors" />
         </div>

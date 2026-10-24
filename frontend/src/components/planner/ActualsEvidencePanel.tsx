@@ -6,7 +6,7 @@ export function ActualsEvidencePanel({ row, onClose }: { row: ScheduleActualsRow
   const { events, loading, error, page, hasMore, next, previous, refetch } = useActualsEvidence(row.activity_id);
   const selected = [row.selected_start_event_id, row.selected_finish_event_id, row.selected_progress_event_id];
   const warnings = actualsWarnings(row);
-  return <section aria-label={`Evidence for ${row.activity_id}`} className="mt-5 border border-setu-slate-300 bg-white">
+  return <section aria-label={`Evidence for ${row.activity_id}`} className="mt-5 rounded-xl border border-setu-slate-300 bg-white">
     <div className="flex items-start justify-between gap-4 border-b border-setu-slate-200 px-5 py-4">
       <div><p className="text-[10px] font-bold uppercase tracking-wider text-setu-blue">Read-only provenance</p><h2 className="mt-1 text-lg font-bold">{row.activity_id} · {row.activity_name}</h2><p className="mt-1 text-xs text-setu-slate-500">{row.contributing_event_count} eligible events from {row.contributing_report_count} reports. Source selection is calculated by the database.</p></div>
       <button onClick={onClose} type="button" aria-label="Close evidence" className="p-2 text-setu-slate-600 hover:bg-setu-slate-100"><X className="h-5 w-5"/></button>

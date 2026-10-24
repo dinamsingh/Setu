@@ -13,8 +13,8 @@ const fieldDetails: { key: IntakeField; label: string; required?: boolean; examp
   { key: 'discipline', label: 'Discipline', example: 'Piping, Pipeline, Civil, Electrical, Mechanical, Instrumentation' },
 ];
 const focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2';
-const secondary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-[#123F77] hover:bg-slate-50 ${focus}`;
-const primary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#123F77] px-5 py-3 text-sm font-semibold text-white hover:bg-[#0C315D] disabled:cursor-not-allowed disabled:opacity-40 ${focus}`;
+const secondary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-[#007AFF] hover:bg-slate-50 ${focus}`;
+const primary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#007AFF] px-5 py-3 text-sm font-semibold text-white hover:bg-[#0066D6] disabled:cursor-not-allowed disabled:opacity-40 ${focus}`;
 const inputClass = 'min-h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-[#112344] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
 const pageSize = 25;
 
@@ -95,24 +95,24 @@ export function ReportImportWizard({ onCancel, submitter, onLockChange, onComple
       <div><p className="text-xs font-bold uppercase tracking-[0.15em] text-[#55769E]">New field update / Import reports</p>
         <h1 ref={heading} tabIndex={-1} className="mt-2 text-3xl font-bold tracking-tight outline-none sm:text-4xl">{step === 1 ? 'Bring your site reports.' : step === 2 ? 'Match your columns.' : 'Check every report.'}</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{step === 1 ? 'Import multiple field reports from a CSV/XLSX spreadsheet. Map the columns and check each row. Your unsent field update stays separate.' : step === 2 ? 'Tell SETU which column holds each detail. Required fields cannot be skipped.' : 'Correct the details below. Changes stay in this browser session, not in your spreadsheet or Site Log.'}</p></div>
-      <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-[#123F77]"><LockKeyhole size={14} aria-hidden="true" />{isFieldReportImportEnabled() ? 'Review before submission' : 'Local preview · submission locked'}</span>
+      <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-[#007AFF]"><LockKeyhole size={14} aria-hidden="true" />{isFieldReportImportEnabled() ? 'Review before submission' : 'Local preview · submission locked'}</span>
     </div>
     <ol aria-label="Import steps" className="mb-7 grid grid-cols-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
       {['Choose file', 'Map columns', 'Review & correct'].map((label, index) => <li key={label} aria-current={step === index + 1 ? 'step' : undefined}
         className={`flex flex-col gap-2 border-r border-slate-200 px-3 py-4 last:border-0 sm:flex-row sm:items-center sm:gap-3 sm:px-5 ${step === index + 1 ? 'bg-[#EAF2FC]' : ''}`}>
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${step >= index + 1 ? 'bg-[#123F77] text-white' : 'bg-slate-100 text-slate-500'}`}>{step > index + 1 ? <Check size={14} aria-hidden="true" /> : index + 1}</span>
-        <span className={`text-xs font-semibold sm:text-sm ${step === index + 1 ? 'text-[#123F77]' : 'text-slate-500'}`}>{label}</span></li>)}
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${step >= index + 1 ? 'bg-[#007AFF] text-white' : 'bg-slate-100 text-slate-500'}`}>{step > index + 1 ? <Check size={14} aria-hidden="true" /> : index + 1}</span>
+        <span className={`text-xs font-semibold sm:text-sm ${step === index + 1 ? 'text-[#007AFF]' : 'text-slate-500'}`}>{label}</span></li>)}
     </ol>
 
     {step === 1 && <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8">
         <label htmlFor="intake-file" className={`flex min-h-64 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-200 bg-[#F7FAFE] p-5 text-center focus-within:ring-2 focus-within:ring-blue-500`}>
-          <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-[#1557A0]"><Upload size={25} aria-hidden="true" /></span>
+          <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-[#007AFF]"><Upload size={25} aria-hidden="true" /></span>
           <span className="text-lg font-bold">Choose a CSV or Excel file</span><span className="mt-2 text-sm text-slate-500">.csv or .xlsx · up to 2 MiB · 1,000 report rows</span>
           <input ref={fileInput} id="intake-file" aria-label="Choose CSV or XLSX file" type="file" accept=".csv,.xlsx" onChange={e => chooseFile(e.target.files?.[0])}
-            className="mt-5 block w-full max-w-sm text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#123F77] file:px-4 file:py-3 file:font-semibold file:text-white" />
+            className="mt-5 block w-full max-w-sm text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#007AFF] file:px-4 file:py-3 file:font-semibold file:text-white" />
         </label>
-        {file && <div className="mt-5 flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3"><FileSpreadsheet size={20} className="shrink-0 text-[#1557A0]" aria-hidden="true" />
+        {file && <div className="mt-5 flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3"><FileSpreadsheet size={20} className="shrink-0 text-[#007AFF]" aria-hidden="true" />
           <div className="min-w-0 flex-1"><p className="break-all text-sm font-semibold">{file.name}</p><p className="mt-1 text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KiB · {source?.format === 'xlsx' ? 'First worksheet only' : 'CSV records include a header row'}</p></div></div>}
         {readError && <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-800">{readError}</p>}
         {fatalIssues.length > 0 && <div role="alert" className="mt-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-800"><p className="mb-2 font-semibold">This file needs attention</p><ul className="list-disc space-y-1 pl-5">{fatalIssues.map((error, index) => <li key={index}>{error.message}</li>)}</ul><p className="mt-3">Fix the spreadsheet, split large files, or save a plain CSV/XLSX copy, then choose it again.</p></div>}
@@ -126,10 +126,10 @@ export function ReportImportWizard({ onCancel, submitter, onLockChange, onComple
     {step > 1 && readError && <div role="alert" className="mb-5 rounded-xl bg-rose-50 p-4 text-sm text-rose-800"><p>{readError}</p><button type="button" onClick={changeFile} className={`${secondary} mt-3`}>Change file</button></div>}
     {step === 2 && source && <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><p className="min-w-0 break-all text-sm font-semibold">{file?.name}<span className="ml-2 font-normal text-slate-500">· {source.headers.length} columns</span></p><button type="button" onClick={changeFile} className={secondary}>Change file</button></div>
-      <div className="mb-5 rounded-xl bg-blue-50 p-4 text-sm leading-6 text-[#123F77]">Known headers are detected automatically. If more than one column could fit, choose one yourself. Changing a mapping or date format clears local row corrections.</div>
+      <div className="mb-5 rounded-xl bg-blue-50 p-4 text-sm leading-6 text-[#007AFF]">Known headers are detected automatically. If more than one column could fit, choose one yourself. Changing a mapping or date format clears local row corrections.</div>
       <div className="hidden grid-cols-[1fr_1fr] gap-5 border-b border-slate-200 pb-3 text-xs font-bold uppercase tracking-widest text-slate-500 md:grid"><span>SETU field</span><span>Your spreadsheet column</span></div>
       {fieldDetails.map(field => <div key={field.key} className="grid gap-3 border-b border-slate-100 py-5 md:grid-cols-2 md:items-start md:gap-5">
-        <div><label htmlFor={`map-${field.key}`} className="text-sm font-bold">{field.label} <span className={`ml-2 text-xs font-medium ${field.required ? 'text-[#1557A0]' : 'text-slate-500'}`}>{field.required ? 'Required' : 'Optional'}</span></label><p className="mt-1 text-xs leading-5 text-slate-500">{field.example}</p></div>
+        <div><label htmlFor={`map-${field.key}`} className="text-sm font-bold">{field.label} <span className={`ml-2 text-xs font-medium ${field.required ? 'text-[#007AFF]' : 'text-slate-500'}`}>{field.required ? 'Required' : 'Optional'}</span></label><p className="mt-1 text-xs leading-5 text-slate-500">{field.example}</p></div>
         <div><select id={`map-${field.key}`} value={Object.hasOwn(mapping, field.key) ? mapping[field.key] ?? '' : source.columnMapping[field.key] ?? ''}
           onChange={e => { setBusy(true); setCorrections({}); setMapping(current => ({ ...current, [field.key]: e.target.value === '' ? null : Number(e.target.value) })); }}
           aria-describedby={`map-help-${field.key}`} aria-required={!!field.required} aria-invalid={fileIssues.some(error => error.field === field.key)} className={inputClass}>
@@ -150,7 +150,7 @@ export function ReportImportWizard({ onCancel, submitter, onLockChange, onComple
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><p className="min-w-0 break-all text-sm font-semibold">{file?.name}</p><button type="button" onClick={changeFile} className={secondary}>Change file</button></div>
       <div aria-label="Row counts" className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">{[
         ['Total rows', preview.summary.totalRows], ['Valid locally', preview.summary.validRows], ['Needs correction', preview.summary.invalidRows], ['Duplicates', duplicates],
-      ].map(([label, count]) => <div key={label} className="rounded-2xl border border-slate-200 bg-white px-4 py-4"><p className="text-xs font-medium text-slate-500">{label}</p><p data-count={label} className={`mt-2 text-2xl font-bold tabular-nums ${label === 'Needs correction' && Number(count) ? 'text-amber-700' : 'text-[#123F77]'}`}>{count}</p></div>)}</div>
+      ].map(([label, count]) => <div key={label} className="rounded-2xl border border-slate-200 bg-white px-4 py-4"><p className="text-xs font-medium text-slate-500">{label}</p><p data-count={label} className={`mt-2 text-2xl font-bold tabular-nums ${label === 'Needs correction' && Number(count) ? 'text-amber-700' : 'text-[#007AFF]'}`}>{count}</p></div>)}</div>
       <p className="mb-5 text-xs leading-5 text-slate-500">Duplicates are included in “Needs correction.” Row numbers refer to spreadsheet rows / CSV records, including the header. Structural row errors require fixing the source file. All edits revalidate immediately.</p>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-4 sm:p-5"><h2 className="text-lg font-bold">Report review</h2>

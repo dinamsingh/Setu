@@ -44,19 +44,19 @@ export function ReportImportConfirmation({ preview, submitter, onLockChange, onC
   }
   function returnToReview() { if (sending || uncertain) return; setRequest(null); setResult(null); setAcknowledged(false); }
   return <section aria-label="Import confirmation" className="mt-6 rounded-2xl border border-blue-200 bg-[#EAF2FC] p-5 sm:p-7">
-    <h2 ref={heading} tabIndex={-1} className="text-lg font-bold text-[#123F77] outline-none">{completed ? 'Import verified by SETU' : request ? 'Confirm these field reports' : 'Ready for secure import'}</h2>
+    <h2 ref={heading} tabIndex={-1} className="text-lg font-bold text-[#007AFF] outline-none">{completed ? 'Import verified by SETU' : request ? 'Confirm these field reports' : 'Ready for secure import'}</h2>
     {!enabled && <p role="status" className="mt-2 text-sm leading-6 text-slate-600">Submission locked. Migrations 012 and 013 must be independently verified and explicitly enabled. {request ? 'This request may already have been sent; the gate does not cancel it.' : 'Nothing has been uploaded, saved or sent for matching.'}</p>}
     {enabled && !authorized && <p role="alert" className="mt-2 text-sm text-amber-900">Sign in as a site supervisor or field engineer to import.</p>}
     <p className="mt-2 text-sm leading-6 text-slate-600">{request ? request.rows.length : preview.rows.length} reports. Every row is checked again by the server. Existing identical reports are counted as duplicates, not overwritten. Import does not approve progress or change the baseline schedule.</p>
     {!request && <>
       {!preview.valid && <p className="mt-2 text-sm font-semibold text-amber-900">Correct all invalid and duplicate rows first. No rows will be silently skipped.</p>}
       {prepareError && <p role="alert" className="mt-2 text-sm text-rose-800">{prepareError}</p>}
-      <button type="button" disabled={!enabled || !authorized || !preview.valid} onClick={reviewConfirmation} className={`${button} mt-4 bg-[#123F77] text-white`}>Continue to confirmation</button>
+      <button type="button" disabled={!enabled || !authorized || !preview.valid} onClick={reviewConfirmation} className={`${button} mt-4 bg-[#007AFF] text-white`}>Continue to confirmation</button>
     </>}
     {request && <>
       <p className="mt-3 break-all font-mono text-xs text-slate-500">Request: {request.requestId}</p>
       {!result || result.kind === 'error' || result.kind === 'disabled' || uncertain ? <label className="mt-4 flex items-start gap-3 text-sm leading-6 text-[#112344]">
-        <input type="checkbox" checked={acknowledged} disabled={sending || uncertain} onChange={e => setAcknowledged(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#123F77]" />
+        <input type="checkbox" checked={acknowledged} disabled={sending || uncertain} onChange={e => setAcknowledged(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#007AFF]" />
         I confirm these {request.rows.length} reports are ready for the matching and planner review queue.
       </label> : null}
       {result && 'summary' in result && <div role={completed ? 'status' : 'alert'} aria-live="polite" className={`mt-4 rounded-xl border p-4 ${completed ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-rose-200 bg-rose-50 text-rose-900'}`}>
@@ -69,8 +69,8 @@ export function ReportImportConfirmation({ preview, submitter, onLockChange, onC
       {result && 'message' in result && <div role="alert" className="mt-4 rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-900"><p className="font-semibold">{uncertain ? 'Outcome unknown — not confirmed' : result.kind === 'disabled' ? 'Submission locked' : 'Request rejected by the server'}</p><p>{result.message}</p>{uncertain && <p>Keep this screen open. The rows and request ID stay unchanged for retry.</p>}</div>}
       {requestActorId !== submitter?.id && <p role="alert" className="mt-3 text-sm text-rose-800">The signed-in account changed. Do not retry under another account.</p>}
       <div className="mt-5 flex flex-wrap gap-3">
-        {!completed && result?.kind !== 'rejected' && <button type="button" disabled={sending || !enabled || !authorized || !acknowledged || requestActorId !== submitter?.id} onClick={() => void send()} className={`${button} bg-[#123F77] text-white`}>{sending ? 'Submitting reports…' : result ? 'Retry same request' : 'Confirm import'}</button>}
-        <button type="button" disabled={sending || uncertain} onClick={returnToReview} className={`${button} bg-white text-[#123F77]`}>{completed ? 'Close summary' : result ? 'Return to review' : 'Cancel confirmation'}</button>
+        {!completed && result?.kind !== 'rejected' && <button type="button" disabled={sending || !enabled || !authorized || !acknowledged || requestActorId !== submitter?.id} onClick={() => void send()} className={`${button} bg-[#007AFF] text-white`}>{sending ? 'Submitting reports…' : result ? 'Retry same request' : 'Confirm import'}</button>}
+        <button type="button" disabled={sending || uncertain} onClick={returnToReview} className={`${button} bg-white text-[#007AFF]`}>{completed ? 'Close summary' : result ? 'Return to review' : 'Cancel confirmation'}</button>
       </div>
     </>}
   </section>;

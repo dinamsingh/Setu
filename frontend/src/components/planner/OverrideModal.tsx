@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, ShieldAlert, AlertTriangle, CheckCircle2, Lock } from 'lucide-react';
 import type { FieldUpdate } from '../../types';
 import { parseValidationResults } from '../../lib/utils';
@@ -29,6 +29,11 @@ const OverrideModalContent: React.FC<OverrideModalContentProps> = ({
 }) => {
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const validationList = parseValidationResults(update.validation_results);
 
@@ -47,8 +52,8 @@ const OverrideModalContent: React.FC<OverrideModalContentProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-setu-navy-dark/60 backdrop-blur-xs p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl border border-rose-200 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-setu-navy-dark/60 backdrop-blur-xs p-4 animate-fadeIn" onClick={onClose}>
+      <div className="bg-white rounded-2xl border border-rose-200 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-rose-100 flex items-center justify-between bg-rose-50/50">
           <div className="flex items-center space-x-2.5">
@@ -132,7 +137,7 @@ const OverrideModalContent: React.FC<OverrideModalContentProps> = ({
 
           {/* Mandatory Justification Input */}
           <div>
-            <label className="text-xs font-bold text-setu-slate-800 block mb-1">
+            <label className="text-sm font-bold text-setu-slate-800 block mb-1">
               Mandatory Engineering Justification / Override Rationale: <span className="text-rose-600">*</span>
             </label>
             <textarea
@@ -140,7 +145,7 @@ const OverrideModalContent: React.FC<OverrideModalContentProps> = ({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="e.g. Schedule dates delayed by client change order CO-04; verbal confirmation from site engineer Ramesh Borah that Section B was mobilized early."
-              className="w-full text-xs p-2.5 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 placeholder:text-setu-slate-400"
+              className="w-full text-sm p-2.5 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 placeholder:text-setu-slate-400"
             />
             <p className="text-[11px] text-setu-slate-500 mt-1">
               This justification will be recorded for <strong>{plannerName}</strong> in the append-only audit trail. Authenticated account identity is authoritative.
@@ -153,7 +158,7 @@ const OverrideModalContent: React.FC<OverrideModalContentProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-xs font-bold text-setu-slate-600 hover:bg-setu-slate-200 transition-colors"
+            className="px-4 py-2.5 rounded-lg text-sm font-bold text-setu-slate-600 hover:bg-setu-slate-200 transition-colors"
           >
             Cancel
           </button>
@@ -161,7 +166,7 @@ const OverrideModalContent: React.FC<OverrideModalContentProps> = ({
             type="button"
             disabled={!reason.trim() || isSubmitting}
             onClick={handleConfirm}
-            className="px-4 py-2 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+            className="px-4 py-2.5 rounded-lg text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>Authorize Override & Permit Approval</span>
