@@ -234,7 +234,6 @@ export const RoleSelection: React.FC = () => {
                 <span>Site Engineer</span>
               </button>
             </div>
-            <p className="setu-login-v2__demo-help">Account access follows the role assigned to you after sign-in.</p>
           </section>
         </div>
 

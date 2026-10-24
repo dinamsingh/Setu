@@ -42,11 +42,11 @@ export const DateTimeSuggestions = ({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1.5 font-bold text-[#1557A0] sm:text-sm">
-            <Sparkles size={15} className="text-[#1557A0]" aria-hidden="true" />
+          <span className="flex items-center gap-1.5 font-bold text-[#007AFF] sm:text-sm">
+            <Sparkles size={15} className="text-[#007AFF]" aria-hidden="true" />
             Date &amp; time mentions detected
           </span>
-          <span className="rounded-md border border-blue-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#1557A0]">
+          <span className="rounded-md border border-blue-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#007AFF]">
             Asia/Kolkata (IST)
           </span>
         </div>
@@ -141,7 +141,7 @@ export const DateTimeSuggestions = ({
                               ? 'border border-emerald-300 bg-emerald-50 text-emerald-800'
                               : isFutureCandidate
                               ? 'border border-amber-300 bg-amber-50/90 text-amber-900 hover:bg-amber-100'
-                              : 'bg-[#1557A0] text-white hover:bg-[#0C315D]'
+                              : 'bg-[#007AFF] text-white hover:bg-[#0066D6]'
                           }`}
                         >
                           {isSelected && <Check size={13} aria-hidden="true" />}
@@ -168,7 +168,7 @@ export const DateTimeSuggestions = ({
                             ? 'border border-emerald-300 bg-emerald-50 text-emerald-800'
                             : isFutureCandidate
                             ? 'border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
-                            : 'bg-[#1557A0] text-white hover:bg-[#0C315D]'
+                            : 'bg-[#007AFF] text-white hover:bg-[#0066D6]'
                         }`}
                       >
                         {isSelected && <Check size={13} aria-hidden="true" />}
