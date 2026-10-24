@@ -64,7 +64,7 @@ function FieldUpdateRow({ update, rounds, onClick }: {
 }) {
   return <button type="button" onClick={onClick}
     className={`setu-supervisor-v2__report-row group flex w-full items-start gap-3 border-b border-slate-100 px-4 py-4 text-left transition-colors last:border-0 hover:bg-slate-50 sm:px-5 ${focus}`}>
-    <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[#1557A0]">
+    <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[9px] bg-[rgba(0,122,255,0.12)] text-[#007AFF]">
       <FileText size={19} aria-hidden="true" />
     </span>
     <span className="min-w-0 flex-1">
@@ -72,13 +72,13 @@ function FieldUpdateRow({ update, rounds, onClick }: {
         <span className="font-mono text-[11px] font-semibold text-slate-500">{update.update_id}</span>
         <Status update={update} rounds={rounds} />
       </span>
-      <span className="block line-clamp-2 text-sm font-semibold leading-6 text-[#13264A] sm:text-[15px]">{update.field_text}</span>
+      <span className="block line-clamp-2 text-[17px] font-semibold leading-[22px] text-[#1D1D1F]">{update.field_text}</span>
       <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
         <span className="inline-flex items-center gap-1"><MapPin size={13} aria-hidden="true" />{update.site_location || 'Site location not provided'}</span>
         <span className="inline-flex items-center gap-1"><CalendarDays size={13} aria-hidden="true" />{siteLogDate(update.reported_date)}</span>
       </span>
     </span>
-    <ChevronRight size={18} className="mt-5 shrink-0 text-slate-400 group-hover:text-[#1557A0]" aria-hidden="true" />
+    <ChevronRight size={18} className="mt-5 shrink-0 text-[rgba(60,60,67,0.6)] group-hover:text-[#007AFF]" aria-hidden="true" />
   </button>;
 }
 
@@ -310,11 +310,11 @@ export const FieldCapture: React.FC = () => {
     if (!result.error) navigate('/');
   };
 
-  return <div className="setu-supervisor-v2 min-h-screen bg-[#F7F9FC] text-[#112344] selection:bg-blue-100">
-    <header className="setu-supervisor-v2__topbar border-b border-slate-200/80 bg-white/95">
+  return <div className="setu-supervisor-v2 min-h-screen bg-[#F5F5F7] text-[#1D1D1F] selection:bg-blue-100">
+    <header className="setu-supervisor-v2__topbar border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
       <div className="mx-auto flex h-[72px] w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <button type="button" disabled={importLocked} onClick={() => setScreen('home')} className={`flex items-center gap-3 rounded-lg text-left ${focus}`} aria-label="SETU Site Log home">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1557A0] text-white"><Layers3 size={21} strokeWidth={2.3}/></span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#007AFF] text-white"><Layers3 size={21} strokeWidth={2.3}/></span>
           <span><span className="block text-lg font-extrabold leading-5 tracking-tight">SETU</span>
             <span className="block text-xs font-medium text-slate-500">Site Log · Oil India Limited</span></span>
         </button>
@@ -322,7 +322,7 @@ export const FieldCapture: React.FC = () => {
           <span className="hidden text-right sm:block"><span className="block text-sm font-semibold">{reportedBy.split(' (')[0]}</span>
             <span className="block text-xs text-slate-500">{role === 'engineer' ? 'Field Engineer' : 'Site Supervisor'}</span></span>
           <button type="button" disabled={importLocked} onClick={() => setScreen('account')} aria-label="Account and sign out"
-            className={`flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-[#1557A0] ${focus}`}>
+            className={`flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(0,122,255,0.12)] text-sm font-bold text-[#007AFF] ${focus}`}>
             <UserRound size={20}/>
           </button>
         </div>
@@ -333,7 +333,6 @@ export const FieldCapture: React.FC = () => {
       {screen === 'import' && <ReportImportWizard onCancel={() => setScreen('compose')}
         submitter={user ? { id: user.id, role } : undefined} onLockChange={setImportLocked} onCompleted={() => void refetch(true)} />}
       {screen === 'home' && <div className="setu-supervisor-v2__home">
-        <nav className="setu-supervisor-v2__breadcrumb" aria-label="Location"><span>Site Log</span><ChevronRight size={15} aria-hidden="true"/><strong>Overview</strong></nav>
         <section className="setu-supervisor-v2__home-intro" aria-labelledby="site-log-home-title">
           <div className="setu-supervisor-v2__home-copy">
             <p className="setu-supervisor-v2__eyebrow">FIELD WORKSPACE · OIL INDIA LIMITED</p>
@@ -347,9 +346,9 @@ export const FieldCapture: React.FC = () => {
           </div>
         </section>
         <section className="setu-supervisor-v2__home-metrics" aria-label="Workspace activity">
-          <button type="button" onClick={() => { setUpdatesFilter('all'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span>My updates</span><strong>{ownUpdates.length}</strong><small>Reports submitted from this account · View all</small></button>
-          <button type="button" onClick={() => { setUpdatesFilter('pending'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span>Pending review</span><strong>{ownUpdates.filter(update => update.status === 'pending').length}</strong><small>Awaiting a planner decision · Filter</small></button>
-          <button type="button" onClick={() => { setUpdatesFilter('reply'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span>Clarification rounds</span><strong>{actionableRounds.length}</strong><small>Open or responded requests · Reply</small></button>
+          <button type="button" onClick={() => { setUpdatesFilter('all'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span className="setu-supervisor-v2__metric-main"><span>My updates</span><small>Reports submitted from this account</small></span><span className="setu-supervisor-v2__metric-value"><strong>{ownUpdates.length}</strong><ChevronRight size={17} aria-hidden="true" /></span></button>
+          <button type="button" onClick={() => { setUpdatesFilter('pending'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span className="setu-supervisor-v2__metric-main"><span>Pending review</span><small>Awaiting a planner decision</small></span><span className="setu-supervisor-v2__metric-value"><strong>{ownUpdates.filter(update => update.status === 'pending').length}</strong><ChevronRight size={17} aria-hidden="true" /></span></button>
+          <button type="button" onClick={() => { setUpdatesFilter('reply'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span className="setu-supervisor-v2__metric-main"><span>Clarification rounds</span><small>Open or responded requests</small></span><span className="setu-supervisor-v2__metric-value"><strong>{actionableRounds.length}</strong><ChevronRight size={17} aria-hidden="true" /></span></button>
         </section>
 
         {workflow.error && <p role="alert" className="setu-supervisor-v2__home-error">Clarification updates unavailable: {workflow.error}</p>}
