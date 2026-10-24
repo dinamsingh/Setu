@@ -374,25 +374,26 @@ export const FieldCapture: React.FC = () => {
       </div>}
 
       {screen === 'compose' && <div className="setu-supervisor-v2__compose mx-auto max-w-[700px]">
-        <button type="button" onClick={() => setScreen('home')} className={`mb-7 inline-flex items-center gap-2 rounded-lg py-1 text-sm font-semibold text-slate-600 hover:text-[#123F77] ${focus}`}><ArrowLeft size={18}/> Site Log</button>
-        <nav className="setu-supervisor-v2__breadcrumb" aria-label="Location"><span>Site Log</span><ChevronRight size={15}/><strong>New update</strong></nav>
-        <div className="setu-supervisor-v2__intro"><h1 className="setu-supervisor-v2__page-title">New site update</h1><ol className="setu-supervisor-v2__steps" aria-label="Report progress"><li aria-current="step"><span>1</span>Write</li><li><span>2</span>Review</li></ol></div>
+        <div className="setu-supervisor-v2__compose-head">
+          <button type="button" onClick={() => setScreen('home')} className={`inline-flex items-center gap-1 rounded-lg py-1 text-sm text-[#007AFF] ${focus}`}><ArrowLeft size={18}/> Site Log</button>
+          <h1 className="setu-supervisor-v2__page-title">New site update</h1>
+          <p className="setu-supervisor-v2__compose-step" aria-label="Report progress">Step 1 of 2 · Write → Review</p>
+        </div>
         <span className="setu-supervisor-v2__legacy-pen inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E5F7F0] text-[#0D8067]"><PenLine size={21}/></span>
         <p className="setu-supervisor-v2__legacy-kicker mt-6 text-xs font-bold uppercase tracking-[0.14em] text-[#0C806D]">New update</p>
-        <h2 className="setu-supervisor-v2__composer-label mt-2 text-[2rem] font-bold leading-tight tracking-tight sm:text-[2.65rem]">What happened on site? <span>· Required</span></h2>
-        <p className="mt-2 max-w-lg text-sm leading-6 text-slate-500 sm:text-base">Write naturally or use voice. SETU handles schedule linking for planner review.</p>
-        <form id="site-log-compose" onSubmit={handleSend} className="setu-supervisor-v2__form mt-7 space-y-6">
+        <h2 className="setu-supervisor-v2__composer-label mt-1 text-[17px] font-semibold leading-6">What happened on site? <span>· Required</span></h2>
+        <form id="site-log-compose" onSubmit={handleSend} className="setu-supervisor-v2__form mt-3 space-y-3">
           <div>
             <div className="relative">
               <label htmlFor="field-report" className="sr-only">Describe field progress</label>
-              <textarea id="field-report" rows={7} maxLength={4000} value={fieldText} required
+              <textarea id="field-report" rows={4} maxLength={4000} value={fieldText} required
                 onChange={e => {
                   setFieldText(e.target.value);
                   if (pendingClarification) setPendingClarification(null);
                   if (resolvedAmbiguity) setResolvedAmbiguity(null);
                 }}
                 placeholder="Piping spool erection and line fit-up finished at Manifold A today…"
-                className="block min-h-[235px] w-full resize-y rounded-[1.4rem] border border-slate-200 bg-white p-5 pb-16 text-base leading-7 text-[#112344] placeholder:text-slate-400 shadow-sm outline-none focus:border-[#1557A0] focus:ring-4 focus:ring-blue-100 sm:p-6 sm:pb-16 sm:text-lg" />
+                className="block min-h-[110px] w-full resize-y rounded-[10px] border border-slate-200 bg-white px-3.5 pb-3 pt-14 text-[17px] leading-[22px] text-[#1D1D1F] placeholder:text-slate-400 shadow-sm outline-none focus:border-[#007AFF] focus:ring-4 focus:ring-[rgba(0,122,255,0.18)]" />
               <ReportAttachmentMenu triggerRef={importEntry} disabled={isSubmitting} onImport={() => setScreen('import')} />
               <VoiceInputControl
                 disabled={isSubmitting}
@@ -424,54 +425,37 @@ export const FieldCapture: React.FC = () => {
                 </button>
               </div>
             )}
-            <div className="mt-2 flex flex-col gap-1 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[11px] leading-tight text-slate-500">
-                Voice input: Mixed-language (Hinglish) accuracy is best-effort. Speech recognition is processed by your browser and may send audio to an external speech service. SETU does not record or store raw audio.
-              </p>
-              <p className="shrink-0 text-right tabular-nums">{fieldText.length} / 4,000 characters</p>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <details className="setu-supervisor-v2__privacy">
+                <summary>Voice input: processed by your browser.</summary>
+                <p>Mixed-language (Hinglish) accuracy is best-effort. Speech recognition is processed by your browser and may send audio to an external speech service. SETU does not record or store raw audio.</p>
+              </details>
+              <p className="shrink-0 text-right text-[11px] tabular-nums text-slate-500">{fieldText.length} / 4,000 characters</p>
             </div>
           </div>
 
-          {/* Compact date and location display with accessible 'Change details' control */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 sm:text-sm">
-                <span className="inline-flex items-center gap-1.5 font-medium text-slate-700">
-                  <CalendarDays size={15} className="text-[#1557A0]" aria-hidden="true" />
-                  <span data-testid="compact-date">{siteLogDate(reportedDate)}</span>
-                </span>
-                <span className="text-slate-300" aria-hidden="true">·</span>
-                <span className="inline-flex items-center gap-1.5 font-medium text-slate-700">
-                  <MapPin size={15} className="text-[#1557A0]" aria-hidden="true" />
-                  <span data-testid="compact-location">{siteLocation || 'Site Area'}</span>
-                </span>
-                {discipline && (
-                  <>
-                    <span className="text-slate-300" aria-hidden="true">·</span>
-                    <span className="font-medium text-slate-500">{discipline}</span>
-                  </>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowDetails(v => !v)}
-                aria-expanded={showDetails}
-                aria-controls="report-details-panel"
-                className="shrink-0 text-xs font-semibold text-[#1557A0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1 py-0.5"
-              >
-                {showDetails ? 'Hide details' : 'Change details'}
-              </button>
-            </div>
+          <div className="setu-supervisor-v2__details-head">
+            <span>Details</span>
+            <button
+              type="button"
+              onClick={() => setShowDetails(v => !v)}
+              aria-expanded={showDetails}
+              aria-controls="report-details-panel"
+              className="shrink-0 text-[13px] font-semibold text-[#007AFF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1 py-0.5"
+            >
+              {showDetails ? 'Hide details' : 'Change details'}
+            </button>
+          </div>
 
-            <div id="report-details-panel" className={showDetails ? 'mt-4 border-t border-slate-100 pt-3 block space-y-4' : 'hidden'}>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
-                  <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><Settings2 size={14}/> Discipline</span>
+          <div id="report-details-panel" className={showDetails ? 'block' : 'hidden'}>
+            <div className="setu-supervisor-v2__details-grid">
+              <label className="setu-supervisor-v2__detail-cell">
+                <span className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500"><Settings2 size={14}/> Discipline</span>
                   <span className="relative block">
                     <select
                       value={discipline}
                       onChange={e => setDiscipline(e.target.value)}
-                      className="w-full appearance-none bg-transparent pr-5 text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      className="w-full appearance-none bg-transparent pr-5 text-[15px] font-semibold text-[#1D1D1F] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       aria-label="Engineering discipline"
                     >
                       {disciplines.map(d => <option key={d} value={d}>{d}</option>)}
@@ -479,37 +463,37 @@ export const FieldCapture: React.FC = () => {
                     <ChevronDown size={14} className="pointer-events-none absolute right-0 top-1 text-slate-500"/>
                   </span>
                 </label>
-                <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
-                  <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><MapPin size={14}/> Site / Area</span>
+                <label className="setu-supervisor-v2__detail-cell">
+                  <span className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500"><MapPin size={14}/> Site / Area</span>
                   <input
                     value={siteLocation}
                     placeholder="Choose site area"
                     onChange={e => { setSiteLocation(e.target.value); setPendingClarification(null); setResolvedAmbiguity(null); }}
                     aria-label="Site location"
-                    className="w-full min-w-0 bg-transparent text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="w-full min-w-0 bg-transparent text-[15px] font-semibold text-[#1D1D1F] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   />
                 </label>
-                <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
-                  <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><CalendarDays size={14}/> Reported date</span>
+                <label className="setu-supervisor-v2__detail-cell">
+                  <span className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500"><CalendarDays size={14}/> Reported date</span>
                   <input
                     required
                     type="date"
                     value={reportedDate}
                     onChange={e => { setReportedDate(e.target.value); setPendingClarification(null); setResolvedAmbiguity(null); }}
                     aria-label="Reported date"
-                    className="w-full min-w-0 bg-transparent text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="w-full min-w-0 bg-transparent text-[15px] font-semibold text-[#1D1D1F] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   />
                 </label>
               </div>
-              <section className="border-t border-slate-100 pt-3">
+              <section className="setu-supervisor-v2__reporter-row">
                 <button
                   type="button"
                   onClick={() => setShowReporter(v => !v)}
                   aria-expanded={showReporter}
                   className={`flex w-full items-center gap-3 rounded-xl py-2 text-left ${focus}`}
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#1557A0]">
-                    <UserRound size={18}/>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(0,122,255,0.12)] text-[#007AFF]">
+                    <UserRound size={16}/>
                   </span>
                   <span className="flex-1">
                     <span className="block text-xs text-slate-500">Reporting as</span>
@@ -530,14 +514,13 @@ export const FieldCapture: React.FC = () => {
                 )}
               </section>
             </div>
-          </div>
 
           <section className="setu-supervisor-v2__draftbar" aria-label="Review and save controls">
             <div className="setu-supervisor-v2__draft-actions"><button type="button" disabled={isSubmitting} onClick={saveDraft} className="setu-supervisor-v2__quiet">Save draft</button><span aria-live="polite">{draftStatus}</span></div>
             <button type="button" disabled={isSubmitting} onClick={handleReview} className="setu-supervisor-v2__primary">Review update <ArrowRight size={18}/></button>
           </section>
           {draftWarning && <p role="alert" className="text-sm text-amber-800">{draftWarning}</p>}
-          <p className="setu-supervisor-v2__attachment-note">Use Add attachment for CSV/XLSX import. Photo and PDF uploads are not enabled yet.</p>
+
           {/* Minimal Plain-Language Clarification Dialog */}
           {pendingClarification && (
             <div
@@ -614,8 +597,8 @@ export const FieldCapture: React.FC = () => {
             </div>
           )}
 
-          <p className="text-xs leading-5 text-slate-500">
-            This report is sent for AI schedule linking and human planner review. Submission does not approve or update the baseline schedule.
+          <p className="setu-supervisor-v2__disclaimer">
+            Use Add attachment for CSV/XLSX import. Photo and PDF uploads are not enabled yet. This report is sent for AI schedule linking and human planner review; submission does not approve or update the baseline schedule.
           </p>
 
           <button
