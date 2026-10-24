@@ -298,9 +298,9 @@ it('disables voice input and stops listening while report submission is in fligh
 
 it('displays updated privacy disclosure regarding browser speech and external speech services', async () => {
   await draft();
-  const paragraphs = Array.from(container.querySelectorAll('p'));
-  const notice = paragraphs.find(p => p.textContent && p.textContent.includes('Voice input:'));
+  const notice = container.querySelector('.setu-supervisor-v2__privacy');
   expect(notice).toBeTruthy();
+  expect(notice?.textContent).toContain('Voice input:');
   expect(notice?.textContent).toContain('Speech recognition is processed by your browser and may send audio to an external speech service');
   expect(notice?.textContent).toContain('SETU does not record or store raw audio');
 });
@@ -342,14 +342,15 @@ it('prevents late speech results from mutating fieldText after report submission
   }));
 });
 
-it('displays simple default supervisor screen with compact date/location, Change details toggle, and Update bhejo action', async () => {
+it('displays simple default supervisor screen with compact details grid, Hide details toggle, and Update bhejo action', async () => {
   await click('New field update');
   const textarea = container.querySelector('#field-report');
   expect(textarea).not.toBeNull();
   expect(container.querySelector('[aria-label="Start voice input"]')).not.toBeNull();
   expect(container.querySelector('[aria-label="Add attachment"]')).not.toBeNull();
-  expect(container.querySelector('[data-testid="compact-date"]')).not.toBeNull();
-  expect(container.querySelector('[data-testid="compact-location"]')).not.toBeNull();
+  expect(container.querySelector('.setu-supervisor-v2__details-grid')).not.toBeNull();
+  expect(container.querySelector('[aria-label="Site location"]')).not.toBeNull();
+  expect(container.querySelector('[aria-label="Reported date"]')).not.toBeNull();
   expect(container.querySelector('[role="region"][aria-label="Date and time suggestions from narrative"]')).toBeNull();
   const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'));
   expect(sendButton).toBeDefined();

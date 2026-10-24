@@ -69,10 +69,9 @@ function FieldUpdateRow({ update, rounds, onClick }: {
     </span>
     <span className="min-w-0 flex-1">
       <span className="mb-1.5 flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[11px] font-semibold text-slate-500">{update.update_id}</span>
         <Status update={update} rounds={rounds} />
       </span>
-      <span className="block line-clamp-2 text-[17px] font-semibold leading-[22px] text-[#1D1D1F]">{update.field_text}</span>
+      <span className="block line-clamp-2 text-[15px] font-medium leading-5 text-[#1D1D1F]">{update.field_text}</span>
       <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
         <span className="inline-flex items-center gap-1"><MapPin size={13} aria-hidden="true" />{update.site_location || 'Site location not provided'}</span>
         <span className="inline-flex items-center gap-1"><CalendarDays size={13} aria-hidden="true" />{siteLogDate(update.reported_date)}</span>
@@ -117,7 +116,7 @@ export const FieldCapture: React.FC = () => {
     isSubmittingRef.current = isSubmitting;
   }, [isSubmitting]);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [draftStatus, setDraftStatus] = useState('On this browser only');
+  const [draftStatus, setDraftStatus] = useState('');
   const [draftWarning, setDraftWarning] = useState<string | null>(null);
   const draftKey = user?.id ? 'setu-supervisor-v2-draft:' + user.id : null;
   useEffect(() => {
@@ -184,8 +183,6 @@ export const FieldCapture: React.FC = () => {
     });
   }, [ownUpdates, ownRounds, updatesFilter, updatesSearch]);
   const currentReport = ownUpdates.find(u => u.id === selectedReport);
-  const defaultLocation = ownUpdates[0]?.site_location || '';
-
   const startNew = () => {
     setSubmitError(null);
     setInterimTranscript('');
@@ -312,11 +309,10 @@ export const FieldCapture: React.FC = () => {
 
   return <div className="setu-supervisor-v2 min-h-screen bg-[#F5F5F7] text-[#1D1D1F] selection:bg-blue-100">
     <header className="setu-supervisor-v2__topbar border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
-      <div className="mx-auto flex h-[72px] w-full max-w-6xl items-center justify-between px-5 sm:px-8">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <button type="button" disabled={importLocked} onClick={() => setScreen('home')} className={`flex items-center gap-3 rounded-lg text-left ${focus}`} aria-label="SETU Site Log home">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#007AFF] text-white"><Layers3 size={21} strokeWidth={2.3}/></span>
-          <span><span className="block text-lg font-extrabold leading-5 tracking-tight">SETU</span>
-            <span className="block text-xs font-medium text-slate-500">Site Log · Oil India Limited</span></span>
+          <span><span className="block text-lg font-extrabold leading-5 tracking-tight">SETU</span></span>
         </button>
         <div className="flex items-center gap-3">
           <span className="hidden text-right sm:block"><span className="block text-sm font-semibold">{reportedBy.split(' (')[0]}</span>
@@ -335,20 +331,16 @@ export const FieldCapture: React.FC = () => {
       {screen === 'home' && <div className="setu-supervisor-v2__home">
         <section className="setu-supervisor-v2__home-intro" aria-labelledby="site-log-home-title">
           <div className="setu-supervisor-v2__home-copy">
-            <p className="setu-supervisor-v2__eyebrow">FIELD WORKSPACE · OIL INDIA LIMITED</p>
             <h1 id="site-log-home-title" className="setu-supervisor-v2__page-title">Site Log</h1>
-            <p className="setu-supervisor-v2__home-description">Capture site progress and follow every update from the field into planner review.</p>
-            <div className="setu-supervisor-v2__home-location"><MapPin size={17} aria-hidden="true"/><span>{defaultLocation || "Choose a site area in your next update"}</span></div>
           </div>
           <div className="setu-supervisor-v2__home-cta">
             <button type="button" onClick={startNew} className="setu-supervisor-v2__primary"><Plus size={18} aria-hidden="true"/><span>New field update</span><ArrowRight size={18} aria-hidden="true"/></button>
-            <p>Write, review, then send for plan linking.</p>
           </div>
         </section>
         <section className="setu-supervisor-v2__home-metrics" aria-label="Workspace activity">
-          <button type="button" onClick={() => { setUpdatesFilter('all'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span className="setu-supervisor-v2__metric-main"><span>My updates</span><small>Reports submitted from this account</small></span><span className="setu-supervisor-v2__metric-value"><strong>{ownUpdates.length}</strong><ChevronRight size={17} aria-hidden="true" /></span></button>
-          <button type="button" onClick={() => { setUpdatesFilter('pending'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span className="setu-supervisor-v2__metric-main"><span>Pending review</span><small>Awaiting a planner decision</small></span><span className="setu-supervisor-v2__metric-value"><strong>{ownUpdates.filter(update => update.status === 'pending').length}</strong><ChevronRight size={17} aria-hidden="true" /></span></button>
-          <button type="button" onClick={() => { setUpdatesFilter('reply'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span className="setu-supervisor-v2__metric-main"><span>Clarification rounds</span><small>Open or responded requests</small></span><span className="setu-supervisor-v2__metric-value"><strong>{actionableRounds.length}</strong><ChevronRight size={17} aria-hidden="true" /></span></button>
+          <button type="button" onClick={() => { setUpdatesFilter('all'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span className="setu-supervisor-v2__metric-main"><span>My updates</span></span><span className="setu-supervisor-v2__metric-value"><strong>{ownUpdates.length}</strong><ChevronRight size={17} aria-hidden="true" /></span></button>
+          <button type="button" onClick={() => { setUpdatesFilter('pending'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span className="setu-supervisor-v2__metric-main"><span>Pending review</span></span><span className="setu-supervisor-v2__metric-value"><strong>{ownUpdates.filter(update => update.status === 'pending').length}</strong><ChevronRight size={17} aria-hidden="true" /></span></button>
+          <button type="button" onClick={() => { setUpdatesFilter('reply'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span className="setu-supervisor-v2__metric-main"><span>Clarification rounds</span></span><span className="setu-supervisor-v2__metric-value"><strong>{actionableRounds.length}</strong><ChevronRight size={17} aria-hidden="true" /></span></button>
         </section>
 
         {workflow.error && <p role="alert" className="setu-supervisor-v2__home-error">Clarification updates unavailable: {workflow.error}</p>}
@@ -359,8 +351,7 @@ export const FieldCapture: React.FC = () => {
 
         <section className="setu-supervisor-v2__home-recent" aria-labelledby="recent-heading">
           <div className="setu-supervisor-v2__section-heading">
-            <div><p className="setu-supervisor-v2__eyebrow">FIELD ACTIVITY</p><h2 id="recent-heading">Recent updates</h2>
-              <p>Your most recent reports and their planner review status</p></div>
+            <div><h2 id="recent-heading">Recent updates</h2></div>
             <button type="button" onClick={() => setScreen('updates')} className="setu-supervisor-v2__view-all">View all ({ownUpdates.length}) <ArrowRight size={17} aria-hidden="true"/></button>
           </div>
           <div className="setu-supervisor-v2__home-list">
@@ -370,29 +361,30 @@ export const FieldCapture: React.FC = () => {
               <div className="setu-supervisor-v2__home-empty"><FileText size={28} aria-hidden="true"/><h3>No updates yet</h3><p>You haven't sent any updates yet.</p><button type="button" onClick={startNew} className="setu-supervisor-v2__view-all">New field update <ArrowRight size={17} aria-hidden="true"/></button></div>}
           </div>
         </section>
-        <footer className="setu-supervisor-v2__home-footer">Reports are submitted for schedule linking and human planner review. They do not automatically change the approved project plan.</footer>
+        <footer className="setu-supervisor-v2__home-footer">Reports do not change the approved plan.</footer>
       </div>}
 
       {screen === 'compose' && <div className="setu-supervisor-v2__compose mx-auto max-w-[700px]">
-        <button type="button" onClick={() => setScreen('home')} className={`mb-7 inline-flex items-center gap-2 rounded-lg py-1 text-sm font-semibold text-slate-600 hover:text-[#123F77] ${focus}`}><ArrowLeft size={18}/> Site Log</button>
-        <nav className="setu-supervisor-v2__breadcrumb" aria-label="Location"><span>Site Log</span><ChevronRight size={15}/><strong>New update</strong></nav>
-        <div className="setu-supervisor-v2__intro"><h1 className="setu-supervisor-v2__page-title">New site update</h1><ol className="setu-supervisor-v2__steps" aria-label="Report progress"><li aria-current="step"><span>1</span>Write</li><li><span>2</span>Review</li></ol></div>
+        <div className="setu-supervisor-v2__compose-head">
+          <button type="button" onClick={() => setScreen('home')} className={`inline-flex items-center gap-1 rounded-lg py-1 text-sm text-[#007AFF] ${focus}`}><ArrowLeft size={18}/> Site Log</button>
+          <h1 className="setu-supervisor-v2__page-title">New site update</h1>
+          <p className="setu-supervisor-v2__compose-step" aria-label="Report progress">1 / 2</p>
+        </div>
         <span className="setu-supervisor-v2__legacy-pen inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E5F7F0] text-[#0D8067]"><PenLine size={21}/></span>
         <p className="setu-supervisor-v2__legacy-kicker mt-6 text-xs font-bold uppercase tracking-[0.14em] text-[#0C806D]">New update</p>
-        <h2 className="setu-supervisor-v2__composer-label mt-2 text-[2rem] font-bold leading-tight tracking-tight sm:text-[2.65rem]">What happened on site? <span>· Required</span></h2>
-        <p className="mt-2 max-w-lg text-sm leading-6 text-slate-500 sm:text-base">Write naturally or use voice. SETU handles schedule linking for planner review.</p>
-        <form id="site-log-compose" onSubmit={handleSend} className="setu-supervisor-v2__form mt-7 space-y-6">
+        <h2 className="setu-supervisor-v2__composer-label mt-1 text-[17px] font-semibold leading-6">What happened on site? <span>· Required</span></h2>
+        <form id="site-log-compose" onSubmit={handleSend} className="setu-supervisor-v2__form mt-3 space-y-3">
           <div>
             <div className="relative">
               <label htmlFor="field-report" className="sr-only">Describe field progress</label>
-              <textarea id="field-report" rows={7} maxLength={4000} value={fieldText} required
+              <textarea id="field-report" rows={4} maxLength={4000} value={fieldText} required
                 onChange={e => {
                   setFieldText(e.target.value);
                   if (pendingClarification) setPendingClarification(null);
                   if (resolvedAmbiguity) setResolvedAmbiguity(null);
                 }}
-                placeholder="Piping spool erection and line fit-up finished at Manifold A today…"
-                className="block min-h-[235px] w-full resize-y rounded-[1.4rem] border border-slate-200 bg-white p-5 pb-16 text-base leading-7 text-[#112344] placeholder:text-slate-400 shadow-sm outline-none focus:border-[#1557A0] focus:ring-4 focus:ring-blue-100 sm:p-6 sm:pb-16 sm:text-lg" />
+                placeholder="Describe what happened on site…"
+                className="block min-h-[110px] w-full resize-y rounded-[10px] border border-slate-200 bg-white px-3.5 pb-3 pt-14 text-[17px] leading-[22px] text-[#1D1D1F] placeholder:text-slate-400 shadow-sm outline-none focus:border-[#007AFF] focus:ring-4 focus:ring-[rgba(0,122,255,0.18)]" />
               <ReportAttachmentMenu triggerRef={importEntry} disabled={isSubmitting} onImport={() => setScreen('import')} />
               <VoiceInputControl
                 disabled={isSubmitting}
@@ -424,54 +416,37 @@ export const FieldCapture: React.FC = () => {
                 </button>
               </div>
             )}
-            <div className="mt-2 flex flex-col gap-1 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[11px] leading-tight text-slate-500">
-                Voice input: Mixed-language (Hinglish) accuracy is best-effort. Speech recognition is processed by your browser and may send audio to an external speech service. SETU does not record or store raw audio.
-              </p>
-              <p className="shrink-0 text-right tabular-nums">{fieldText.length} / 4,000 characters</p>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <details className="setu-supervisor-v2__privacy">
+                <summary>Voice input: processed by your browser.</summary>
+                <p>Mixed-language (Hinglish) accuracy is best-effort. Speech recognition is processed by your browser and may send audio to an external speech service. SETU does not record or store raw audio.</p>
+              </details>
+              <p className="shrink-0 text-right text-[11px] tabular-nums text-slate-500">{fieldText.length} / 4,000 characters</p>
             </div>
           </div>
 
-          {/* Compact date and location display with accessible 'Change details' control */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 sm:text-sm">
-                <span className="inline-flex items-center gap-1.5 font-medium text-slate-700">
-                  <CalendarDays size={15} className="text-[#1557A0]" aria-hidden="true" />
-                  <span data-testid="compact-date">{siteLogDate(reportedDate)}</span>
-                </span>
-                <span className="text-slate-300" aria-hidden="true">·</span>
-                <span className="inline-flex items-center gap-1.5 font-medium text-slate-700">
-                  <MapPin size={15} className="text-[#1557A0]" aria-hidden="true" />
-                  <span data-testid="compact-location">{siteLocation || 'Site Area'}</span>
-                </span>
-                {discipline && (
-                  <>
-                    <span className="text-slate-300" aria-hidden="true">·</span>
-                    <span className="font-medium text-slate-500">{discipline}</span>
-                  </>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowDetails(v => !v)}
-                aria-expanded={showDetails}
-                aria-controls="report-details-panel"
-                className="shrink-0 text-xs font-semibold text-[#1557A0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1 py-0.5"
-              >
-                {showDetails ? 'Hide details' : 'Change details'}
-              </button>
-            </div>
+          <div className="setu-supervisor-v2__details-head">
+            <span>Details</span>
+            <button
+              type="button"
+              onClick={() => setShowDetails(v => !v)}
+              aria-expanded={showDetails}
+              aria-controls="report-details-panel"
+              className="shrink-0 text-[13px] font-semibold text-[#007AFF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1 py-0.5"
+            >
+              {showDetails ? 'Hide details' : 'Change details'}
+            </button>
+          </div>
 
-            <div id="report-details-panel" className={showDetails ? 'mt-4 border-t border-slate-100 pt-3 block space-y-4' : 'hidden'}>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
-                  <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><Settings2 size={14}/> Discipline</span>
+          <div id="report-details-panel" className={showDetails ? 'block' : 'hidden'}>
+            <div className="setu-supervisor-v2__details-grid">
+              <label className="setu-supervisor-v2__detail-cell">
+                <span className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500"><Settings2 size={14}/> Discipline</span>
                   <span className="relative block">
                     <select
                       value={discipline}
                       onChange={e => setDiscipline(e.target.value)}
-                      className="w-full appearance-none bg-transparent pr-5 text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      className="w-full appearance-none bg-transparent pr-5 text-[15px] font-semibold text-[#1D1D1F] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       aria-label="Engineering discipline"
                     >
                       {disciplines.map(d => <option key={d} value={d}>{d}</option>)}
@@ -479,65 +454,52 @@ export const FieldCapture: React.FC = () => {
                     <ChevronDown size={14} className="pointer-events-none absolute right-0 top-1 text-slate-500"/>
                   </span>
                 </label>
-                <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
-                  <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><MapPin size={14}/> Site / Area</span>
-                  <input
-                    value={siteLocation}
-                    placeholder="Choose site area"
-                    onChange={e => { setSiteLocation(e.target.value); setPendingClarification(null); setResolvedAmbiguity(null); }}
-                    aria-label="Site location"
-                    className="w-full min-w-0 bg-transparent text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                  />
-                </label>
-                <label className="block rounded-xl border border-slate-200 bg-white px-3.5 py-3">
-                  <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><CalendarDays size={14}/> Reported date</span>
+                <label className="setu-supervisor-v2__detail-cell">
+                  <span className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500"><CalendarDays size={14}/> Reported date</span>
                   <input
                     required
                     type="date"
                     value={reportedDate}
                     onChange={e => { setReportedDate(e.target.value); setPendingClarification(null); setResolvedAmbiguity(null); }}
                     aria-label="Reported date"
-                    className="w-full min-w-0 bg-transparent text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="w-full min-w-0 bg-transparent text-[15px] font-semibold text-[#1D1D1F] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   />
                 </label>
-              </div>
-              <section className="border-t border-slate-100 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowReporter(v => !v)}
-                  aria-expanded={showReporter}
-                  className={`flex w-full items-center gap-3 rounded-xl py-2 text-left ${focus}`}
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#1557A0]">
-                    <UserRound size={18}/>
-                  </span>
-                  <span className="flex-1">
-                    <span className="block text-xs text-slate-500">Reporting as</span>
-                    <span className="block text-sm font-semibold">{reportedBy}</span>
-                  </span>
-                  <ChevronDown className={`text-slate-400 transition-transform ${showReporter ? 'rotate-180' : ''}`} size={18}/>
+<label className="setu-supervisor-v2__detail-cell">
+                  <span className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500"><MapPin size={14}/> Site / Area</span>
+                  <input
+                    value={siteLocation}
+                    placeholder="Choose site area"
+                    onChange={e => { setSiteLocation(e.target.value); setPendingClarification(null); setResolvedAmbiguity(null); }}
+                    aria-label="Site location"
+                    className="w-full min-w-0 bg-transparent text-[15px] font-semibold text-[#1D1D1F] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  />
+                </label>
+                              <button type="button" onClick={() => setShowReporter(v => !v)} aria-expanded={showReporter}
+                  className="setu-supervisor-v2__detail-cell setu-supervisor-v2__reporter-cell">
+                  <span className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500"><UserRound size={14}/> Reporting as</span>
+                  <span className="block truncate text-[15px] font-semibold text-[#1D1D1F]">{reportedBy}</span>
                 </button>
-                {showReporter && (
-                  <div className="mt-2">
-                    <label htmlFor="reporter-name" className="mb-1 block text-xs font-semibold text-slate-600">Reporter name / designation</label>
-                    <input
-                      id="reporter-name"
-                      value={reportedBy}
-                      onChange={e => setReportedBy(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                    />
-                  </div>
-                )}
-              </section>
+</div>
+              {showReporter && (
+                <div className="mt-2">
+                  <label htmlFor="reporter-name" className="mb-1 block text-xs font-semibold text-slate-600">Reporter name / designation</label>
+                  <input
+                    id="reporter-name"
+                    value={reportedBy}
+                    onChange={e => setReportedBy(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+              )}
             </div>
-          </div>
 
           <section className="setu-supervisor-v2__draftbar" aria-label="Review and save controls">
             <div className="setu-supervisor-v2__draft-actions"><button type="button" disabled={isSubmitting} onClick={saveDraft} className="setu-supervisor-v2__quiet">Save draft</button><span aria-live="polite">{draftStatus}</span></div>
             <button type="button" disabled={isSubmitting} onClick={handleReview} className="setu-supervisor-v2__primary">Review update <ArrowRight size={18}/></button>
           </section>
           {draftWarning && <p role="alert" className="text-sm text-amber-800">{draftWarning}</p>}
-          <p className="setu-supervisor-v2__attachment-note">Use Add attachment for CSV/XLSX import. Photo and PDF uploads are not enabled yet.</p>
+
           {/* Minimal Plain-Language Clarification Dialog */}
           {pendingClarification && (
             <div
@@ -614,8 +576,8 @@ export const FieldCapture: React.FC = () => {
             </div>
           )}
 
-          <p className="text-xs leading-5 text-slate-500">
-            This report is sent for AI schedule linking and human planner review. Submission does not approve or update the baseline schedule.
+          <p className="setu-supervisor-v2__disclaimer">
+            For AI schedule linking and planner review. CSV/XLSX import only; reports do not change the baseline schedule.
           </p>
 
           <button

@@ -21,7 +21,7 @@ export function ReportAttachmentMenu({ triggerRef, onImport, disabled }: {
     return () => document.removeEventListener('pointerdown', dismiss);
   }, [open]);
 
-  return <div ref={wrapper} className="absolute bottom-3 left-3"
+  return <div ref={wrapper} className="absolute top-3 left-3"
     onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
     onKeyDown={event => {
       if (event.key === 'Escape' && open) {
@@ -37,7 +37,7 @@ export function ReportAttachmentMenu({ triggerRef, onImport, disabled }: {
       <Plus size={21} aria-hidden="true" />
     </button>
     {open && <div id={menuId} role="menu" aria-label="Attachments"
-      className="absolute bottom-full left-0 z-10 mb-2 w-64 max-w-[calc(100vw-4rem)] rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_12px_35px_-12px_rgba(15,38,76,0.25)]">
+      className="absolute top-full left-0 z-10 mt-2 w-64 max-w-[calc(100vw-4rem)] rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_12px_35px_-12px_rgba(15,38,76,0.25)]">
       <button ref={item} role="menuitem" type="button" tabIndex={-1} aria-label="Import Excel / CSV" aria-describedby={`${menuId}-description`}
         onClick={() => { setOpen(false); onImport(); }}
         className="flex min-h-14 w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[#123F77] hover:bg-blue-50 focus:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
