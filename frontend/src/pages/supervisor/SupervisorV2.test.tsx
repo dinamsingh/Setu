@@ -83,6 +83,11 @@ describe('Supervisor V2 review and draft flow', () => {
   it('reviews before invoking the existing submission hook and permits editing', async () => {
     await clickByText('New field update');
     await enterReport('Piping spool erection completed at Duliajan Manifold Area A today');
+    await act(async () => {
+      const loc = container.querySelector<HTMLInputElement>('[aria-label="Site location"]');
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(loc, 'Manifold Area A');
+      loc?.dispatchEvent(new Event('input', { bubbles: true }));
+    });
     await clickByText('Review update');
     expect(state.submit).not.toHaveBeenCalled();
     expect(container.querySelector('.setu-supervisor-v2__review')?.textContent).toContain('Piping spool erection completed');
