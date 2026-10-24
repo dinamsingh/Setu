@@ -2,9 +2,7 @@ import './PlannerV2.css';
 import React, { useState, useMemo } from 'react';
 import { 
   Download, 
-  ShieldCheck, 
   BookOpen, 
-  FileCheck,
   Search,
   Check,
   X,
@@ -89,84 +87,58 @@ export const AuditExport: React.FC = () => {
       <div className="flex-1 flex flex-col md:flex-row">
         <Sidebar />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl">
-          {/* Header Banner */}
-          <div className="bg-white rounded-2xl border border-setu-slate-200 p-6 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl">
+          {/* Page header — same pattern as Control Room */}
+          <section className="border-l-4 border-[#007AFF] bg-white px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <div className="flex items-center space-x-2 text-xs font-bold text-setu-blue uppercase tracking-wider">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Compliance & Change Tracking</span>
-                </div>
-                <h1 className="text-2xl font-extrabold text-setu-slate-900 mt-1">
-                  Audit & Export
+                <p className="text-xs font-semibold tracking-[0.14em] text-[#007AFF] uppercase">
+                  Compliance &amp; Change Tracking
+                </p>
+                <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight text-setu-slate-900">
+                  Audit &amp; Export
                 </h1>
-                <p className="text-xs text-setu-slate-500 mt-1">
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-setu-slate-600">
                   Append-only planner audit trail and controlled evidence-to-activity mapping export.
                 </p>
               </div>
-
-              <div className="flex items-center space-x-2 text-xs text-setu-slate-700 bg-setu-slate-50 border border-setu-slate-200 px-3 py-2 rounded-lg font-mono">
-                <span>Total Exportable:</span>
-                <strong className="text-setu-navy font-bold text-sm">{exportData.length}</strong>
+              <div className="shrink-0 text-right">
+                <p className="text-xs font-semibold uppercase tracking-wider text-setu-slate-500">Exportable mappings</p>
+                <p className="mt-0.5 text-2xl font-bold tabular-nums text-setu-slate-900">{exportData.length}</p>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Three-Step Governance Strip */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-xl bg-black text-white">
-            <div className="flex items-center space-x-3 p-2">
-              <div className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center font-bold text-xs shrink-0">
-                1
-              </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold text-setu-blue-light block">Step One</span>
-                <span className="text-xs font-bold">Planner Review & Decision</span>
-              </div>
+          {/* How this works — same grouped-list pattern as Control Room */}
+          <section className="bg-white border border-setu-slate-200 px-6 py-5">
+            <h2 className="text-sm font-bold text-setu-slate-900">How this works</h2>
+            <div className="pl-metric-list mt-3">
+              {[
+                { n: '1', label: 'Planner Review & Decision', detail: 'Field evidence is reviewed and decided in the Review Queue.' },
+                { n: '2', label: 'Append-only Audit Logging', detail: 'Every decision is recorded and cannot be edited.' },
+                { n: '3', label: 'Controlled Mapping Export', detail: 'Only finalized mappings are available as CSV.' },
+              ].map((step) => (
+                <div key={step.n} className="pl-metric-row" style={{ cursor: 'default' }}>
+                  <span className="pl-metric-main">
+                    <span className="pl-metric-label"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#007AFF] text-xs font-bold text-white">{step.n}</span>{step.label}</span>
+                    <span className="pl-metric-detail">{step.detail}</span>
+                  </span>
+                </div>
+              ))}
             </div>
-
-            <div className="flex items-center space-x-3 p-2 border-t md:border-t-0 md:border-l border-setu-slate-700">
-              <div className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center font-bold text-xs shrink-0">
-                2
-              </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold text-setu-blue-light block">Step Two</span>
-                <span className="text-xs font-bold">Append-only Audit Logging</span>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3 p-2 border-t md:border-t-0 md:border-l border-setu-slate-700">
-              <div className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center font-bold text-xs shrink-0">
-                3
-              </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold text-blue-300 block">Step Three</span>
-                <span className="text-xs font-bold">Controlled Mapping Export</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Governance Callout */}
-          <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-950 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <FileCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-              <span>
-                <strong>Controlled governance:</strong> No direct Primavera write-back. Export contains only finalized evidence-to-activity mappings.
-              </span>
-            </div>
-          </div>
+            <p className="mt-3 text-sm leading-6 text-setu-slate-500">No direct Primavera write-back. Export contains only finalized evidence-to-activity mappings.</p>
+          </section>
 
           {/* Section 1: Controlled Schedule Export Preview */}
-          <div className="bg-white rounded-xl border border-setu-slate-200 p-6 shadow-xs space-y-4">
+          <section className="bg-white border border-setu-slate-200 px-6 py-5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold text-setu-slate-900">
                   Approved Evidence-to-Activity Mapping Preview
                 </h2>
-                <p className="text-xs text-setu-slate-500">
-                  Contains approved and remapped field evidence linked to loaded schedule activities. Excludes pending and rejected reports.
+                <p className="text-sm leading-6 text-setu-slate-600">
+                  Contains approved and remapped field evidence linked to loaded schedule activities. Excludes pending and rejected reports. AI suggestion confidence is not assigned to planner-selected remaps.
                 </p>
-                <p className="text-xs text-setu-slate-500">AI suggestion confidence is not assigned to planner-selected remaps.</p>
               </div>
 
               <div className="relative w-full sm:w-64">
@@ -183,7 +155,7 @@ export const AuditExport: React.FC = () => {
                 type="button"
                 disabled={exportData.length === 0}
                 onClick={handleDownloadCsv}
-                className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-setu-green hover:bg-setu-green-dark text-white text-xs font-bold shadow-xs transition-colors disabled:opacity-50"
+                className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-[#007AFF] hover:bg-[#0066D6] text-white text-sm font-bold transition-colors disabled:opacity-50"
               >
                 <Download className="w-4 h-4" />
                 <span>Download Approved Mapping CSV</span>
@@ -195,41 +167,41 @@ export const AuditExport: React.FC = () => {
                 No planner decisions finalized yet. Review pending reports in the Review Queue to populate exportable rows.
               </div>
             ) : (
-              <div className="overflow-x-auto border border-setu-slate-200 rounded-lg max-h-72">
+              <div className="overflow-x-auto border border-setu-slate-200 rounded-xl max-h-96">
                 <table className="min-w-full text-left text-xs border-collapse">
                   <thead className="bg-setu-slate-50 border-b border-setu-slate-200 text-setu-slate-600 sticky top-0">
                     <tr>
-                      <th className="py-2 px-3 font-bold">Activity ID</th>
-                      <th className="py-2 px-3 font-bold">Activity Name</th>
-                      <th className="py-2 px-3 font-bold">Date</th>
-                      <th className="py-2 px-3 font-bold">Location</th>
-                      <th className="py-2 px-3 font-bold">Field Evidence</th>
-                      <th className="py-2 px-3 font-bold">Mapping Source</th>
-                      <th className="py-2 px-3 font-bold">AI Suggestion Confidence Score</th>
-                      <th className="py-2 px-3 font-bold">Status</th>
-                      <th className="py-2 px-3 font-bold">Planner Remarks</th>
+                      <th className="py-2.5 px-3 font-bold">Activity ID</th>
+                      <th className="py-2.5 px-3 font-bold">Activity Name</th>
+                      <th className="py-2.5 px-3 font-bold">Date</th>
+                      <th className="py-2.5 px-3 font-bold">Location</th>
+                      <th className="py-2.5 px-3 font-bold">Field Evidence</th>
+                      <th className="py-2.5 px-3 font-bold">Mapping Source</th>
+                      <th className="py-2.5 px-3 font-bold">AI Suggestion Confidence Score</th>
+                      <th className="py-2.5 px-3 font-bold">Status</th>
+                      <th className="py-2.5 px-3 font-bold">Planner Remarks</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-setu-slate-100">
                     {filteredExportData.map((row, idx) => (
                       <tr key={idx} className="hover:bg-setu-slate-50/70">
-                        <td className="py-2 px-3 font-mono font-bold text-setu-navy">{row['Activity ID']}</td>
-                        <td className="py-2 px-3 font-medium text-setu-slate-800">{row['Activity Name']}</td>
-                        <td className="py-2 px-3 text-setu-slate-600 font-mono text-[11px]">{row['Reported Date']}</td>
-                        <td className="py-2 px-3 text-setu-slate-600">{row['Site Location']}</td>
-                        <td className="py-2 px-3 text-setu-slate-700 italic max-w-xs truncate" title={row['Field Evidence']}>
+                        <td className="py-2.5 px-3 font-mono font-bold text-setu-navy">{row['Activity ID']}</td>
+                        <td className="py-2.5 px-3 font-medium text-setu-slate-800">{row['Activity Name']}</td>
+                        <td className="py-2.5 px-3 text-setu-slate-600 font-mono text-[11px]">{row['Reported Date']}</td>
+                        <td className="py-2.5 px-3 text-setu-slate-600">{row['Site Location']}</td>
+                        <td className="py-2.5 px-3 text-setu-slate-700 italic max-w-xs truncate" title={row['Field Evidence']}>
                           "{row['Field Evidence']}"
                         </td>
-                        <td className="py-2 px-3 text-setu-slate-600">{row['Mapping Source']}</td>
-                        <td className="py-2 px-3 font-mono font-bold text-setu-teal">{row['AI Suggestion Confidence Score'] || 'N/A'}</td>
-                        <td className="py-2 px-3">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        <td className="py-2.5 px-3 text-setu-slate-600">{row['Mapping Source']}</td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-setu-slate-800">{row['AI Suggestion Confidence Score'] || 'N/A'}</td>
+                        <td className="py-2.5 px-3">
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${
                             row['Planner Status'] === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'
                           }`}>
                             {row['Planner Status']}
                           </span>
                         </td>
-                        <td className="py-2 px-3 text-setu-slate-600 text-[11px]">{row['Planner Remarks']}</td>
+                        <td className="py-2.5 px-3 text-setu-slate-600 text-[11px]">{row['Planner Remarks']}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -239,16 +211,16 @@ export const AuditExport: React.FC = () => {
             {exportData.length > 0 && filteredExportData.length === 0 && (
               <p className="text-sm text-setu-slate-500">No export rows match this search.</p>
             )}
-          </div>
+          </section>
 
           {/* Section 2: Full Audit Timeline */}
-          <div className="bg-white rounded-xl border border-setu-slate-200 p-6 shadow-xs space-y-4">
+          <section className="bg-white border border-setu-slate-200 px-6 py-5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold text-setu-slate-900">
                   Append-only Planner Audit Trail ({filteredLogs.length} of {logs.length} entries)
                 </h2>
-                <p className="text-xs text-setu-slate-500">
+                <p className="text-sm leading-6 text-setu-slate-600">
                   Decision history for accept, remap, reject, requeue, and validation override actions.
                 </p>
               </div>
@@ -271,7 +243,7 @@ export const AuditExport: React.FC = () => {
                 No audit entries recorded yet. Review reports in the Review Queue.
               </div>
             ) : (
-              <div className="overflow-x-auto border border-setu-slate-200 rounded-lg max-h-96">
+              <div className="overflow-x-auto border border-setu-slate-200 rounded-xl max-h-96">
                 <table className="min-w-full text-left text-xs border-collapse">
                   <thead className="bg-setu-slate-50 border-b border-setu-slate-200 text-setu-slate-600 sticky top-0">
                     <tr>
@@ -289,11 +261,11 @@ export const AuditExport: React.FC = () => {
                       const evidence = updatesMap.get(log.field_update_id) || 'Site log reference';
                       return (
                         <tr key={log.id} className="hover:bg-setu-slate-50/70">
-                          <td className="py-2 px-3 font-mono text-[11px] text-setu-slate-500 whitespace-nowrap">
+                          <td className="py-2.5 px-3 font-mono text-[11px] text-setu-slate-500 whitespace-nowrap">
                             {log.created_at ? log.created_at.slice(0, 19).replace('T', ' ') : '—'}
                           </td>
-                          <td className="py-2 px-3">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                          <td className="py-2.5 px-3">
+                            <span className={`px-2 py-0.5 rounded text-[11px] font-extrabold uppercase ${
                               log.action === 'accept' ? 'bg-emerald-100 text-emerald-800' :
                               log.action === 'remap' ? 'bg-purple-100 text-purple-800' :
                               log.action === 'requeue' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
@@ -301,13 +273,13 @@ export const AuditExport: React.FC = () => {
                               {humanizeAuditAction(log.action, log.metadata)}
                             </span>
                           </td>
-                          <td className="py-2 px-3 font-mono text-setu-slate-600">{log.previous_activity_id || 'None'}</td>
-                          <td className="py-2 px-3 font-mono font-bold text-setu-navy">{log.new_activity_id || 'None'}</td>
-                          <td className="py-2 px-3 text-setu-slate-700 italic max-w-xs truncate" title={evidence}>
+                          <td className="py-2.5 px-3 font-mono text-setu-slate-600">{log.previous_activity_id || 'None'}</td>
+                          <td className="py-2.5 px-3 font-mono font-bold text-setu-navy">{log.new_activity_id || 'None'}</td>
+                          <td className="py-2.5 px-3 text-setu-slate-700 italic max-w-xs truncate" title={evidence}>
                             "{evidence}"
                           </td>
-                          <td className="py-2 px-3 text-setu-slate-600">{log.planner_name}</td>
-                          <td className="py-2 px-3 text-setu-slate-600">{log.remarks}</td>
+                          <td className="py-2.5 px-3 text-setu-slate-600">{log.planner_name}</td>
+                          <td className="py-2.5 px-3 text-setu-slate-600">{log.remarks}</td>
                         </tr>
                       );
                     })}
@@ -318,7 +290,7 @@ export const AuditExport: React.FC = () => {
             {logs.length > 0 && filteredLogs.length === 0 && (
               <p className="text-sm text-setu-slate-500">No audit entries match this search.</p>
             )}
-          </div>
+          </section>
 
           {/* Toast message display */}
           {toastMessage && (
@@ -328,44 +300,32 @@ export const AuditExport: React.FC = () => {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => setShowAliasGovernance((current) => !current)}
-            className="flex w-full items-center justify-between border border-setu-slate-200 bg-white px-5 py-4 text-left text-sm font-bold text-setu-slate-800 hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
-            aria-expanded={showAliasGovernance}
-          >
-            <span className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-setu-teal" />
-              Alias governance
-              <span className="font-mono text-[11px] font-medium text-setu-slate-500">{aliases.length} entries</span>
-            </span>
-            <span className="flex items-center gap-2 text-xs font-medium text-setu-slate-500">
-              Secondary control
-              <ChevronDown className={`h-4 w-4 transition-transform ${showAliasGovernance ? 'rotate-180' : ''}`} />
-            </span>
-          </button>
-
-          {/* Secondary section: governed domain aliases */}
-          <div className={`${showAliasGovernance ? 'block' : 'hidden'} bg-white rounded-xl border border-setu-slate-200 p-6 shadow-xs space-y-4`}>
+          {/* Alias governance — one section card, header toggles the body */}
+          <section className="bg-white border border-setu-slate-200 px-6 py-5 space-y-4">
+            <button
+              type="button"
+              onClick={() => setShowAliasGovernance((current) => !current)}
+              className="flex w-full items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-setu-blue/30 rounded"
+              aria-expanded={showAliasGovernance}
+            >
+              <span className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-[#007AFF]" />
+                <span className="text-sm font-bold text-setu-slate-900">Alias governance</span>
+                <span className="font-mono text-[11px] font-medium text-setu-slate-500">{aliases.length} entries</span>
+              </span>
+              <ChevronDown className={`h-4 w-4 shrink-0 text-setu-slate-500 transition-transform ${showAliasGovernance ? 'rotate-180' : ''}`} />
+            </button>
+            <div className={showAliasGovernance ? 'space-y-4 border-t border-setu-slate-200 pt-4' : 'hidden'}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <div className="flex items-center space-x-2">
-                  <BookOpen className="w-4 h-4 text-setu-teal" />
-                  <h2 className="text-sm font-bold text-setu-slate-900">
-                    Domain Alias Governance
-                  </h2>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-setu-slate-100 text-setu-slate-600 font-bold font-mono">
-                    {aliases.length} total
-                  </span>
-                </div>
-                <p className="text-xs text-setu-slate-500 mt-0.5">
-                  Review proposed field-language aliases. Only verified aliases can affect later matching runs.
+                <p className="text-sm leading-6 text-setu-slate-600">
+                  Review proposed field-language aliases. Only verified aliases can affect later matching runs. Proposed aliases remain quarantined and do not affect scoring until a planner approves them.
                 </p>
               </div>
 
               {/* Quick Search */}
               <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-setu-slate-400" />
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-setu-slate-400" />
                 <input
                   type="text"
                   placeholder="Search aliases or P6 terms..."
@@ -373,14 +333,6 @@ export const AuditExport: React.FC = () => {
                   onChange={(e) => setAliasSearch(e.target.value)}
                   className="w-full pl-8 pr-3 py-2.5 text-sm rounded-lg border border-setu-slate-200 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
                 />
-              </div>
-            </div>
-
-            {/* Quarantine Governance Callout */}
-            <div className="p-3 rounded-lg bg-blue-50/70 border border-blue-200 text-xs text-blue-950 flex items-start gap-2.5">
-              <ShieldCheck className="w-4 h-4 text-setu-blue shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <strong>Reviewed alias loop:</strong> Proposed aliases remain quarantined and do not affect scoring until a planner approves them. Verified aliases are then available to the matching worker.
               </div>
             </div>
 
@@ -403,15 +355,13 @@ export const AuditExport: React.FC = () => {
                 onClick={() => setAliasTab('proposed')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
                   aliasTab === 'proposed'
-                    ? 'bg-amber-600 text-white'
-                    : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                    ? 'bg-[#007AFF] text-white'
+                    : 'bg-white border border-setu-slate-200 text-setu-slate-600 hover:bg-setu-slate-50'
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
                 <span>Proposed for Review</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  aliasTab === 'proposed' ? 'bg-white text-amber-700 font-extrabold' : 'bg-amber-200 text-amber-900 font-bold'
-                }`}>
+                <span className="font-mono opacity-70">
                   {aliases.filter((a) => a.status === 'proposed').length}
                 </span>
               </button>
@@ -421,8 +371,8 @@ export const AuditExport: React.FC = () => {
                 onClick={() => setAliasTab('verified')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                   aliasTab === 'verified'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                    ? 'bg-[#007AFF] text-white'
+                    : 'bg-white border border-setu-slate-200 text-setu-slate-600 hover:bg-setu-slate-50'
                 }`}
               >
                 Active Verified ({aliases.filter((a) => (a.status || 'verified') === 'verified').length})
@@ -433,8 +383,8 @@ export const AuditExport: React.FC = () => {
                 onClick={() => setAliasTab('rejected')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                   aliasTab === 'rejected'
-                    ? 'bg-rose-600 text-white'
-                    : 'bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200'
+                    ? 'bg-[#007AFF] text-white'
+                    : 'bg-white border border-setu-slate-200 text-setu-slate-600 hover:bg-setu-slate-50'
                 }`}
               >
                 Rejected ({aliases.filter((a) => a.status === 'rejected').length})
@@ -447,7 +397,7 @@ export const AuditExport: React.FC = () => {
                 No domain aliases found in database.
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-setu-slate-200">
+              <div className="overflow-x-auto rounded-xl border border-setu-slate-200">
                 <table className="min-w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-setu-slate-50 border-b border-setu-slate-200 text-setu-slate-600">
@@ -494,17 +444,17 @@ export const AuditExport: React.FC = () => {
 
                         return (
                           <tr key={al.id} className="hover:bg-setu-slate-50/70 transition-colors">
-                            <td className="py-2 px-3 font-mono font-bold text-setu-navy">
+                            <td className="py-2.5 px-3 font-mono font-bold text-setu-navy">
                               "{al.field_term}"
                             </td>
-                            <td className="py-2 px-3 font-medium text-setu-slate-800">
+                            <td className="py-2.5 px-3 font-medium text-setu-slate-800">
                               {al.standard_term}
                             </td>
-                            <td className="py-2 px-3 text-setu-teal font-semibold">
+                            <td className="py-2.5 px-3 text-setu-slate-700 font-semibold">
                               {al.discipline || 'General'}
                             </td>
-                            <td className="py-2 px-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            <td className="py-2.5 px-3">
+                              <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${
                                 al.origin === 'planner_correction'
                                   ? 'bg-purple-100 text-purple-800'
                                   : 'bg-setu-slate-100 text-setu-slate-700'
@@ -512,18 +462,18 @@ export const AuditExport: React.FC = () => {
                                 {al.origin === 'planner_correction' ? 'Correction' : 'Seed'}
                               </span>
                             </td>
-                            <td className="py-2 px-3 font-mono text-[11px] text-setu-slate-500">
+                            <td className="py-2.5 px-3 font-mono text-[11px] text-setu-slate-500">
                               {al.source_update_id || '—'}
                             </td>
-                            <td className="py-2 px-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                            <td className="py-2.5 px-3">
+                              <span className={`px-2 py-0.5 rounded text-[11px] font-extrabold uppercase ${
                                 isVerified ? 'bg-emerald-100 text-emerald-800' :
                                 isProposed ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
                               }`}>
                                 {status}
                               </span>
                             </td>
-                            <td className="py-2 px-3 text-right">
+                            <td className="py-2.5 px-3 text-right">
                               {isProposed ? (
                                 <div className="flex items-center justify-end gap-1.5">
                                   <button
@@ -534,7 +484,7 @@ export const AuditExport: React.FC = () => {
                                         showToast(`Alias "${al.field_term}" approved & activated into engine.`);
                                       }
                                     }}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition-colors shadow-xs"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors"
                                   >
                                     <Check className="w-3 h-3" />
                                     <span>Approve</span>
@@ -547,7 +497,7 @@ export const AuditExport: React.FC = () => {
                                         showToast(`Alias "${al.field_term}" rejected.`);
                                       }
                                     }}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] transition-colors shadow-xs"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors"
                                   >
                                     <X className="w-3 h-3" />
                                     <span>Reject</span>
@@ -573,7 +523,8 @@ export const AuditExport: React.FC = () => {
                 </table>
               </div>
             )}
-          </div>
+            </div>
+          </section>
         </main>
       </div>
     </div>
