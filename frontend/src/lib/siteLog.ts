@@ -2,12 +2,12 @@ import type { FieldUpdate } from '../types';
 import type { Clarification } from '../types/workflow';
 import { workflowState } from './workflow';
 
-export type SiteLogTone = 'blue' | 'amber' | 'green' | 'neutral';
+export type SiteLogTone = 'blue' | 'amber' | 'green' | 'neutral' | 'purple' | 'rose';
 
 export function siteLogStatus(update: FieldUpdate, rounds: Clarification[] = []): { label: string; tone: SiteLogTone } {
   if (update.status === 'approved') return { label: 'Planner approved', tone: 'green' };
-  if (update.status === 'remapped') return { label: 'Remapped & approved', tone: 'green' };
-  if (update.status === 'rejected') return { label: 'Closed', tone: 'neutral' };
+  if (update.status === 'remapped') return { label: 'Remapped & approved', tone: 'purple' };
+  if (update.status === 'rejected') return { label: 'Rejected', tone: 'rose' };
   const state = workflowState(update, rounds);
   if (state === 'Awaiting Field Response') return { label: 'Reply requested', tone: 'amber' };
   if (state === 'Response Received') return { label: 'Response sent', tone: 'blue' };

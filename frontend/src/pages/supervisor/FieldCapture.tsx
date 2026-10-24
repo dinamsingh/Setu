@@ -41,7 +41,11 @@ const toneClasses: Record<SiteLogTone, string> = {
   amber: 'bg-amber-50 text-amber-800',
   green: 'bg-emerald-50 text-emerald-800',
   neutral: 'bg-slate-100 text-slate-600',
+  purple: 'bg-violet-100 text-violet-800',
+  rose: 'bg-rose-50 text-rose-800',
 };
+
+type UpdatesFilter = 'all' | 'pending' | 'reply' | 'approved' | 'remapped' | 'rejected';
 
 const card = 'rounded-[1.3rem] border border-slate-200/80 bg-white shadow-[0_10px_35px_-28px_rgba(15,38,76,0.3)]';
 const focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2';
@@ -92,9 +96,12 @@ export const FieldCapture: React.FC = () => {
     previousScreen.current = screen;
   }, [screen]);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const [updatesFilter, setUpdatesFilter] = useState<UpdatesFilter>('all');
+  const [updatesSearch, setUpdatesSearch] = useState('');
+  const [reportReturn, setReportReturn] = useState<'home' | 'updates'>('home');
   const [fieldText, setFieldText] = useState('');
   const [discipline, setDiscipline] = useState('Piping');
-  const [siteLocation, setSiteLocation] = useState('Duliajan Manifold Area A');
+  const [siteLocation, setSiteLocation] = useState('');
   const [reportedDate, setReportedDate] = useState(() => {
     return getKolkataReferenceDate().yyyyMmDd;
   });
@@ -102,7 +109,7 @@ export const FieldCapture: React.FC = () => {
   useEffect(() => { if (user?.email) setReportedBy(
     typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name : user.email
   ); }, [user?.id, user?.email]);
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(true);
   const [showReporter, setShowReporter] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
@@ -112,7 +119,6 @@ export const FieldCapture: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [draftStatus, setDraftStatus] = useState('On this browser only');
   const [draftWarning, setDraftWarning] = useState<string | null>(null);
-  const [reviewAfterClarification, setReviewAfterClarification] = useState(false);
   const draftKey = user?.id ? 'setu-supervisor-v2-draft:' + user.id : null;
   useEffect(() => {
     if (!draftKey) return;
@@ -127,6 +133,17 @@ export const FieldCapture: React.FC = () => {
       setDraftStatus('Saved draft restored');
     } catch { setDraftWarning('Saved draft could not be restored.'); }
   }, [draftKey]);
+  useEffect(() => {
+    if (!draftKey || screen !== 'compose' || isSubmitting || !fieldText.trim()) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ text: fieldText, location: siteLocation, date: reportedDate, discipline }));
+        setDraftStatus('Draft autosaved');
+        setDraftWarning(null);
+      } catch { /* browser storage unavailable; manual Save draft remains */ }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [draftKey, screen, isSubmitting, fieldText, siteLocation, reportedDate, discipline]);
   const saveDraft = () => {
     if (!draftKey) { setDraftWarning('Sign in to save a draft.'); return; }
     try {
@@ -152,11 +169,24 @@ export const FieldCapture: React.FC = () => {
   const ownUpdates = useMemo(() => ownSiteUpdates(updates, user?.id), [updates, user?.id]);
   const ownRounds = useMemo(() => user ? addressedRequests(workflow.rounds, user.id) : [], [workflow.rounds, user]);
   const actionableRounds = ownRounds.filter(r => r.status === 'open' || r.status === 'responded');
+  const filteredUpdates = useMemo(() => {
+    const query = updatesSearch.trim().toLowerCase();
+    return ownUpdates.filter(update => {
+      if (updatesFilter === 'pending' && update.status !== 'pending') return false;
+      if (updatesFilter === 'approved' && update.status !== 'approved') return false;
+      if (updatesFilter === 'remapped' && update.status !== 'remapped') return false;
+      if (updatesFilter === 'rejected' && update.status !== 'rejected') return false;
+      if (updatesFilter === 'reply' && siteLogStatus(update, ownRounds).label !== 'Reply requested') return false;
+      if (!query) return true;
+      return update.update_id.toLowerCase().includes(query)
+        || update.field_text.toLowerCase().includes(query)
+        || (update.site_location || '').toLowerCase().includes(query);
+    });
+  }, [ownUpdates, ownRounds, updatesFilter, updatesSearch]);
   const currentReport = ownUpdates.find(u => u.id === selectedReport);
-  const defaultLocation = ownUpdates[0]?.site_location || 'Duliajan Manifold Area A';
+  const defaultLocation = ownUpdates[0]?.site_location || '';
 
   const startNew = () => {
-    setReviewAfterClarification(false);
     setSubmitError(null);
     setInterimTranscript('');
     setVoiceStatus(null);
@@ -164,7 +194,7 @@ export const FieldCapture: React.FC = () => {
     setResolvedAmbiguity(null);
     setScreen('compose');
   };
-  const openReport = (update: FieldUpdate) => { setSelectedReport(update.id); setScreen('report'); };
+  const openReport = (update: FieldUpdate, from: 'home' | 'updates' = 'home') => { setSelectedReport(update.id); setReportReturn(from); setScreen('report'); };
 
   const executeSubmission = async (
     analysis: SupervisorAnalysisResult,
@@ -253,7 +283,6 @@ export const FieldCapture: React.FC = () => {
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(reportedDate) || Number.isNaN(Date.parse(reportedDate)) || reportedDate > getKolkataReferenceDate().yyyyMmDd) { setSubmitError('Report date cannot be in the future.'); return; }
     if (analysis.materialAmbiguity && !resolvedAmbiguity) {
-      setReviewAfterClarification(true);
       setPendingClarification(analysis.materialAmbiguity);
       return;
     }
@@ -273,15 +302,7 @@ export const FieldCapture: React.FC = () => {
     setResolvedAmbiguity(opt);
     setPendingClarification(null);
 
-    const analysis = analyzeSupervisorNarrative(fieldText, targetDate, {
-      location: siteLocation,
-    });
-    if (reviewAfterClarification) {
-      setReviewAfterClarification(false);
-      setScreen('review');
-      return;
-    }
-    await executeSubmission(analysis, opt, targetDate);
+    setScreen('review');
   };
 
   const handleSignOut = async () => {
@@ -318,7 +339,7 @@ export const FieldCapture: React.FC = () => {
             <p className="setu-supervisor-v2__eyebrow">FIELD WORKSPACE · OIL INDIA LIMITED</p>
             <h1 id="site-log-home-title" className="setu-supervisor-v2__page-title">Site Log</h1>
             <p className="setu-supervisor-v2__home-description">Capture site progress and follow every update from the field into planner review.</p>
-            <div className="setu-supervisor-v2__home-location"><MapPin size={17} aria-hidden="true"/><span>{defaultLocation}</span></div>
+            <div className="setu-supervisor-v2__home-location"><MapPin size={17} aria-hidden="true"/><span>{defaultLocation || "Choose a site area in your next update"}</span></div>
           </div>
           <div className="setu-supervisor-v2__home-cta">
             <button type="button" onClick={startNew} className="setu-supervisor-v2__primary"><Plus size={18} aria-hidden="true"/><span>New field update</span><ArrowRight size={18} aria-hidden="true"/></button>
@@ -326,9 +347,9 @@ export const FieldCapture: React.FC = () => {
           </div>
         </section>
         <section className="setu-supervisor-v2__home-metrics" aria-label="Workspace activity">
-          <div className="setu-supervisor-v2__metric"><span>My updates</span><strong>{ownUpdates.length}</strong><small>Reports submitted from this account</small></div>
-          <div className="setu-supervisor-v2__metric"><span>Pending review</span><strong>{ownUpdates.filter(update => update.status === 'pending').length}</strong><small>Awaiting a planner decision</small></div>
-          <div className="setu-supervisor-v2__metric"><span>Clarification rounds</span><strong>{actionableRounds.length}</strong><small>Open or responded requests</small></div>
+          <button type="button" onClick={() => { setUpdatesFilter('all'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span>My updates</span><strong>{ownUpdates.length}</strong><small>Reports submitted from this account · View all</small></button>
+          <button type="button" onClick={() => { setUpdatesFilter('pending'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span>Pending review</span><strong>{ownUpdates.filter(update => update.status === 'pending').length}</strong><small>Awaiting a planner decision · Filter</small></button>
+          <button type="button" onClick={() => { setUpdatesFilter('reply'); setScreen('updates'); }} className="setu-supervisor-v2__metric"><span>Clarification rounds</span><strong>{actionableRounds.length}</strong><small>Open or responded requests · Reply</small></button>
         </section>
 
         {workflow.error && <p role="alert" className="setu-supervisor-v2__home-error">Clarification updates unavailable: {workflow.error}</p>}
@@ -346,7 +367,7 @@ export const FieldCapture: React.FC = () => {
           <div className="setu-supervisor-v2__home-list">
             {loading ? <p className="setu-supervisor-v2__home-empty" role="status">Loading updates…</p> :
               error ? <p role="alert" className="setu-supervisor-v2__home-error">{error}</p> :
-              ownUpdates.length ? ownUpdates.slice(0, 3).map(u => <FieldUpdateRow key={u.id} update={u} rounds={ownRounds} onClick={() => openReport(u)}/>) :
+              ownUpdates.length ? ownUpdates.slice(0, 3).map(u => <FieldUpdateRow key={u.id} update={u} rounds={ownRounds} onClick={() => openReport(u, 'home')}/>) :
               <div className="setu-supervisor-v2__home-empty"><FileText size={28} aria-hidden="true"/><h3>No updates yet</h3><p>You haven't sent any updates yet.</p><button type="button" onClick={startNew} className="setu-supervisor-v2__view-all">New field update <ArrowRight size={17} aria-hidden="true"/></button></div>}
           </div>
         </section>
@@ -427,8 +448,8 @@ export const FieldCapture: React.FC = () => {
                 </span>
                 {discipline && (
                   <>
-                    <span className="hidden text-slate-300 sm:inline" aria-hidden="true">·</span>
-                    <span className="hidden font-medium text-slate-500 sm:inline">{discipline}</span>
+                    <span className="text-slate-300" aria-hidden="true">·</span>
+                    <span className="font-medium text-slate-500">{discipline}</span>
                   </>
                 )}
               </div>
@@ -463,6 +484,7 @@ export const FieldCapture: React.FC = () => {
                   <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500"><MapPin size={14}/> Site / Area</span>
                   <input
                     value={siteLocation}
+                    placeholder="Choose site area"
                     onChange={e => { setSiteLocation(e.target.value); setPendingClarification(null); setResolvedAmbiguity(null); }}
                     aria-label="Site location"
                     className="w-full min-w-0 bg-transparent text-sm font-semibold text-[#13264A] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -630,6 +652,7 @@ export const FieldCapture: React.FC = () => {
           <dl className="setu-supervisor-v2__review-grid"><div><dt>Discipline</dt><dd>{discipline}</dd></div><div><dt>Site / Area</dt><dd>{siteLocation}</dd></div><div><dt>Reported date</dt><dd>{siteLogDate(reportedDate)}</dd></div></dl>
           <div className="setu-supervisor-v2__review-reporter"><UserRound size={20}/><span><small>Reporting as</small><strong>{reportedBy}</strong><small>{user?.email || 'Signed-in SETU account'}</small></span></div>
           <p className="setu-supervisor-v2__attachment-note">Photo and PDF upload is not available. Spreadsheet imports are reviewed separately.</p>
+          {resolvedAmbiguity && <p className="setu-supervisor-v2__notice">Date updated based on your clarification — please check it before sending.</p>}
           {isSubmitting && <p role="status" className="setu-supervisor-v2__notice">SETU aapki update check kar raha hai…</p>}
           {submitError && <div role="alert" className="setu-supervisor-v2__review-error">{submitError}</div>}
           <div className="setu-supervisor-v2__review-footer"><button type="button" disabled={isSubmitting} className="setu-supervisor-v2__quiet" onClick={() => { setSubmitError(null); setScreen('compose'); }}>Edit update</button><button type="button" disabled={isSubmitting} className="setu-supervisor-v2__primary" onClick={() => void handleSend()}>Send for plan linking <ArrowRight size={18}/></button></div>
@@ -651,22 +674,37 @@ export const FieldCapture: React.FC = () => {
           className={`mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#123F77] px-5 py-4 font-semibold text-white hover:bg-[#0C315D] ${focus}`}>
           Back to Site Log <ArrowRight size={18}/>
         </button>
+        <button type="button" onClick={() => { setUpdatesFilter('all'); setScreen('updates'); }} className={`mt-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#1557A0] ${focus}`}>View in My updates</button>
         <button type="button" onClick={startNew} className={`mt-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#1557A0] ${focus}`}>Send another update</button>
       </div>}
 
       {screen === 'updates' && <section className="setu-supervisor-v2__list-page mx-auto max-w-2xl">
         <button type="button" onClick={() => setScreen('home')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> Site Log</button>
         <div className="mb-6 flex items-center justify-between"><h1 className="text-2xl font-bold tracking-tight">My updates</h1>
-          <span className="text-sm font-medium text-slate-500">{ownUpdates.length} total</span></div>
+          <span className="text-sm font-medium text-slate-500">{filteredUpdates.length} shown · {ownUpdates.length} total</span></div>
+        <input aria-label="Search my updates" value={updatesSearch} onChange={e => setUpdatesSearch(e.target.value)} placeholder="Search by ID, location or text"
+          className="setu-supervisor-v2__search" />
+        <div className="setu-supervisor-v2__filters" role="group" aria-label="Filter my updates">
+          {([
+            ['all', 'All'],
+            ['pending', 'Pending'],
+            ['reply', 'Reply requested'],
+            ['approved', 'Approved'],
+            ['remapped', 'Remapped'],
+            ['rejected', 'Rejected'],
+          ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={updatesFilter === value}
+            onClick={() => setUpdatesFilter(value)} className={`setu-supervisor-v2__filter${updatesFilter === value ? ' is-active' : ''}`}>{label}</button>)}
+        </div>
         <div className={`${card} overflow-hidden`}>
           {loading ? <p className="p-6 text-sm text-slate-500">Loading updates…</p> : error ? <p role="alert" className="p-6 text-sm text-rose-700">{error}</p> :
-            ownUpdates.length ? ownUpdates.map(u => <FieldUpdateRow key={u.id} update={u} rounds={ownRounds} onClick={() => openReport(u)}/>) :
+            filteredUpdates.length ? filteredUpdates.map(u => <FieldUpdateRow key={u.id} update={u} rounds={ownRounds} onClick={() => openReport(u, 'updates')}/>) :
+            ownUpdates.length ? <p className="p-6 text-sm text-slate-500">No updates match this filter or search.</p> :
             <p className="p-6 text-sm text-slate-500">You haven't sent any updates yet.</p>}
         </div>
       </section>}
 
       {screen === 'report' && <section className="setu-supervisor-v2__detail-page mx-auto max-w-2xl">
-        <button type="button" onClick={() => setScreen('updates')} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> My updates</button>
+        <button type="button" onClick={() => setScreen(reportReturn)} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 ${focus}`}><ArrowLeft size={17}/> {reportReturn === 'updates' ? 'My updates' : 'Site Log'}</button>
         {currentReport ? <>
           <div className="mb-6 flex flex-wrap items-center gap-3"><h1 className="break-all font-mono text-xl font-bold sm:text-2xl">{currentReport.update_id}</h1><Status update={currentReport} rounds={ownRounds}/></div>
           <div className={`${card} divide-y divide-slate-100 px-5 sm:px-7`}>
@@ -678,7 +716,14 @@ export const FieldCapture: React.FC = () => {
               <div><p className="text-xs text-slate-500">Plan linking</p><p className="mt-1 font-semibold">{currentReport.status === 'approved' || currentReport.status === 'remapped' ? 'Planner decision recorded' : 'Pending planner workflow'}</p></div>
             </div>
           </div>
-          <p className="mt-4 text-sm leading-6 text-slate-500">AI recommendations and planner decisions are separate from the original field report.</p>
+          <div className={`${card} mt-4 px-5 py-5 sm:px-7`}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status timeline</p>
+            <p className="mt-2 text-sm leading-6">Submitted {siteLogDate(currentReport.reported_date)} · Current status: {siteLogStatus(currentReport, ownRounds).label}</p>
+            <p className="mt-1 text-sm leading-6 text-slate-500">AI recommendations and planner decisions are separate from the original field report.</p>
+          </div>
+          {user && <div className="mt-4">
+            <NeedsClarification rounds={ownRounds.filter(r => r.field_update_id === currentReport.id)} updates={updates} userId={user.id} act={workflow.act} available={!workflow.loading && !workflow.error} />
+          </div>}
         </> : <p className="text-sm text-slate-500">Report no longer available in your list.</p>}
       </section>}
 
@@ -696,9 +741,9 @@ export const FieldCapture: React.FC = () => {
     </main>
 
     {(screen === 'home' || screen === 'updates' || screen === 'account') && <nav aria-label="Site Log navigation" className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom))] backdrop-blur sm:hidden">
-      <div className="grid grid-cols-3 py-2">
-        {([{ name:'Site Log', page:'home' as Screen, Icon: ClipboardList }, { name:'My updates', page:'updates' as Screen, Icon: FileText }, { name:'Account', page:'account' as Screen, Icon: UserRound }]).map(n =>
-          <button type="button" key={n.page} onClick={() => setScreen(n.page)} aria-current={screen === n.page ? 'page' : undefined}
+      <div className="grid grid-cols-4 py-2">
+        {([{ name:'Site Log', page:'home' as Screen, Icon: ClipboardList }, { name:'My updates', page:'updates' as Screen, Icon: FileText }, { name:'New', page:'compose' as Screen, Icon: Plus }, { name:'Account', page:'account' as Screen, Icon: UserRound }]).map(n =>
+          <button type="button" key={n.page} onClick={() => { if (n.page === 'compose') startNew(); else setScreen(n.page); }} aria-current={screen === n.page ? 'page' : undefined}
             className={`flex flex-col items-center gap-1 rounded-lg py-2 text-[11px] font-semibold ${screen === n.page ? 'text-[#1557A0]' : 'text-slate-500'} ${focus}`}>
             <n.Icon size={20} aria-hidden="true"/>{n.name}
           </button>)}

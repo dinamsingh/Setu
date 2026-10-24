@@ -22,7 +22,7 @@ describe('supervisor Site Log status and history', () => {
     expect(siteLogStatus(report, [{ ...round, status: 'responded' }]).label).toBe('Response sent');
     expect(siteLogStatus({ ...report, status: 'approved' }).label).toBe('Planner approved');
     expect(siteLogStatus({ ...report, status: 'remapped' }).label).toBe('Remapped & approved');
-    expect(siteLogStatus({ ...report, status: 'rejected' }).label).toBe('Closed');
+    expect(siteLogStatus({ ...report, status: 'rejected' }).label).toBe('Rejected');
   });
 
   it('does not derive dates from device timezone or invalid values', () => {

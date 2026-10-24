@@ -2,7 +2,7 @@
 /* SETU Supervisor V2 — scoped to this module; other routes stay untouched. */
 .setu-supervisor-v2 {
   --sv-bg:#f5f5f7;--sv-surface:#fff;--sv-fg:#1d1d1f;--sv-muted:#6e6e73;
-  --sv-border:#d2d2d7;--sv-soft:#e8e8ed;--sv-blue:#0071e3;
+  --sv-border:#d2d2d7;--sv-soft:#e8e8ed;--sv-blue:#007aff;
   --sv-font:"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
   background:var(--sv-bg);color:var(--sv-fg);font-family:var(--sv-font);
 }
@@ -38,7 +38,14 @@
 .setu-supervisor-v2__quiet{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 12px;color:var(--sv-fg);font-weight:600;}
 .setu-supervisor-v2__quiet:hover{text-decoration:underline;}
 .setu-supervisor-v2__primary{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:12px 23px;border-radius:980px;background:var(--sv-blue);color:white;font-size:16px;font-weight:600;}
-.setu-supervisor-v2__primary:hover{background:#0066cc;}
+.setu-supervisor-v2__primary:hover{background:#0066d6;}
+button.setu-supervisor-v2__metric{cursor:pointer;text-align:left;font:inherit;color:inherit;}
+button.setu-supervisor-v2__metric:hover{background:#f5f8ff;}
+.setu-supervisor-v2__search{box-sizing:border-box;width:100%;padding:11px 14px;border:1px solid var(--sv-soft);border-radius:10px;background:#fff;font-size:15px;outline:none;margin-bottom:12px;}
+.setu-supervisor-v2__search:focus{border-color:var(--sv-blue);box-shadow:0 0 0 4px rgba(0,122,255,.18);}
+.setu-supervisor-v2__filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.setu-supervisor-v2__filter{min-height:36px;padding:7px 13px;border:1px solid var(--sv-soft);border-radius:980px;background:#fff;font-size:13px;font-weight:600;cursor:pointer;}
+.setu-supervisor-v2__filter.is-active{background:var(--sv-blue);border-color:var(--sv-blue);color:#fff;}
 .setu-supervisor-v2__primary:disabled{opacity:.45;cursor:not-allowed;}
 .setu-supervisor-v2__attachment-note,.setu-supervisor-v2__disclaimer{font-size:12px;line-height:1.6;color:var(--sv-muted);}
 .setu-supervisor-v2__review-card{background:#fff;border:1px solid var(--sv-soft);border-radius:18px;padding:32px;}

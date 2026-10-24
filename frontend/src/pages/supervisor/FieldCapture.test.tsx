@@ -353,25 +353,27 @@ it('displays simple default supervisor screen with compact date/location, Change
   expect(container.querySelector('[role="region"][aria-label="Date and time suggestions from narrative"]')).toBeNull();
   const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'));
   expect(sendButton).toBeDefined();
-  const changeDetailsBtn = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Change details'))!;
+  const changeDetailsBtn = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Hide details'))!;
   expect(changeDetailsBtn).toBeDefined();
-  expect(changeDetailsBtn.getAttribute('aria-expanded')).toBe('false');
-  await act(async () => { changeDetailsBtn.click(); });
   expect(changeDetailsBtn.getAttribute('aria-expanded')).toBe('true');
-  expect(changeDetailsBtn.textContent).toContain('Hide details');
   expect(container.querySelector('#report-details-panel')?.className).toContain('block');
+  await act(async () => { changeDetailsBtn.click(); });
+  expect(changeDetailsBtn.getAttribute('aria-expanded')).toBe('false');
+  expect(changeDetailsBtn.textContent).toContain('Change details');
+  expect(container.querySelector('#report-details-panel')?.className).toContain('hidden');
 });
 
 it('submits a simple valid completed update with Update bhejo and shows sent confirmation', async () => {
   state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-001' });
   await click('New field update');
   await edit('#field-report', 'Piping spool erection finished at Manifold A today');
+  await edit('[aria-label="Site location"]', 'Manifold Area A');
   const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
   await act(async () => { sendButton.click(); });
   expect(state.submit).toHaveBeenCalledTimes(1);
   expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
     fieldText: 'Piping spool erection finished at Manifold A today',
-    siteLocation: 'Duliajan Manifold Area A',
+    siteLocation: 'Manifold Area A',
     sourceType: 'manual_text',
   }));
   expect(container.querySelector('[role="status"]')?.textContent).toContain('Update sent');
@@ -426,6 +428,9 @@ it('interrupts with one plain-language question when material ambiguity exists (
   const pastBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Kal hua tha'))!;
   expect(pastBtn).toBeDefined();
   await act(async () => { pastBtn.click(); });
+  expect(state.submit).not.toHaveBeenCalled();
+  expect(container.querySelector('.setu-supervisor-v2__review')).not.toBeNull();
+  await click('Send for plan linking');
   expect(state.submit).toHaveBeenCalledTimes(1);
   expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
     fieldText: 'Kal welding at Manifold Area',
@@ -462,6 +467,9 @@ it('prompts targeted clarification when narrative claims work completed yesterda
   expect(dialog?.textContent).toContain('Ye kaam aaj hua tha ya kal?');
   const yestBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Kal hua tha'))!;
   await act(async () => { yestBtn.click(); });
+  expect(state.submit).not.toHaveBeenCalled();
+  expect(container.querySelector('.setu-supervisor-v2__review')).not.toBeNull();
+  await click('Send for plan linking');
   expect(state.submit).toHaveBeenCalledTimes(1);
   const submittedCall = state.submit.mock.calls[0][0];
   expect(submittedCall.fieldText).toBe('Kal kaam complete hua tha');
@@ -473,8 +481,6 @@ it('prompts targeted clarification when narrative claims work completed yesterda
 it('preserves manual reported-date override and respects user change without silent overwriting', async () => {
   state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-006' });
   await click('New field update');
-  const changeDetailsBtn = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Change details'))!;
-  await act(async () => { changeDetailsBtn.click(); });
   await edit('input[type="date"]', '2026-05-15');
   await edit('#field-report', 'Testing finished successfully at Manifold A');
   const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
@@ -541,6 +547,9 @@ it('resolves clarification with Today and passes today reported date directly to
   const todayBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Aaj hua tha'))!;
   expect(todayBtn).toBeDefined();
   await act(async () => { todayBtn.click(); });
+  expect(state.submit).not.toHaveBeenCalled();
+  expect(container.querySelector('.setu-supervisor-v2__review')).not.toBeNull();
+  await click('Send for plan linking');
   expect(state.submit).toHaveBeenCalledTimes(1);
   const callArgs = state.submit.mock.calls[0][0];
   expect(callArgs.fieldText).toBe('Kal kaam complete hua tha');
