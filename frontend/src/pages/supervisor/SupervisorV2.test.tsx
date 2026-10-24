@@ -77,7 +77,7 @@ describe('Supervisor V2 review and draft flow', () => {
     expect(container.querySelector('textarea#field-report')).not.toBeNull();
     expect(container.querySelector('[aria-label="Start voice input"]')).not.toBeNull();
     expect(container.querySelector('[aria-label="Add attachment"]')).not.toBeNull();
-    expect(container.querySelector('[aria-label="Report progress"]')?.textContent).toContain('Review');
+    expect(container.querySelector('[aria-label="Report progress"]')?.textContent).toContain('1 / 2');
   });
 
   it('reviews before invoking the existing submission hook and permits editing', async () => {
