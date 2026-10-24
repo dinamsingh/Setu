@@ -330,7 +330,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 <button
                   type="button"
                   onClick={scrollToValidation}
-                  className="border border-current/30 bg-white px-2.5 py-1.5 text-[11px] font-bold transition-colors hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-current/30"
+                  className="border border-current/30 bg-white px-3 py-2 text-xs font-bold transition-colors hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-current/30"
                 >
                   Review failed checks
                 </button>
@@ -341,7 +341,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                       type="button"
                       disabled={isSubmitting}
                       onClick={() => openDecisionAction('accept')}
-                      className="bg-setu-green px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-setu-green-dark focus:outline-none focus:ring-2 focus:ring-setu-green/40 disabled:opacity-50"
+                      className="bg-setu-green px-3 py-2 text-xs font-bold text-white hover:bg-setu-green-dark focus:outline-none focus:ring-2 focus:ring-setu-green/40 disabled:opacity-50"
                     >
                       Accept
                     </button>
@@ -350,7 +350,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => onOpenRemap(update)}
-                    className="border border-setu-blue bg-white px-2.5 py-1.5 text-[11px] font-bold text-setu-blue hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-50"
+                    className="border border-setu-blue bg-white px-3 py-2 text-xs font-bold text-setu-blue hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-50"
                   >
                     Remap
                   </button>
@@ -359,7 +359,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               <button
                 type="button"
                 onClick={openMoreActions}
-                className="inline-flex items-center gap-1 border border-current/30 bg-white px-2.5 py-1.5 text-[11px] font-bold hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-current/30"
+                className="inline-flex items-center gap-1 border border-current/30 bg-white px-3 py-2 text-xs font-bold hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-current/30"
               >
                 <MoreHorizontal className="h-3.5 w-3.5" />
                 More actions

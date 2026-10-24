@@ -255,3 +255,9 @@
 .pl-metric-value{display:flex;align-items:center;gap:6px;font-family:var(--pl2-display);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--pl2-fg);flex-shrink:0;}
 .setu-planner-v2--command-center :where(button[class*="bg-setu-blue"],a[class*="bg-setu-blue"]),
 .setu-planner-v2--review :where(button[class*="bg-setu-blue"],a[class*="bg-setu-blue"]){border-radius:12px!important;}
+
+/* Remaining screens uplift — primaries radius 12 on all planner pages, larger review stepper */
+.setu-planner-v2 :where(button[class*="bg-setu-blue"],a[class*="bg-setu-blue"]){border-radius:12px!important;}
+.setu-planner-v2--review nav[aria-label="Review progress"] li{font-size:12px;}
+.setu-planner-v2--review main article{border-radius:18px;}
+.setu-planner-v2--schedule-actuals main section[aria-label^="Evidence for"]{border-radius:12px;}

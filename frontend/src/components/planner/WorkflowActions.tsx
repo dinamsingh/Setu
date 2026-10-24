@@ -7,9 +7,9 @@ import { reviewStage } from '../../lib/guidedReview';
 import type { ProgressEvent } from '../../types/progressEvents';
 
 export type WorkflowAction = (name: string, params: Record<string, unknown>) => Promise<WorkflowResult>;
-const inputClass = 'mt-1 w-full border border-setu-slate-300 bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-setu-blue/30';
-const buttonClass = 'border border-setu-slate-300 px-3 py-2 text-xs font-bold hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-40';
-const primaryClass = 'bg-setu-navy px-3 py-2 text-xs font-bold text-white hover:bg-setu-blue focus:outline-none focus:ring-2 focus:ring-setu-teal disabled:opacity-40';
+const inputClass = 'mt-1 w-full border border-setu-slate-300 bg-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-setu-blue/30';
+const buttonClass = 'border border-setu-slate-300 rounded-lg px-4 py-2.5 text-[13px] font-bold hover:bg-setu-slate-50 focus:outline-none focus:ring-2 focus:ring-setu-blue/30 disabled:opacity-40';
+const primaryClass = 'bg-setu-navy rounded-lg px-4 py-2.5 text-[13px] font-bold text-white hover:bg-setu-blue focus:outline-none focus:ring-2 focus:ring-setu-teal disabled:opacity-40';
 
 export function ImpactSelect({ value, onChange }: { value: string; onChange: (value: ClarificationImpact) => void }) {
   return <label className="block text-xs font-bold">Impact (required)

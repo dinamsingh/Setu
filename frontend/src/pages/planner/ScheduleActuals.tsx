@@ -30,7 +30,7 @@ export function ScheduleActuals() {
           <ActualsTable rows={rows} loading={loading} error={error} selectedId={selection} onSelect={id => setSelection(previous => previous === id ? null : id)}/>
         </section>
         {selected && !loading && !error && <div ref={evidenceRef}><ActualsEvidencePanel key={selected.activity_id} row={selected} onClose={() => setSelection(null)}/></div>}
-        <p className="mt-4 text-xs leading-5 text-setu-slate-500">Live views, read on entry or Refresh. Legacy decisions without current revision-bound governance are excluded. No baseline updates or Primavera writeback.</p>
+        <p className="mt-4 text-xs leading-5 text-setu-slate-500">Live views on entry or Refresh. Legacy decisions without current governance are excluded. No baseline updates or Primavera writeback.</p>
       </main>
     </div>
   </div>;

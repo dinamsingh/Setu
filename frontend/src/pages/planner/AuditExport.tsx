@@ -113,11 +113,11 @@ export const AuditExport: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-3 p-2 border-t md:border-t-0 md:border-l border-setu-slate-700">
-              <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-8 h-8 rounded-full bg-setu-blue flex items-center justify-center font-bold text-xs shrink-0">
                 2
               </div>
               <div>
-                <span className="text-[10px] uppercase font-bold text-purple-300 block">Step Two</span>
+                <span className="text-[10px] uppercase font-bold text-setu-blue-light block">Step Two</span>
                 <span className="text-xs font-bold">Append-only Audit Logging</span>
               </div>
             </div>
@@ -332,14 +332,14 @@ export const AuditExport: React.FC = () => {
                   placeholder="Search aliases or P6 terms..."
                   value={aliasSearch}
                   onChange={(e) => setAliasSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-setu-slate-200 focus:outline-none focus:ring-1 focus:ring-setu-teal"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-setu-slate-200 focus:outline-none focus:ring-1 focus:ring-setu-blue"
                 />
               </div>
             </div>
 
             {/* Quarantine Governance Callout */}
-            <div className="p-3 rounded-lg bg-indigo-50/70 border border-indigo-200 text-xs text-indigo-950 flex items-start gap-2.5">
-              <ShieldCheck className="w-4 h-4 text-indigo-700 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-lg bg-blue-50/70 border border-blue-200 text-xs text-blue-950 flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-setu-blue shrink-0 mt-0.5" />
               <div className="flex-1">
                 <strong>Reviewed alias loop:</strong> Proposed aliases remain quarantined and do not affect scoring until a planner approves them. Verified aliases are then available to the matching worker.
               </div>

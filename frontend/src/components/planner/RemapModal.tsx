@@ -49,8 +49,8 @@ function RemapSelection({ update, activities, plannerName, onClose, onConfirmRem
     } catch (err) { setError(err instanceof Error ? err.message : 'Target submission failed.'); }
     finally { setBusy(false); }
   }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-setu-navy-dark/60 p-4">
-    <section role="dialog" aria-modal="true" aria-labelledby="remap-title" className="w-full max-w-2xl border border-setu-slate-300 bg-white shadow-xl">
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-setu-navy-dark/60 backdrop-blur-xs p-4">
+    <section role="dialog" aria-modal="true" aria-labelledby="remap-title" className="w-full max-w-2xl rounded-2xl border border-setu-slate-300 bg-white shadow-xl overflow-hidden">
       <header className="border-b border-setu-slate-200 bg-setu-slate-50 px-5 py-4">
         <h2 id="remap-title" className="font-bold">Select schedule activity · {update.update_id}</h2>
         <p className="mt-1 text-xs">Selection creates a proposal, not a final decision. The worker validates this exact target before you confirm Remap.</p>
@@ -85,8 +85,8 @@ function RemapSelection({ update, activities, plannerName, onClose, onConfirmRem
         </details>}
       </div>
       <footer className="flex justify-between border-t border-setu-slate-200 px-5 py-3 text-xs">
-        <button disabled={busy} className="border px-3 py-2" onClick={onClose}>Cancel</button>
-        <button disabled={busy || !canRemapToActivity(update.matched_activity_id, selected) || (proposeAlias && (!fieldTerm.trim() || !standardTerm.trim()))} className="bg-setu-blue px-3 py-2 font-bold text-white disabled:opacity-40" onClick={() => void submit()}>
+        <button disabled={busy} className="border border-setu-slate-300 rounded-lg px-4 py-2.5" onClick={onClose}>Cancel</button>
+        <button disabled={busy || !canRemapToActivity(update.matched_activity_id, selected) || (proposeAlias && (!fieldTerm.trim() || !standardTerm.trim()))} className="bg-setu-blue rounded-lg px-4 py-2.5 font-bold text-white disabled:opacity-40" onClick={() => void submit()}>
           {busy ? 'Submitting…' : proposalSubmitted ? 'Retry optional alias proposal' : 'Validate selected activity'}
         </button>
       </footer>
