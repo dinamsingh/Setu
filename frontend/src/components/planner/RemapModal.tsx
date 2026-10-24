@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 import { canRemapToActivity } from '../../lib/plannerWorkspace';
 import { extractCandidateTerms } from '../../lib/aliasProposer';
 import { supabase } from '../../lib/supabase';
@@ -22,6 +23,11 @@ function RemapSelection({ update, activities, plannerName, onClose, onConfirmRem
   const [standardTerm, setStandardTerm] = useState('');
   const [proposalSubmitted, setProposalSubmitted] = useState(false);
   const selectedActivity = activities.find(a => a.activity_id === selected);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   const filtered = useMemo(() => activities.filter(a =>
     [a.activity_id, a.activity_name, a.discipline, a.wbs_code].join(' ').toLowerCase().includes(search.toLowerCase())).slice(0, 80),
     [activities, search]);
@@ -49,21 +55,24 @@ function RemapSelection({ update, activities, plannerName, onClose, onConfirmRem
     } catch (err) { setError(err instanceof Error ? err.message : 'Target submission failed.'); }
     finally { setBusy(false); }
   }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-setu-navy-dark/60 backdrop-blur-xs p-4">
-    <section role="dialog" aria-modal="true" aria-labelledby="remap-title" className="w-full max-w-2xl rounded-2xl border border-setu-slate-300 bg-white shadow-xl overflow-hidden">
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-setu-navy-dark/60 backdrop-blur-xs p-4" onClick={onClose}>
+    <section role="dialog" aria-modal="true" aria-labelledby="remap-title" className="w-full max-w-2xl rounded-2xl border border-setu-slate-300 bg-white shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
       <header className="border-b border-setu-slate-200 bg-setu-slate-50 px-5 py-4">
-        <h2 id="remap-title" className="font-bold">Select schedule activity · {update.update_id}</h2>
-        <p className="mt-1 text-xs">Selection creates a proposal, not a final decision. The worker validates this exact target before you confirm Remap.</p>
+        <div className="flex items-start justify-between gap-3">
+          <h2 id="remap-title" className="font-bold">Select schedule activity · {update.update_id}</h2>
+          <button type="button" onClick={onClose} aria-label="Close remap" className="shrink-0 rounded-lg p-1.5 text-setu-slate-500 hover:bg-setu-slate-200 hover:text-setu-slate-800"><X className="h-5 w-5" /></button>
+        </div>
+        <p className="mt-1 text-sm text-setu-slate-600">Selection creates a proposal, not a final decision. The worker validates this exact target before you confirm Remap.</p>
       </header>
       <div className="space-y-3 px-5 py-4">
-        <blockquote className="border-l-4 border-setu-slate-400 bg-setu-slate-50 p-3 text-xs">{update.field_text}</blockquote>
+        <blockquote className="border-l-4 border-setu-slate-400 bg-setu-slate-50 p-3 text-[13px]">{update.field_text}</blockquote>
         {error && <p role="alert" className="text-xs text-rose-900">{error}</p>}
-        <label className="block text-xs font-bold">Search baseline activities
-          <input autoFocus disabled={proposalSubmitted} aria-label="Search baseline activities" className="mt-1 w-full border border-setu-slate-300 px-3 py-2" value={search} onChange={e => setSearch(e.target.value)} />
+        <label className="block text-sm font-bold">Search baseline activities
+          <input autoFocus disabled={proposalSubmitted} aria-label="Search baseline activities" className="mt-1 w-full border border-setu-slate-300 px-3 py-2.5 text-sm" value={search} onChange={e => setSearch(e.target.value)} />
         </label>
         <div className="max-h-72 overflow-y-auto divide-y divide-setu-slate-200 border border-setu-slate-200">
           {filtered.map(a => <button key={a.activity_id} disabled={busy || proposalSubmitted || a.activity_id === update.matched_activity_id} onClick={() => { setSelected(a.activity_id); setProposeAlias(false); }}
-            className={`block w-full px-3 py-3 text-left text-xs focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue disabled:opacity-40 ${selected === a.activity_id ? 'bg-blue-50' : 'hover:bg-setu-slate-50'}`}>
+            className={`block w-full px-3 py-3 text-left text-[13px] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-setu-blue disabled:opacity-40 ${selected === a.activity_id ? 'bg-blue-50' : 'hover:bg-setu-slate-50'}`}>
             <strong>{a.activity_id}</strong> · {a.discipline} · WBS {a.wbs_code}{a.activity_id === update.matched_activity_id ? ' · Current activity' : ''}
             <p>{a.activity_name}</p>
           </button>)}
@@ -84,7 +93,7 @@ function RemapSelection({ update, activities, plannerName, onClose, onConfirmRem
           </div>}
         </details>}
       </div>
-      <footer className="flex justify-between border-t border-setu-slate-200 px-5 py-3 text-xs">
+      <footer className="flex justify-between border-t border-setu-slate-200 px-5 py-3 text-sm">
         <button disabled={busy} className="border border-setu-slate-300 rounded-lg px-4 py-2.5" onClick={onClose}>Cancel</button>
         <button disabled={busy || !canRemapToActivity(update.matched_activity_id, selected) || (proposeAlias && (!fieldTerm.trim() || !standardTerm.trim()))} className="bg-setu-blue rounded-lg px-4 py-2.5 font-bold text-white disabled:opacity-40" onClick={() => void submit()}>
           {busy ? 'Submitting…' : proposalSubmitted ? 'Retry optional alias proposal' : 'Validate selected activity'}

@@ -264,7 +264,7 @@ export const ScheduleOnboarding: React.FC = () => {
                   placeholder="Search activity ID or name..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full text-xs pl-8 pr-3 py-2 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-1 focus:ring-setu-blue"
+                  className="w-full text-sm pl-8 pr-3 py-2.5 rounded-lg border border-setu-slate-300 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
                 />
               </div>
             </div>

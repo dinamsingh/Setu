@@ -10,9 +10,9 @@ export function ReviewStepper({ stage }: { stage: ReturnType<typeof reviewStage>
         const current = stage.current === index + 1;
         const complete = !current && stage.completed[index];
         return <li key={label} aria-current={current ? 'step' : undefined}
-          className={`flex min-w-0 flex-col gap-1.5 border-t-2 pt-2 text-[10px] font-semibold sm:text-xs ${current
-            ? 'border-setu-teal text-setu-navy' : complete ? 'border-setu-green text-setu-green-dark' : 'border-setu-slate-200 text-setu-slate-500'}`}>
-          <span className={`flex h-6 w-6 items-center justify-center rounded-sm font-mono ${current ? 'bg-setu-navy text-white'
+          className={`flex min-w-0 flex-col gap-1.5 border-t-2 pt-2 text-xs font-semibold ${current
+            ? 'border-[#007AFF] text-[#1D1D1F]' : complete ? 'border-setu-green text-setu-green-dark' : 'border-setu-slate-200 text-setu-slate-500'}`}>
+          <span className={`flex h-6 w-6 items-center justify-center rounded-sm font-mono ${current ? 'bg-[#007AFF] text-white'
             : complete ? 'bg-emerald-100' : 'bg-setu-slate-200'}`}>
             {complete ? <Check aria-hidden="true" className="h-4 w-4" /> : index + 1}
           </span>

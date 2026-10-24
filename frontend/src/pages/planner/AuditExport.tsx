@@ -31,6 +31,8 @@ export const AuditExport: React.FC = () => {
 
   const [aliasTab, setAliasTab] = useState<'all' | 'proposed' | 'verified' | 'rejected'>('all');
   const [aliasSearch, setAliasSearch] = useState('');
+  const [auditSearch, setAuditSearch] = useState('');
+  const [exportSearch, setExportSearch] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showAliasGovernance, setShowAliasGovernance] = useState(false);
 
@@ -69,6 +71,17 @@ export const AuditExport: React.FC = () => {
     return map;
   }, [updates]);
 
+  const filteredExportData = useMemo(() => {
+    const q = exportSearch.trim().toLowerCase();
+    if (!q) return exportData;
+    return exportData.filter((row) => Object.values(row).join(' ').toLowerCase().includes(q));
+  }, [exportData, exportSearch]);
+  const filteredLogs = useMemo(() => {
+    const q = auditSearch.trim().toLowerCase();
+    if (!q) return logs;
+    return logs.filter((log) => [log.action, log.planner_name, log.remarks, log.previous_activity_id, log.new_activity_id, updatesMap.get(log.field_update_id) || ''].join(' ').toLowerCase().includes(q));
+  }, [logs, auditSearch, updatesMap]);
+
   return (
     <div className="setu-planner-v2 setu-planner-v2--audit-export min-h-screen bg-setu-slate-100 flex flex-col">
       <Header currentRole="planner" />
@@ -101,9 +114,9 @@ export const AuditExport: React.FC = () => {
           </div>
 
           {/* Three-Step Governance Strip */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-xl bg-setu-navy text-white">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-xl bg-black text-white">
             <div className="flex items-center space-x-3 p-2">
-              <div className="w-8 h-8 rounded-full bg-setu-blue flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center font-bold text-xs shrink-0">
                 1
               </div>
               <div>
@@ -113,7 +126,7 @@ export const AuditExport: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-3 p-2 border-t md:border-t-0 md:border-l border-setu-slate-700">
-              <div className="w-8 h-8 rounded-full bg-setu-blue flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center font-bold text-xs shrink-0">
                 2
               </div>
               <div>
@@ -123,11 +136,11 @@ export const AuditExport: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-3 p-2 border-t md:border-t-0 md:border-l border-setu-slate-700">
-              <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center font-bold text-xs shrink-0">
                 3
               </div>
               <div>
-                <span className="text-[10px] uppercase font-bold text-emerald-300 block">Step Three</span>
+                <span className="text-[10px] uppercase font-bold text-blue-300 block">Step Three</span>
                 <span className="text-xs font-bold">Controlled Mapping Export</span>
               </div>
             </div>
@@ -156,6 +169,16 @@ export const AuditExport: React.FC = () => {
                 <p className="text-xs text-setu-slate-500">AI suggestion confidence is not assigned to planner-selected remaps.</p>
               </div>
 
+              <div className="relative w-full sm:w-64">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-setu-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search export preview..."
+                  value={exportSearch}
+                  onChange={(e) => setExportSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2.5 text-sm rounded-lg border border-setu-slate-200 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+                />
+              </div>
               <button
                 type="button"
                 disabled={exportData.length === 0}
@@ -188,7 +211,7 @@ export const AuditExport: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-setu-slate-100">
-                    {exportData.map((row, idx) => (
+                    {filteredExportData.map((row, idx) => (
                       <tr key={idx} className="hover:bg-setu-slate-50/70">
                         <td className="py-2 px-3 font-mono font-bold text-setu-navy">{row['Activity ID']}</td>
                         <td className="py-2 px-3 font-medium text-setu-slate-800">{row['Activity Name']}</td>
@@ -213,18 +236,31 @@ export const AuditExport: React.FC = () => {
                 </table>
               </div>
             )}
+            {exportData.length > 0 && filteredExportData.length === 0 && (
+              <p className="text-sm text-setu-slate-500">No export rows match this search.</p>
+            )}
           </div>
 
           {/* Section 2: Full Audit Timeline */}
           <div className="bg-white rounded-xl border border-setu-slate-200 p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold text-setu-slate-900">
-                  Append-only Planner Audit Trail ({logs.length} entries)
+                  Append-only Planner Audit Trail ({filteredLogs.length} of {logs.length} entries)
                 </h2>
                 <p className="text-xs text-setu-slate-500">
                   Decision history for accept, remap, reject, requeue, and validation override actions.
                 </p>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-setu-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search audit trail..."
+                  value={auditSearch}
+                  onChange={(e) => setAuditSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2.5 text-sm rounded-lg border border-setu-slate-200 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
+                />
               </div>
             </div>
 
@@ -249,7 +285,7 @@ export const AuditExport: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-setu-slate-100">
-                    {logs.map((log) => {
+                    {filteredLogs.map((log) => {
                       const evidence = updatesMap.get(log.field_update_id) || 'Site log reference';
                       return (
                         <tr key={log.id} className="hover:bg-setu-slate-50/70">
@@ -278,6 +314,9 @@ export const AuditExport: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            )}
+            {logs.length > 0 && filteredLogs.length === 0 && (
+              <p className="text-sm text-setu-slate-500">No audit entries match this search.</p>
             )}
           </div>
 
@@ -332,7 +371,7 @@ export const AuditExport: React.FC = () => {
                   placeholder="Search aliases or P6 terms..."
                   value={aliasSearch}
                   onChange={(e) => setAliasSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-setu-slate-200 focus:outline-none focus:ring-1 focus:ring-setu-blue"
+                  className="w-full pl-8 pr-3 py-2.5 text-sm rounded-lg border border-setu-slate-200 focus:outline-none focus:ring-2 focus:ring-setu-blue/30"
                 />
               </div>
             </div>
@@ -352,7 +391,7 @@ export const AuditExport: React.FC = () => {
                 onClick={() => setAliasTab('all')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                   aliasTab === 'all'
-                    ? 'bg-setu-navy text-white'
+                    ? 'bg-[#007AFF] text-white'
                     : 'bg-setu-slate-100 text-setu-slate-600 hover:bg-setu-slate-200'
                 }`}
               >

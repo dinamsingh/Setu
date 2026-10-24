@@ -51,11 +51,11 @@ export const CommandCenter: React.FC = () => {
   );
 
   const workflowMetrics = [
-    { label: 'Response Received', value: counts.needsTriage, detail: 'Planner triage required', icon: FileQuestion, view: 'triage', tone: 'border-setu-blue bg-blue-50/50 text-setu-blue-dark' },
-    { label: 'Awaiting Field Response', value: counts.awaitingResponse, detail: 'Requests available in SETU', icon: CalendarClock, view: 'response', tone: 'border-setu-slate-400 bg-setu-slate-50' },
-    { label: 'Reprocessing Evidence', value: counts.reprocessing, detail: 'Current evidence awaiting validation', icon: RefreshCw, view: 'reprocessing', tone: 'border-setu-amber bg-amber-50/60' },
-    { label: 'Validating Selected Activity', value: counts.remapPending, detail: 'Manual targets awaiting worker validation', icon: ClipboardCheck, view: 'remap', tone: 'border-setu-blue bg-blue-50/50' },
-    { label: 'Ready to Confirm Remap', value: counts.readyToConfirm, detail: 'Validated targets awaiting planner decision', icon: ListChecks, view: 'remap', tone: 'border-setu-teal bg-teal-50/50' },
+    { label: 'Response Received', value: counts.needsTriage, detail: 'Planner triage required', icon: FileQuestion, view: 'triage', iconClass: 'text-[#007AFF]' },
+    { label: 'Awaiting Field Response', value: counts.awaitingResponse, detail: 'Requests available in SETU', icon: CalendarClock, view: 'response', iconClass: 'text-setu-slate-500' },
+    { label: 'Reprocessing Evidence', value: counts.reprocessing, detail: 'Current evidence awaiting validation', icon: RefreshCw, view: 'reprocessing', iconClass: 'text-amber-600' },
+    { label: 'Validating Selected Activity', value: counts.remapPending, detail: 'Manual targets awaiting worker validation', icon: ClipboardCheck, view: 'remap', iconClass: 'text-[#007AFF]' },
+    { label: 'Ready to Confirm Remap', value: counts.readyToConfirm, detail: 'Validated targets awaiting planner decision', icon: ListChecks, view: 'remap', iconClass: 'text-emerald-700' },
   ];
   const metrics = [
     {
@@ -64,7 +64,7 @@ export const CommandCenter: React.FC = () => {
       detail: 'Pending reports with matching complete',
       icon: ListChecks,
       view: 'unresolved',
-      tone: 'border-setu-blue bg-blue-50/50 text-setu-blue-dark',
+      iconClass: 'text-[#007AFF]',
     },
     {
       label: 'Blocked',
@@ -72,7 +72,7 @@ export const CommandCenter: React.FC = () => {
       detail: 'Report or selected-target validation block',
       icon: AlertOctagon,
       view: 'blocked',
-      tone: 'border-setu-red bg-rose-50/60 text-setu-red-dark',
+      iconClass: 'text-rose-600',
     },
     {
       label: 'Low confidence',
@@ -80,7 +80,7 @@ export const CommandCenter: React.FC = () => {
       detail: 'Pending reports in Low confidence tier',
       icon: FileQuestion,
       view: 'low',
-      tone: 'border-setu-amber bg-amber-50/60 text-setu-amber-dark',
+      iconClass: 'text-amber-600',
     },
     {
       label: 'Unmatched',
@@ -88,7 +88,7 @@ export const CommandCenter: React.FC = () => {
       detail: 'Matching complete, no valid activity',
       icon: CircleDashed,
       view: 'unmatched',
-      tone: 'border-setu-slate-400 bg-setu-slate-50 text-setu-slate-800',
+      iconClass: 'text-setu-slate-500',
     },
     {
       label: 'Awaiting AI',
@@ -96,7 +96,7 @@ export const CommandCenter: React.FC = () => {
       detail: 'Submitted and waiting for matching worker',
       icon: RefreshCw,
       view: 'awaiting',
-      tone: 'border-setu-teal bg-teal-50/60 text-setu-teal-dark',
+      iconClass: 'text-[#007AFF]',
     },
   ];
 
@@ -177,7 +177,7 @@ export const CommandCenter: React.FC = () => {
                         className="pl-metric-row"
                       >
                         <span className="pl-metric-main">
-                          <span className="pl-metric-label"><Icon className="h-4 w-4 shrink-0 text-setu-slate-500" />{metric.label}</span>
+                          <span className="pl-metric-label"><Icon className={`h-4 w-4 shrink-0 ${(metric as any).iconClass || 'text-setu-slate-500'}`} />{metric.label}</span>
                           <span className="pl-metric-detail">{metric.detail}</span>
                         </span>
                         <span className="pl-metric-value">{workflow.error ? '—' : metric.value}<ChevronRight className="h-4 w-4 text-setu-slate-400" /></span>
@@ -194,7 +194,7 @@ export const CommandCenter: React.FC = () => {
                         onClick={() => navigate(`/planner/review?view=${metric.view}`)}
                         className="pl-metric-row">
                         <span className="pl-metric-main">
-                          <span className="pl-metric-label"><Icon className="h-4 w-4 shrink-0 text-setu-slate-500" />{metric.label}</span>
+                          <span className="pl-metric-label"><Icon className={`h-4 w-4 shrink-0 ${(metric as any).iconClass || 'text-setu-slate-500'}`} />{metric.label}</span>
                           <span className="pl-metric-detail">{metric.detail}</span>
                         </span>
                         <span className="pl-metric-value">{workflow.error ? '—' : metric.value}<ChevronRight className="h-4 w-4 text-setu-slate-400" /></span>

@@ -105,13 +105,13 @@ describe('guided planner decisions', () => {
     await render(workspace(report, [{ ...round, status: 'responded', response: 'Area confirmed' }]));
     await click('Classify response');
     expect([...container.querySelectorAll('button')].filter(b => b.textContent === 'Classify response')).toHaveLength(0);
-    expect([...container.querySelectorAll('button')].filter(b => b.classList.contains('bg-setu-navy'))).toHaveLength(1);
+    expect([...container.querySelectorAll('button')].filter(b => b.classList.contains('bg-[#007AFF]'))).toHaveLength(1);
     await click('Cancel');
     await render(workspace(report, [], [{ ...proposal, status: 'validated', validation_status: 'pass',
       validated_generation: 1, validation_evidence_revision: 0 }]));
     await click('Close as invalid');
     expect([...container.querySelectorAll('button')].filter(b => b.textContent === 'Confirm Remap')).toHaveLength(0);
-    expect([...container.querySelectorAll('button')].filter(b => b.classList.contains('bg-setu-navy'))).toHaveLength(1);
+    expect([...container.querySelectorAll('button')].filter(b => b.classList.contains('bg-[#007AFF]'))).toHaveLength(1);
     await click('Cancel'); expect(button('Confirm Remap').disabled).toBe(false);
   });
   it('locks approval when workflow data is unavailable', async () => {
