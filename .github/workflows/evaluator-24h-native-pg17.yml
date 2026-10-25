@@ -6,6 +6,8 @@ on:
     paths:
       - database/migrations/016_evaluator_24_hour_access.sql
       - tests/evaluator_pg17_*
+      - supabase/functions/redeem-evaluator-invite/index.ts
+      - supabase/config.toml
       - .github/workflows/evaluator-24h-native-pg17.yml
   push:
     branches: [feat/real-evaluator-24h-access]
@@ -14,6 +16,16 @@ permissions:
   contents: read
 
 jobs:
+  evaluator-edge-typecheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check supabase/functions/redeem-evaluator-invite/index.ts
+
   evaluator-pg17:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
