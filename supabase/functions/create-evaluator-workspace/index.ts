@@ -48,6 +48,21 @@ async function verifyChallenge(token: string, secret: string, ip: string): Promi
      data.hostname === "localhost");
 }
 Deno.serve(async (request)=>{
+  // Read-only diagnostics: never expose the secret values or create an account.
+  // This lets release verification distinguish deployed code from usable setup.
+  if(request.method==="GET" && new URL(request.url).searchParams.get("health")==="1"){
+    const url=Deno.env.get("SUPABASE_URL");
+    const key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const turnstile=Deno.env.get("EVALUATOR_TURNSTILE_SECRET");
+    const pepper=Deno.env.get("EVALUATOR_RATE_LIMIT_PEPPER");
+    const configured=Boolean(url&&key&&turnstile&&pepper&&pepper.length>=32);
+    if(!configured) return new Response(JSON.stringify({status:"not_configured"}),
+      {status:503,headers:{...headers,"Content-Type":"application/json"}});
+    const admin=createClient(url!,key!,{auth:{autoRefreshToken:false,persistSession:false}});
+    const {error}=await admin.from("evaluator_workspaces").select("id",{head:true}).limit(1);
+    return new Response(JSON.stringify({status:error?"database_unavailable":"ready"}),
+      {status:error?503:200,headers:{...headers,"Content-Type":"application/json"}});
+  }
   const origin = request.headers.get("origin") || "";
   if(!allowedOrigin(origin))return new Response("Forbidden",{status:403,headers});
   if(request.method==="OPTIONS"){
