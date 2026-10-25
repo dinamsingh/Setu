@@ -1,5 +1,5 @@
 /**
- * Real SETU 24-hour evaluator invitation redemption.
+ * Real SETU 48-hour evaluator invitation redemption.
  * Deploy with verify_jwt=false: invitation token is the bearer authorization.
  * Service-role key stays server-side in the Edge Function environment.
  */
