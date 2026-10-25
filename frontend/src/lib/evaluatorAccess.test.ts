@@ -51,11 +51,11 @@ describe('Real temporary evaluator access', () => {
 
   it('rejects and clears expired access', () => {
     saveEvaluatorAccess(makeAccess());
-    const stored = JSON.parse(sessionStorage.getItem('setu-evaluator-24h-access') || '{}');
+    const stored = JSON.parse(sessionStorage.getItem('setu-evaluator-48h-access') || '{}');
     stored.expiresAt = new Date(Date.now() - 1000).toISOString();
-    sessionStorage.setItem('setu-evaluator-24h-access', JSON.stringify(stored));
+    sessionStorage.setItem('setu-evaluator-48h-access', JSON.stringify(stored));
     expect(currentEvaluatorAccess()).toBeNull();
-    expect(sessionStorage.getItem('setu-evaluator-24h-access')).toBeNull();
+    expect(sessionStorage.getItem('setu-evaluator-48h-access')).toBeNull();
   });
 
   it('does not trust caller-selected role if Supabase role table disagrees', async () => {
