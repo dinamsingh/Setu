@@ -16,7 +16,7 @@ const isAccount = (v: unknown): v is EvaluatorAccount => {
   if (!v || typeof v !== 'object') return false;
   const x = v as Record<string, unknown>;
   return typeof x.email === 'string' && x.email.length > 5 &&
-    typeof x.password === 'string' && x.password.length >= 32;
+    typeof x.password === 'string' && x.password.length >= 20;
 };
 const valid = (v: unknown): v is EvaluatorAccess => {
   if (!v || typeof v !== 'object') return false;
@@ -52,7 +52,7 @@ export function otherEvaluatorRole(email: string | undefined): EvaluatorRole | n
 }
 export async function enterEvaluatorRole(target: EvaluatorRole): Promise<void> {
   const access = currentEvaluatorAccess();
-  if (!access) throw new Error('48-hour evaluator access has expired. Ask for another private invitation.');
+  if (!access) throw new Error('48-hour evaluator access has expired. Generate a fresh demo pair.');
   const account = access[target];
   const { data, error } = await supabase.auth.signInWithPassword(account);
   if (error || !data.user || !data.session) throw new Error('Could not sign in to the temporary ' + target + ' account.');
