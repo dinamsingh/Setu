@@ -51,6 +51,18 @@ async function click(name:string){
  await act(async()=>b!.click());
 }
 describe('Open public SETU evaluator login with linked 48h account pair',()=>{
+
+ it('places the evaluator CTA before email/password fields and the normal sign-in button',async()=>{
+  await render();
+  const demo=[...node.querySelectorAll('button')].find(x=>x.textContent?.trim()==='SIH Evaluator Login');
+  const email=node.querySelector('#setu-email');
+  const signIn=[...node.querySelectorAll('button')].find(x=>x.textContent?.includes('Sign in to SETU'));
+  expect(demo && email && signIn).toBeTruthy();
+  const firstPosition=demo!.compareDocumentPosition(email!);
+  expect(firstPosition & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(demo!.compareDocumentPosition(signIn!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+ });
+
  it('creates real accounts for any visitor after server-verifiable Turnstile proof',async()=>{
   await render();
   expect(node.textContent).toContain('SIH Evaluator Login');
