@@ -201,6 +201,67 @@ export const RoleSelection: React.FC = () => {
             <p>Sign in with your assigned SETU account.</p>
           </header>
 
+          <section className="setu-login-v2__evaluator" aria-label="SIH evaluator access">
+            <div className="setu-login-v2__evaluator-header">
+              <h2>SIH Evaluation</h2>
+              <p>One click creates a linked, 48-hour Supervisor and Planner workspace on real SETU.</p>
+            </div>
+            <button
+              type="button"
+              className="setu-login-v2__evaluator-button"
+              disabled={busy || evaluatorBusy}
+              aria-expanded={showEvaluator}
+              onClick={() => { void startEvaluatorLogin(); }}
+            >
+              {evaluatorBusy ? 'Generating secure credentials…' : 'SIH Evaluator Login'}
+            </button>
+            {showEvaluator && (
+              <div className="setu-login-v2__evaluator-result" role="region" aria-label="Temporary evaluator credentials">
+                {evaluatorError && <p className="setu-login-v2__message setu-login-v2__message--error" role="alert">{evaluatorError}</p>}
+                {evaluatorBusy && <p role="status">Preparing real SETU accounts…</p>}
+                {evaluatorCredentials && (
+                  <>
+                    <p className="setu-login-v2__evaluator-expiry">
+                      Two fresh, real Supabase accounts. Both expire on{' '}
+                      <strong>{new Date(evaluatorCredentials.expiresAt).toLocaleString()}</strong>
+                      {' '}(48 hours from account creation).
+                    </p>
+                    {(['site', 'planner'] as const).map(role => (
+                      <div className="setu-login-v2__evaluator-account" key={role}>
+                        <strong>{role === 'site' ? 'Supervisor' : 'Planner'}</strong>
+                        <label>
+                          Email
+                          <input readOnly aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo email'} value={evaluatorCredentials[role].email} />
+                        </label>
+                        <button type="button" onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].email, role + ' email'); }}>Copy email</button>
+                        <label>
+                          Password
+                          <input readOnly type="text" autoComplete="off"
+                            aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo password'} value={evaluatorCredentials[role].password} />
+                        </label>
+                        <button type="button" onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].password, role + ' password'); }}>Copy password</button>
+                        <button type="button" className="setu-login-v2__evaluator-enter"
+                          disabled={evaluatorBusy} onClick={() => { void loginEvaluatorRole(role); }}>
+                          {role === 'site' ? 'Login as Supervisor' : 'Login as Planner'}
+                        </button>
+                      </div>
+                    ))}
+                    {copied && <p role="status">{copied}</p>}
+                    <p className="setu-login-v2__evaluator-note">
+                      Isolated temporary workspace. Credentials stay in this browser tab.
+                      Use fictional reports labelled SIH EVALUATOR DEMO ONLY.
+                    </p>
+                  </>
+                )}
+                {!evaluatorCredentials && !evaluatorBusy && (
+                  <p className="setu-login-v2__evaluator-note">
+                    Each visitor can generate a separate Supervisor/Planner pair after a short security verification.
+                  </p>
+                )}
+              </div>
+            )}
+          </section>
+
           <form className="setu-login-v2__form" noValidate onSubmit={submit} aria-busy={busy}>
             {hasMultipleFieldErrors && (
               <div className="setu-login-v2__message setu-login-v2__message--error" role="alert">
@@ -270,67 +331,6 @@ export const RoleSelection: React.FC = () => {
               {!busy && <Icon><path d="M5 12h14m-6-6 6 6-6 6" /></Icon>}
             </button>
           </form>
-
-          <section className="setu-login-v2__evaluator" aria-label="SIH evaluator access">
-            <div className="setu-login-v2__evaluator-header">
-              <h2>SIH Evaluation</h2>
-              <p>One click creates a linked, 48-hour Supervisor and Planner workspace on real SETU.</p>
-            </div>
-            <button
-              type="button"
-              className="setu-login-v2__evaluator-button"
-              disabled={busy || evaluatorBusy}
-              aria-expanded={showEvaluator}
-              onClick={() => { void startEvaluatorLogin(); }}
-            >
-              {evaluatorBusy ? 'Generating secure credentials…' : 'SIH Evaluator Login'}
-            </button>
-            {showEvaluator && (
-              <div className="setu-login-v2__evaluator-result" role="region" aria-label="Temporary evaluator credentials">
-                {evaluatorError && <p className="setu-login-v2__message setu-login-v2__message--error" role="alert">{evaluatorError}</p>}
-                {evaluatorBusy && <p role="status">Preparing real SETU accounts…</p>}
-                {evaluatorCredentials && (
-                  <>
-                    <p className="setu-login-v2__evaluator-expiry">
-                      Two fresh, real Supabase accounts. Both expire on{' '}
-                      <strong>{new Date(evaluatorCredentials.expiresAt).toLocaleString()}</strong>
-                      {' '}(48 hours from invitation redemption).
-                    </p>
-                    {(['site', 'planner'] as const).map(role => (
-                      <div className="setu-login-v2__evaluator-account" key={role}>
-                        <strong>{role === 'site' ? 'Supervisor' : 'Planner'}</strong>
-                        <label>
-                          Email
-                          <input readOnly aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo email'} value={evaluatorCredentials[role].email} />
-                        </label>
-                        <button type="button" onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].email, role + ' email'); }}>Copy email</button>
-                        <label>
-                          Password
-                          <input readOnly type="text" autoComplete="off"
-                            aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo password'} value={evaluatorCredentials[role].password} />
-                        </label>
-                        <button type="button" onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].password, role + ' password'); }}>Copy password</button>
-                        <button type="button" className="setu-login-v2__evaluator-enter"
-                          disabled={evaluatorBusy} onClick={() => { void loginEvaluatorRole(role); }}>
-                          {role === 'site' ? 'Login as Supervisor' : 'Login as Planner'}
-                        </button>
-                      </div>
-                    ))}
-                    {copied && <p role="status">{copied}</p>}
-                    <p className="setu-login-v2__evaluator-note">
-                      Isolated temporary workspace. Credentials stay in this browser tab.
-                      Use fictional reports labelled SIH EVALUATOR DEMO ONLY.
-                    </p>
-                  </>
-                )}
-                {!evaluatorCredentials && !evaluatorBusy && (
-                  <p className="setu-login-v2__evaluator-note">
-                    Each visitor can generate a separate Supervisor/Planner pair after a short security verification.
-                  </p>
-                )}
-              </div>
-            )}
-          </section>
 
           <section className="setu-login-v2__demo" aria-labelledby="setu-demo-title">
             <div className="setu-login-v2__demo-heading">
