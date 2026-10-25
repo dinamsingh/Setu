@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import './RoleSelection.css';
-import { currentEvaluatorAccess, enterEvaluatorRole, redeemEvaluatorInvite, type EvaluatorAccess, type EvaluatorRole } from '../lib/evaluatorAccess';
+import { currentEvaluatorAccess, enterEvaluatorRole, createEvaluatorWorkspace, type EvaluatorAccess, type EvaluatorRole } from '../lib/evaluatorAccess';
+import { evaluatorProof } from '../lib/evaluatorChallenge';
 
 type WorkspaceRole = 'planner' | 'supervisor';
 type FieldErrors = { email?: string; password?: string };
@@ -25,44 +26,27 @@ export const RoleSelection: React.FC = () => {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [signInError, setSignInError] = useState<string | null>(null);
   const [selectedWorkspaceRole, setSelectedWorkspaceRole] = useState<WorkspaceRole | null>(null);
-  const privateInvite = useRef<string | null>(null);
   const [evaluatorCredentials, setEvaluatorCredentials] = useState<EvaluatorAccess | null>(() => currentEvaluatorAccess());
   const [showEvaluator, setShowEvaluator] = useState(false);
   const [evaluatorBusy, setEvaluatorBusy] = useState(false);
   const [evaluatorError, setEvaluatorError] = useState('');
   const [copied, setCopied] = useState('');
 
-  useEffect(() => {
-    // Only the private link contains the bearer invitation. Never copy it to DOM,
-    // analytics, localStorage or backend logs. StrictMode effects preserve this ref.
-    const invite = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('invite');
-    if (invite) {
-      privateInvite.current = invite;
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
-  }, []);
-
   const startEvaluatorLogin = async () => {
+    if (evaluatorBusy) return;
     setShowEvaluator(true);
     setEvaluatorError('');
-    if (evaluatorBusy) return;
-    const token = privateInvite.current;
-    // A new private invitation always takes precedence over credentials left
-    // in this browser tab by an earlier evaluator.
-    if (!token) {
-      const stored = currentEvaluatorAccess();
-      if (stored) { setEvaluatorCredentials(stored); return; }
-      setEvaluatorError('A private SIH evaluator invitation link is required to generate credentials. Ask the SETU team for the invitation link.');
-      return;
-    }
-    setEvaluatorCredentials(null);
+    const current = currentEvaluatorAccess();
+    if (current) { setEvaluatorCredentials(current); return; }
     setEvaluatorBusy(true);
     try {
-      const issued = await redeemEvaluatorInvite(token);
-      privateInvite.current = null;
-      setEvaluatorCredentials(issued);
+      // A Turnstile check runs in the background; most evaluators need only
+      // this one click. The backend also enforces admission quotas.
+      const token = await evaluatorProof();
+      const pair = await createEvaluatorWorkspace(token);
+      setEvaluatorCredentials(pair);
     } catch (error) {
-      setEvaluatorError(error instanceof Error ? error.message : 'Unable to generate temporary accounts.');
+      setEvaluatorError(error instanceof Error ? error.message : 'Unable to create a demo workspace.');
     } finally {
       setEvaluatorBusy(false);
     }
@@ -290,7 +274,7 @@ export const RoleSelection: React.FC = () => {
           <section className="setu-login-v2__evaluator" aria-label="SIH evaluator access">
             <div className="setu-login-v2__evaluator-header">
               <h2>SIH Evaluation</h2>
-              <p>Temporary Supervisor and Planner access to the original SETU product.</p>
+              <p>One click creates a linked, 48-hour Supervisor and Planner workspace on real SETU.</p>
             </div>
             <button
               type="button"
@@ -334,14 +318,14 @@ export const RoleSelection: React.FC = () => {
                     ))}
                     {copied && <p role="status">{copied}</p>}
                     <p className="setu-login-v2__evaluator-note">
-                      Private evaluation session only. Credentials stay in this browser tab.
+                      Isolated temporary workspace. Credentials stay in this browser tab.
                       Use fictional reports labelled SIH EVALUATOR DEMO ONLY.
                     </p>
                   </>
                 )}
                 {!evaluatorCredentials && !evaluatorBusy && (
                   <p className="setu-login-v2__evaluator-note">
-                    No public signup is enabled. A private, one-use invitation from the SETU team is required.
+                    Each visitor can generate a separate Supervisor/Planner pair after a short security verification.
                   </p>
                 )}
               </div>
