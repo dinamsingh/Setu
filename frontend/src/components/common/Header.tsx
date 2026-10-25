@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Layers, LogOut, UserCircle2 } from 'lucide-react';
 import { useAuth } from '../../lib/AuthContext';
-import { enterEvaluatorRole, forgetEvaluatorAccess, otherEvaluatorRole } from '../../lib/evaluatorAccess';
+import { enterEvaluatorRole, otherEvaluatorRole } from '../../lib/evaluatorAccess';
 
 interface HeaderProps {
   currentRole?: 'supervisor' | 'planner';
@@ -17,8 +17,9 @@ export const Header: React.FC<HeaderProps> = ({ currentRole }) => {
 
   const handleSignOut = async () => {
     try {
+      // Only end the Supabase session; retain the existing 48-hour evaluator
+      // pair in this browser tab so the user can open the other role.
       await signOut();
-      forgetEvaluatorAccess();
     } catch (err) {
       console.error('Sign out error:', err);
     } finally {
