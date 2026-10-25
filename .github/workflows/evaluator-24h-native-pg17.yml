@@ -8,9 +8,9 @@ on:
       - tests/evaluator_pg17_*
       - supabase/functions/redeem-evaluator-invite/index.ts
       - supabase/config.toml
-      - .github/workflows/evaluator-48h-native-pg17.yml
+      - .github/workflows/evaluator-24h-native-pg17.yml
   push:
-    branches: [feat/real-evaluator-48h-access]
+    branches: [feat/real-evaluator-24h-access]
 
 permissions:
   contents: read
