@@ -7,35 +7,38 @@ import { ScheduleOnboarding } from './pages/planner/ScheduleOnboarding';
 import { ReviewQueue } from './pages/planner/ReviewQueue';
 import { AuditExport } from './pages/planner/AuditExport';
 import { ScheduleActuals } from './pages/planner/ScheduleActuals';
+import { DemoSandbox } from './pages/demo/DemoSandbox';
 import { AuthProvider } from './lib/AuthContext';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
-export const App: React.FC = () => {
-  return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-        {/* Screen 1: Role Selection */}
-        <Route path="/" element={<RoleSelection />} />
+// Keep the existing authenticated app unchanged. The demo route is outside
+// AuthProvider so opening it never starts production Supabase auth/session calls.
+const AuthenticatedApp: React.FC = () => (
+  <AuthProvider>
+    <Routes>
+      <Route path="/" element={<RoleSelection />} />
+      <Route element={<ProtectedRoute roles={['site', 'engineer']} />}>
+        <Route path="/supervisor/capture" element={<FieldCapture />} />
+      </Route>
+      <Route element={<ProtectedRoute roles={['planner', 'admin']} />}>
+        <Route path="/planner/command-center" element={<CommandCenter />} />
+        <Route path="/planner/onboarding" element={<ScheduleOnboarding />} />
+        <Route path="/planner/review" element={<ReviewQueue />} />
+        <Route path="/planner/schedule-actuals" element={<ScheduleActuals />} />
+        <Route path="/planner/audit-export" element={<AuditExport />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  </AuthProvider>
+);
 
-        <Route element={<ProtectedRoute roles={['site', 'engineer']} />}>
-          <Route path="/supervisor/capture" element={<FieldCapture />} />
-        </Route>
-
-        <Route element={<ProtectedRoute roles={['planner', 'admin']} />}>
-          <Route path="/planner/command-center" element={<CommandCenter />} />
-          <Route path="/planner/onboarding" element={<ScheduleOnboarding />} />
-          <Route path="/planner/review" element={<ReviewQueue />} />
-          <Route path="/planner/schedule-actuals" element={<ScheduleActuals />} />
-          <Route path="/planner/audit-export" element={<AuditExport />} />
-        </Route>
-
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  );
-};
+export const App: React.FC = () => (
+  <BrowserRouter>
+    <Routes>
+      <Route path="/demo" element={<DemoSandbox />} />
+      <Route path="/*" element={<AuthenticatedApp />} />
+    </Routes>
+  </BrowserRouter>
+);
 
 export default App;
