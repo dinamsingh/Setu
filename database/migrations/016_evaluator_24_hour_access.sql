@@ -34,7 +34,7 @@ CREATE FUNCTION public.issue_evaluator_invite()
 RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_token text;
 BEGIN
-  v_token := pg_catalog.encode(pg_catalog.gen_random_bytes(32),'hex');
+  v_token := pg_catalog.encode(extensions.gen_random_bytes(32),'hex');
   INSERT INTO public.evaluator_invites(token_sha256,valid_until)
   VALUES(pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(v_token,'UTF8')),'hex'),now()+interval '14 days');
   RETURN 'https://setu-app.pages.dev/evaluator#invite='||v_token;
