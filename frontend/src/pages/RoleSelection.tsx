@@ -46,13 +46,16 @@ export const RoleSelection: React.FC = () => {
     setShowEvaluator(true);
     setEvaluatorError('');
     if (evaluatorBusy) return;
-    const stored = currentEvaluatorAccess();
-    if (stored) { setEvaluatorCredentials(stored); return; }
     const token = privateInvite.current;
+    // A new private invitation always takes precedence over credentials left
+    // in this browser tab by an earlier evaluator.
     if (!token) {
+      const stored = currentEvaluatorAccess();
+      if (stored) { setEvaluatorCredentials(stored); return; }
       setEvaluatorError('A private SIH evaluator invitation link is required to generate credentials. Ask the SETU team for the invitation link.');
       return;
     }
+    setEvaluatorCredentials(null);
     setEvaluatorBusy(true);
     try {
       const issued = await redeemEvaluatorInvite(token);
