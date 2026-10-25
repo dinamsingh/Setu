@@ -64,26 +64,27 @@ export async function enterEvaluatorRole(target: EvaluatorRole): Promise<void> {
     throw new Error('The temporary account has expired or does not have the expected role.');
   }
 }
-export async function redeemEvaluatorInvite(token: string): Promise<EvaluatorAccess> {
-  if (!/^[a-f0-9]{64}$/i.test(token)) throw new Error('Invalid private evaluator link.');
-  const url = (import.meta.env.VITE_SUPABASE_URL || 'https://zbndpmvihnsdknklmabn.supabase.co').replace(/\/+$/,'');
-  const resp = await fetch(url + '/functions/v1/redeem-evaluator-invite', {
-    method: 'POST',
-    credentials: 'omit',
-    cache: 'no-store',
-    headers: {
-      'Content-Type': 'application/json',
-      // Public publishable key, never service_role.
+/**
+ * Creates a fresh REAL 48-hour linked Supervisor/Planner workspace. The
+ * backend checks Turnstile, quotas, role provisioning and expiry.
+ */
+export async function createEvaluatorWorkspace(turnstileToken:string): Promise<EvaluatorAccess> {
+  if(!turnstileToken || turnstileToken.length>2048)throw new Error("Security check required.");
+  const url=(import.meta.env.VITE_SUPABASE_URL || 'https://zbndpmvihnsdknklmabn.supabase.co').replace(/\/+$/,'');
+  const resp=await fetch(url+'/functions/v1/create-evaluator-workspace',{
+    method:'POST',credentials:'omit',cache:'no-store',
+    headers:{
+      'Content-Type':'application/json',
       ...(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ? {
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        apikey:import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       } : {}),
     },
-    body: JSON.stringify({ token }),
+    body:JSON.stringify({turnstileToken}),
   });
-  const parsed: unknown = await resp.json().catch(() => null);
-  if (!resp.ok) {
-    const msg = parsed && typeof parsed === 'object' &&
-      typeof (parsed as Record<string,unknown>).error === 'string'
+  const parsed:unknown=await resp.json().catch(()=>null);
+  if(!resp.ok){
+    const msg=parsed && typeof parsed==='object' &&
+      typeof (parsed as Record<string,unknown>).error==='string'
       ? String((parsed as Record<string,unknown>).error) : 'Evaluator service unavailable.';
     throw new Error(msg);
   }
