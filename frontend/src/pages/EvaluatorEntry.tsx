@@ -56,7 +56,7 @@ export function EvaluatorEntry() {
       </p>
       <div className="space-y-2 rounded-xl bg-blue-50 p-4 text-sm text-blue-950">
         <p><strong>One click:</strong> No registration, email or password to type.</p>
-        <p><strong>24 hours:</strong> Access expires automatically at the database boundary.</p>
+        <p><strong>48 hours:</strong> Access expires automatically at the database boundary.</p>
         <p><strong>Real application:</strong> Supervisor capture / CSV import and Planner review / audit.</p>
         <p><strong>Test data:</strong> Create reports marked “SIH EVALUATOR DEMO ONLY”. Shared production reports stay isolated.</p>
       </div>
@@ -66,7 +66,7 @@ export function EvaluatorEntry() {
       {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
       <button type="button" onClick={start} disabled={busy}
         className="w-full rounded-lg bg-blue-700 px-5 py-4 font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">
-        {busy ? 'Opening real SETU…' : 'Start 24-Hour Evaluation'}
+        {busy ? 'Opening real SETU…' : 'Start 48-Hour Evaluation'}
       </button>
       {existing && <button className="block w-full text-sm text-slate-600 underline" type="button"
         onClick={() => { forgetEvaluatorAccess(); setExisting(false); setToken(''); }}>
