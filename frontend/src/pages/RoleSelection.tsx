@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import './RoleSelection.css';
+import { currentEvaluatorAccess, enterEvaluatorRole, redeemEvaluatorInvite, type EvaluatorAccess, type EvaluatorRole } from '../lib/evaluatorAccess';
 
 type WorkspaceRole = 'planner' | 'supervisor';
 type FieldErrors = { email?: string; password?: string };
@@ -24,6 +25,70 @@ export const RoleSelection: React.FC = () => {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [signInError, setSignInError] = useState<string | null>(null);
   const [selectedWorkspaceRole, setSelectedWorkspaceRole] = useState<WorkspaceRole | null>(null);
+  const privateInvite = useRef<string | null>(null);
+  const [evaluatorCredentials, setEvaluatorCredentials] = useState<EvaluatorAccess | null>(() => currentEvaluatorAccess());
+  const [showEvaluator, setShowEvaluator] = useState(false);
+  const [evaluatorBusy, setEvaluatorBusy] = useState(false);
+  const [evaluatorError, setEvaluatorError] = useState('');
+  const [copied, setCopied] = useState('');
+
+  useEffect(() => {
+    // Only the private link contains the bearer invitation. Never copy it to DOM,
+    // analytics, localStorage or backend logs. StrictMode effects preserve this ref.
+    const invite = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('invite');
+    if (invite) {
+      privateInvite.current = invite;
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, []);
+
+  const startEvaluatorLogin = async () => {
+    setShowEvaluator(true);
+    setEvaluatorError('');
+    if (evaluatorBusy) return;
+    const stored = currentEvaluatorAccess();
+    if (stored) { setEvaluatorCredentials(stored); return; }
+    const token = privateInvite.current;
+    if (!token) {
+      setEvaluatorError('A private SIH evaluator invitation link is required to generate credentials. Ask the SETU team for the invitation link.');
+      return;
+    }
+    setEvaluatorBusy(true);
+    try {
+      const issued = await redeemEvaluatorInvite(token);
+      privateInvite.current = null;
+      setEvaluatorCredentials(issued);
+    } catch (error) {
+      setEvaluatorError(error instanceof Error ? error.message : 'Unable to generate temporary accounts.');
+    } finally {
+      setEvaluatorBusy(false);
+    }
+  };
+
+  const loginEvaluatorRole = async (role: EvaluatorRole) => {
+    setEvaluatorError('');
+    setEvaluatorBusy(true);
+    try {
+      await enterEvaluatorRole(role);
+      const resolved = await refreshRole();
+      if (resolved !== role) throw new Error('The temporary account has expired or its role is unavailable.');
+      navigate(role === 'site' ? '/supervisor/capture' : '/planner/command-center', { replace: true });
+    } catch (error) {
+      setEvaluatorError(error instanceof Error ? error.message : 'Evaluator sign-in failed.');
+    } finally {
+      setEvaluatorBusy(false);
+    }
+  };
+
+  const copyEvaluatorValue = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(label + ' copied');
+    } catch {
+      setCopied('Copy unavailable. Select the credential text manually.');
+    }
+  };
+
 
   const clearFieldError = (field: keyof FieldErrors) => {
     setFieldErrors((current) => (current[field] ? { ...current, [field]: undefined } : current));
@@ -218,6 +283,67 @@ export const RoleSelection: React.FC = () => {
               {!busy && <Icon><path d="M5 12h14m-6-6 6 6-6 6" /></Icon>}
             </button>
           </form>
+
+          <section className="setu-login-v2__evaluator" aria-label="SIH evaluator access">
+            <div className="setu-login-v2__evaluator-header">
+              <h2>SIH Evaluation</h2>
+              <p>Temporary Supervisor and Planner access to the original SETU product.</p>
+            </div>
+            <button
+              type="button"
+              className="setu-login-v2__evaluator-button"
+              disabled={busy || evaluatorBusy}
+              aria-expanded={showEvaluator}
+              onClick={() => { void startEvaluatorLogin(); }}
+            >
+              {evaluatorBusy ? 'Generating secure credentials…' : 'SIH Evaluator Login'}
+            </button>
+            {showEvaluator && (
+              <div className="setu-login-v2__evaluator-result" role="region" aria-label="Temporary evaluator credentials">
+                {evaluatorError && <p className="setu-login-v2__message setu-login-v2__message--error" role="alert">{evaluatorError}</p>}
+                {evaluatorBusy && <p role="status">Preparing real SETU accounts…</p>}
+                {evaluatorCredentials && (
+                  <>
+                    <p className="setu-login-v2__evaluator-expiry">
+                      Two fresh, real Supabase accounts. Both expire on{' '}
+                      <strong>{new Date(evaluatorCredentials.expiresAt).toLocaleString()}</strong>
+                      {' '}(48 hours from invitation redemption).
+                    </p>
+                    {(['site', 'planner'] as const).map(role => (
+                      <div className="setu-login-v2__evaluator-account" key={role}>
+                        <strong>{role === 'site' ? 'Supervisor' : 'Planner'}</strong>
+                        <label>
+                          Email
+                          <input readOnly aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo email'} value={evaluatorCredentials[role].email} />
+                        </label>
+                        <button type="button" onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].email, role + ' email'); }}>Copy email</button>
+                        <label>
+                          Password
+                          <input readOnly type="text" autoComplete="off"
+                            aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo password'} value={evaluatorCredentials[role].password} />
+                        </label>
+                        <button type="button" onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].password, role + ' password'); }}>Copy password</button>
+                        <button type="button" className="setu-login-v2__evaluator-enter"
+                          disabled={evaluatorBusy} onClick={() => { void loginEvaluatorRole(role); }}>
+                          {role === 'site' ? 'Login as Supervisor' : 'Login as Planner'}
+                        </button>
+                      </div>
+                    ))}
+                    {copied && <p role="status">{copied}</p>}
+                    <p className="setu-login-v2__evaluator-note">
+                      Private evaluation session only. Credentials stay in this browser tab.
+                      Use fictional reports labelled SIH EVALUATOR DEMO ONLY.
+                    </p>
+                  </>
+                )}
+                {!evaluatorCredentials && !evaluatorBusy && (
+                  <p className="setu-login-v2__evaluator-note">
+                    No public signup is enabled. A private, one-use invitation from the SETU team is required.
+                  </p>
+                )}
+              </div>
+            )}
+          </section>
 
           <section className="setu-login-v2__demo" aria-labelledby="setu-demo-title">
             <div className="setu-login-v2__demo-heading">
