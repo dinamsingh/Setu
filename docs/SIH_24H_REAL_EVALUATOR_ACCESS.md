@@ -1,17 +1,17 @@
-# SETU: private one-click, 24-hour, REAL evaluator access
+# SETU: private one-click, 48-hour, REAL evaluator access
 
 Status: **proposed / gated — do not present as production-live until the migration,
 Supabase Edge Function, frontend release, and independent security checks pass.**
 
 ## Evaluator experience
 
-1. SETU team privately sends one high-entropy invitation URL: `https://setu-app.pages.dev/evaluator#invite=...`.
+1. SETU team privately sends one high-entropy invitation URL: `https://setu-app.pages.dev/#invite=...`.
 2. Evaluator opens it and clicks **Start 24-Hour Evaluation** (no signup, email or password entry).
 3. Backend atomically consumes that invitation and provisions **two real Supabase Auth users**:
    one `site` Supervisor and one `planner`. The site user signs in automatically.
 4. The original authenticated SETU Supervisor and Planner dashboards are used.
    The SETU header offers **Open Planner / Open Supervisor** (real Supabase session switch).
-5. Access is automatically restricted by PostgreSQL authorization 24 hours after
+5. Access is automatically restricted by PostgreSQL authorization 48 hours after
    invitation redemption, including for an existing cached JWT.
 6. Evaluator must label imported text **SIH EVALUATOR DEMO ONLY** and use fictional data.
    The original manual/voice submission feature remains release-gated until Migration 014.
@@ -21,7 +21,7 @@ Supabase Edge Function, frontend release, and independent security checks pass.*
 - Private invitation is a **bearer credential**, single use, with 256-bit randomness.
   Link is placed in the URL **fragment** to avoid CDN request logs; frontend removes it
   promptly. No secret in source code or public PR.
-- An invitation can be redeemed within **14 days**, and grants **24 hours from first use**.
+- An invitation can be redeemed within **14 days**, and grants **48 hours from first use**.
   The token is stored as SHA-256 only; concurrent redemptions allow a single winner.
 - The Edge Function is public solely for redemption. It holds the service-role key **server-side**;
   it will never return that key. It accepts requests only from official SETU Cloudflare origins.
@@ -50,7 +50,7 @@ Supabase Edge Function, frontend release, and independent security checks pass.*
 3. Review role/RLS coverage, especially new SQL SECURITY DEFINER functions and
    all existing planner RPCs. Manually verify that existing supervisor and planner
    logins and reports continue working.
-4. Apply `database/migrations/016_evaluator_24_hour_access.sql` using reviewed
+4. Apply `database/migrations/016_evaluator_48_hour_access.sql` using reviewed
    migration process. Verify migration in the live database.
 5. Deploy `supabase/functions/redeem-evaluator-invite/index.ts` with
    `verify_jwt=false` (invitation token is authorization) and the default server-only
@@ -71,7 +71,7 @@ Supabase Edge Function, frontend release, and independent security checks pass.*
 9. Expiry test: use an isolated fresh invitation/account, advance expiration in
    nonproduction PG17 tests and verify new reads/decisions are denied.
 10. Post-event revoke or delete temporary evaluator Auth users using admin controls.
-    Database expiry already revokes app-data access at 24 hours; Auth user deletion
+    Database expiry already revokes app-data access at 48 hours; Auth user deletion
     cleans up persistent credentials and sessions.
 
 ## Recovery
