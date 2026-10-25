@@ -219,6 +219,18 @@ export const RoleSelection: React.FC = () => {
             </button>
           </form>
 
+          <section className="setu-login-v2__demo" aria-label="Credential-free evaluator access">
+            <div className="setu-login-v2__demo-heading">
+              <h2>Try SETU without an account</h2>
+              <p>Explore an interactive synthetic workspace as Supervisor or Planner. Reports, decisions and exports stay in your browser; real project data is not accessed.</p>
+            </div>
+            <button className="setu-login-v2__submit" type="button" disabled={busy}
+              onClick={() => navigate('/demo')}>
+              <span>Enter Interactive Demo · No Login</span>
+              <Icon><path d="M5 12h14m-6-6 6 6-6 6" /></Icon>
+            </button>
+          </section>
+
           <section className="setu-login-v2__demo" aria-labelledby="setu-demo-title">
             <div className="setu-login-v2__demo-heading">
               <h2 id="setu-demo-title">Your workspace role</h2>
