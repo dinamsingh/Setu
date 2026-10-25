@@ -51,7 +51,9 @@ describe('Credential-free synthetic evaluator sandbox', () => {
     expect(host.textContent).toContain('Review Queue');
     expect(host.textContent).toContain('DEMO-001');
     expect(host.textContent).toContain('DEMO-002');
-    await button('DEMO-002Pending · blockSYNTHETIC DEMO ONLY: Chemical flushing completed in Area A. Not real construction progress.');
+    const blockedReport = [...host.querySelectorAll('button')].find(x => x.textContent?.includes('DEMO-002'));
+    expect(blockedReport).toBeTruthy();
+    await act(async () => blockedReport!.click());
     expect(host.textContent).toContain('Date plausibility BLOCK');
   });
 
