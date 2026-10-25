@@ -15,12 +15,20 @@ export function EvaluatorEntry() {
   useEffect(() => {
     // The secret stays in the URL fragment so it never reaches static CDN logs.
     const value = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('invite') || '';
-    setToken(value);
-    if (value) window.history.replaceState(null, '', window.location.pathname);
+    // React StrictMode runs effects twice in development. Do not overwrite the
+    // first captured invite after its URL fragment has been removed.
+    if (value) {
+      setToken(value);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
   }, []);
 
   async function start() {
     if (busy) return;
+    if (!token && !currentEvaluatorAccess()) {
+      setError('A private SIH invitation link is required. This preview does not issue credentials. The SETU team must first activate the evaluator backend and share a single-use link.');
+      return;
+    }
     setBusy(true); setError('');
     try {
       if (token) {
@@ -53,10 +61,10 @@ export function EvaluatorEntry() {
         <p><strong>Test data:</strong> Create reports marked “SIH EVALUATOR DEMO ONLY”. Shared production reports stay isolated.</p>
       </div>
       {!token && !existing && <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
-        This page requires a valid private SIH evaluator link. Ask the SETU team for an invitation.
+        This is the evaluator entry screen, not a public registration page. To start, open the private single-use link supplied by the SETU team after the evaluator service is activated.
       </div>}
       {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
-      <button type="button" onClick={start} disabled={busy || (!token && !existing)}
+      <button type="button" onClick={start} disabled={busy}
         className="w-full rounded-lg bg-blue-700 px-5 py-4 font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">
         {busy ? 'Opening real SETU…' : 'Start 24-Hour Evaluation'}
       </button>
