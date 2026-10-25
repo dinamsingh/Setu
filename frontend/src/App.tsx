@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { RoleSelection } from './pages/RoleSelection';
+import { EvaluatorEntry } from './pages/EvaluatorEntry';
 import { FieldCapture } from './pages/supervisor/FieldCapture';
 import { CommandCenter } from './pages/planner/CommandCenter';
 import { ScheduleOnboarding } from './pages/planner/ScheduleOnboarding';
@@ -17,6 +18,7 @@ export const App: React.FC = () => {
         <Routes>
         {/* Screen 1: Role Selection */}
         <Route path="/" element={<RoleSelection />} />
+        <Route path="/evaluator" element={<EvaluatorEntry />} />
 
         <Route element={<ProtectedRoute roles={['site', 'engineer']} />}>
           <Route path="/supervisor/capture" element={<FieldCapture />} />
