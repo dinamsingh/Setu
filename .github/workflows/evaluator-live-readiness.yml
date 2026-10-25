@@ -1,0 +1,45 @@
+name: SETU evaluator live readiness (read-only)
+
+on:
+  push:
+    branches: [feat/real-evaluator-24h-access]
+    paths:
+      - .github/workflows/evaluator-live-readiness.yml
+      - supabase/functions/create-evaluator-workspace/index.ts
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Check Supabase public function and required environment without disclosing secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --retry 2 --max-time 15 --silent --show-error \
+            'https://zbndpmvihnsdknklmabn.supabase.co/functions/v1/create-evaluator-workspace?health=1' -o /tmp/setu-health.json
+          jq -e '.status == "ready"' /tmp/setu-health.json >/dev/null
+          echo "Supabase Edge Function is configured and production workspace schema is accessible"
+      - name: Check Cloudflare preview has compiled Turnstile site key without printing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import urllib.request, re
+          origin='https://feat-real-evaluator-24h-acce.setu-app.pages.dev'
+          req=urllib.request.Request(origin+'/',headers={'User-Agent':'SETU-Readiness-Check/1.0'})
+          html=urllib.request.urlopen(req,timeout=15).read().decode('utf-8','replace')
+          scripts=re.findall(r'src="(/assets/[^"]+\.js)"',html)
+          if not scripts: raise SystemExit('Cloudflare preview JS bundle unavailable')
+          data=b''
+          for js in scripts[:5]:
+            data+=urllib.request.urlopen(origin+js,timeout=15).read()
+          if b'SIH Evaluator Login' not in data:
+            raise SystemExit('Evaluator login button missing from compiled preview')
+          if not re.search(rb'0x[0-9A-Za-z_-]{20,}',data):
+            raise SystemExit('Turnstile publishable site key missing from preview build')
+          print('Cloudflare preview includes prominent SETU evaluator login and a configured public Turnstile site key')
+          PY
