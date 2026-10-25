@@ -1,11 +1,11 @@
 -- Assertions run ONLY on disposable fixture after applying migration 016.
 \set ON_ERROR_STOP on
 INSERT INTO public.evaluator_invites(id,token_sha256,valid_until,redeemed_at,access_expires_at)
-VALUES('30000000-0000-4000-8000-000000000001',repeat('a',64),now()+interval '7 days',now(),now()+interval '24 hours');
+VALUES('30000000-0000-4000-8000-000000000001',repeat('a',64),now()+interval '7 days',now(),now()+interval '48 hours');
 INSERT INTO public.evaluator_accounts(user_id,invite_id,role,expires_at)
 VALUES
-('10000000-0000-4000-8000-000000000003','30000000-0000-4000-8000-000000000001','site',now()+interval '24 hours'),
-('10000000-0000-4000-8000-000000000004','30000000-0000-4000-8000-000000000001','planner',now()+interval '24 hours');
+('10000000-0000-4000-8000-000000000003','30000000-0000-4000-8000-000000000001','site',now()+interval '48 hours'),
+('10000000-0000-4000-8000-000000000004','30000000-0000-4000-8000-000000000001','planner',now()+interval '48 hours');
 
 -- Emulate a SECURITY DEFINER planner RPC trying to modify a historical report.
 CREATE FUNCTION public.test_definer_update_historic()
