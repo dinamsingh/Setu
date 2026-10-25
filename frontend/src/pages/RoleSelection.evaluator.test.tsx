@@ -87,6 +87,19 @@ describe('Open public SETU evaluator login with linked 48h account pair',()=>{
   expect(mocks.enterEvaluatorRole).toHaveBeenCalledWith('site');
   expect(node.querySelector('[data-testid="path"]')?.textContent).toBe('/supervisor/capture');
  });
+
+ it('automatically displays existing paired credentials on returning after logout',async()=>{
+  mocks.currentEvaluatorAccess.mockReturnValue(accounts);
+  await render();
+  expect(node.querySelector<HTMLInputElement>('input[aria-label="Supervisor demo email"]')?.value)
+    .toBe(accounts.site.email);
+  expect(node.querySelector<HTMLInputElement>('input[aria-label="Planner demo email"]')?.value)
+    .toBe(accounts.planner.email);
+  expect(mocks.createEvaluatorWorkspace).not.toHaveBeenCalled();
+  expect(node.textContent).toContain('Sign out of one role');
+  expect(node.textContent).toContain('End demo');
+ });
+
  it('reuses same active pair on this tab instead of creating unlimited accounts per click',async()=>{
   mocks.currentEvaluatorAccess.mockReturnValue(accounts);
   await render();
