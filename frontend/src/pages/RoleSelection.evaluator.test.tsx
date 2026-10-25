@@ -86,6 +86,22 @@ describe('SIH evaluator login on the original login screen', () => {
     expect(node.textContent).not.toContain(invite);
   });
 
+  it('issues new credentials for a fresh private invitation even if an old pair is in this browser tab', async () => {
+    const fresh = 'a'.repeat(64);
+    mocks.currentEvaluatorAccess.mockReturnValue(accounts);
+    const replacement = {
+      ...accounts,
+      site: { email: 'site-new@evaluator.invalid', password: 'n'.repeat(64) },
+    };
+    mocks.redeemEvaluatorInvite.mockResolvedValue(replacement);
+    window.history.replaceState(null, '', '/#invite=' + fresh);
+    await render();
+    await click('SIH Evaluator Login');
+    expect(mocks.redeemEvaluatorInvite).toHaveBeenCalledWith(fresh);
+    expect(node.querySelector<HTMLInputElement>('input[aria-label="Supervisor demo email"]')?.value)
+      .toBe('site-new@evaluator.invalid');
+  });
+
   it('signs in to the actual site workspace with the issued Supervisor account', async () => {
     window.history.replaceState(null, '', '/#invite=' + 'f'.repeat(64));
     await render();
