@@ -14,12 +14,22 @@ workflows, NOT a simulated browser demo.
    - Supervisor role: site
    - Planner role: planner
 4. The frontend displays both generated emails/passwords in separate cards,
-   with Copy and Login as buttons. Only the current browser tab stores these
-   temporary credentials in sessionStorage.
-5. As Supervisor, import a fictional CSV/XLSX field report and run available
+   with Copy and Login as buttons. Readable but strong examples:
+   `supervisor-26afe3a8b8ed@setu.invalid` and `planner-26afe3a8b8ed@setu.invalid`
+   (both share the same short workspace alias); passwords look like
+   `SETU-XXXX-XXXX-XXXX-XXXX`, with 80 bits of independently generated randomness.
+   The reserved .invalid domain is a login identifier, not a real inbox.
+   Only the current browser tab stores these temporary credentials in sessionStorage.
+5. Signing out of Supervisor signs out just the active Supabase session: the
+   evaluator credential pair stays available in the **same tab** and appears
+   automatically on the login page. Or use **Open Planner / Open Supervisor**
+   in the protected header to switch without manually signing out. The login
+   page has a separate confirmation-controlled **End demo & forget credentials**
+   action; browser-tab closure and expiry clear or invalidate access.
+6. As Supervisor, import a fictional CSV/XLSX field report and run available
    workflows. As Planner, review those reports, validations and audit/export.
    The SETU header can switch between the two actual authenticated accounts.
-6. If another visitor clicks, they get a **different workspace ID** and cannot
+7. If another visitor clicks, they get a **different workspace ID** and cannot
    see the first visitor's reports or audit history, even if IDs are guessed.
    Original Planner accounts also cannot see or modify evaluator reports.
 
