@@ -241,3 +241,18 @@
   .setu-login-v2__story { padding-inline: 16px; }
   .setu-login-v2__access { padding-inline: 16px; }
 }
+
+
+/* Explicit cleanup stays separate from normal Sign out (role switching). */
+.setu-login-v2__evaluator-clear {
+  justify-self: center;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--setu-login-border);
+  border-radius: 8px;
+  color: #475569;
+  background: #fff;
+  font-size: 12px;
+  text-decoration: underline;
+}
+.setu-login-v2__evaluator-clear:hover { border-color: #94a3b8; background: #f8fafc; }
