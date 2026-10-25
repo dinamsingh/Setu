@@ -43,7 +43,7 @@ afterEach(async () => {
   window.history.replaceState(null, '', '/');
 });
 function primaryButton(): HTMLButtonElement {
-  const b = Array.from(host.querySelectorAll('button')).find(x => x.textContent?.includes('Start 24-Hour Evaluation'));
+  const b = Array.from(host.querySelectorAll('button')).find(x => x.textContent?.includes('Start 48-Hour Evaluation'));
   expect(b).toBeDefined();
   return b!;
 }
