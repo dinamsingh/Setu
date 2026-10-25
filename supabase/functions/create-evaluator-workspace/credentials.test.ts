@@ -6,7 +6,6 @@ Deno.test("readable account aliases share workspace suffix but never cross roles
  const planner=makeEvaluatorCredentials(id,"planner");
  if(site.email!=="supervisor-26afe3a8b8ed@setu.invalid")throw Error("Supervisor alias format changed");
  if(planner.email!=="planner-26afe3a8b8ed@setu.invalid")throw Error("Planner alias format changed");
- if(site.email===planner.email)throw Error("Roles received same alias");
  if(site.password===planner.password)throw Error("Both roles received identical password");
 });
 Deno.test("demo passwords are human-readable with 16 random unambiguous symbols",()=>{
