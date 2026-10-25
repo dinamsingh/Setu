@@ -63,14 +63,17 @@ RESET ROLE;
 
 -- Single-use token redemption and expiry are server validated (no browser timer authority).
 DO $$
-DECLARE v_link text; v_token text; v_digest text; v_count int;
+DECLARE v_link text; v_token text; v_digest text; v_count int; v_expiry timestamptz;
 BEGIN
  v_link := public.issue_evaluator_invite();
  v_token := substring(v_link from 'invite=(.*)$');
  IF v_token !~ '^[a-f0-9]{64}$' THEN RAISE EXCEPTION 'Invitation token is not strong'; END IF;
  v_digest := pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(v_token,'UTF8')),'hex');
- SELECT count(*) INTO v_count FROM public.claim_evaluator_invite(v_digest);
+ SELECT count(*),max(expires_at) INTO v_count,v_expiry FROM public.claim_evaluator_invite(v_digest);
  IF v_count <> 1 THEN RAISE EXCEPTION 'First redeem did not succeed'; END IF;
+ IF v_expiry < now()+interval '47 hours 59 minutes' OR v_expiry > now()+interval '48 hours 1 minute' THEN
+  RAISE EXCEPTION 'Evaluator access expiry is not exactly 48 hours';
+ END IF;
  SELECT count(*) INTO v_count FROM public.claim_evaluator_invite(v_digest);
  IF v_count <> 0 THEN RAISE EXCEPTION 'Invite replay is possible'; END IF;
 END $$;
