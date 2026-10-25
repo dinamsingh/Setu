@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import './RoleSelection.css';
-import { currentEvaluatorAccess, enterEvaluatorRole, createEvaluatorWorkspace, type EvaluatorAccess, type EvaluatorRole } from '../lib/evaluatorAccess';
+import { currentEvaluatorAccess, enterEvaluatorRole, createEvaluatorWorkspace, forgetEvaluatorAccess, type EvaluatorAccess, type EvaluatorRole } from '../lib/evaluatorAccess';
 import { evaluatorProof } from '../lib/evaluatorChallenge';
 
 type WorkspaceRole = 'planner' | 'supervisor';
@@ -27,7 +27,7 @@ export const RoleSelection: React.FC = () => {
   const [signInError, setSignInError] = useState<string | null>(null);
   const [selectedWorkspaceRole, setSelectedWorkspaceRole] = useState<WorkspaceRole | null>(null);
   const [evaluatorCredentials, setEvaluatorCredentials] = useState<EvaluatorAccess | null>(() => currentEvaluatorAccess());
-  const [showEvaluator, setShowEvaluator] = useState(false);
+  const [showEvaluator, setShowEvaluator] = useState(() => Boolean(currentEvaluatorAccess()));
   const [evaluatorBusy, setEvaluatorBusy] = useState(false);
   const [evaluatorError, setEvaluatorError] = useState('');
   const [copied, setCopied] = useState('');
@@ -248,9 +248,21 @@ export const RoleSelection: React.FC = () => {
                     ))}
                     {copied && <p role="status">{copied}</p>}
                     <p className="setu-login-v2__evaluator-note">
-                      Isolated temporary workspace. Credentials stay in this browser tab.
+                      Your Supervisor and Planner accounts are linked. Sign out of one role,
+                      then open the other role here, or use the dashboard's Open Planner / Open Supervisor button.
+                      Credentials stay in this browser tab until expiry or explicit removal.
                       Use fictional reports labelled SIH EVALUATOR DEMO ONLY.
                     </p>
+                    <button type="button" className="setu-login-v2__evaluator-clear"
+                      onClick={() => {
+                        if (!window.confirm('End this browser-tab evaluation and forget both temporary credentials?')) return;
+                        forgetEvaluatorAccess();
+                        setEvaluatorCredentials(null);
+                        setShowEvaluator(false);
+                        setCopied('');
+                      }}>
+                      End demo &amp; forget credentials on this tab
+                    </button>
                   </>
                 )}
                 {!evaluatorCredentials && !evaluatorBusy && (
