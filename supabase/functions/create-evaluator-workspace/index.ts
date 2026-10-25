@@ -4,6 +4,7 @@
  * workspace_id. Never copy the service_role key into a browser build.
  */
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
+import { makeEvaluatorCredentials } from "./credentials.ts";
 
 const allowedOrigin = (origin: string): boolean =>
   origin === "https://setu-app.pages.dev" ||
@@ -20,10 +21,6 @@ function reply(body: unknown, status: number, origin: string): Response {
       "Access-Control-Allow-Methods": "POST, OPTIONS",
     },
   });
-}
-function password(): string {
-  return Array.from(crypto.getRandomValues(new Uint8Array(36)),
-    n => n.toString(16).padStart(2,"0")).join("");
 }
 async function sha256(s: string): Promise<string> {
   const bytes = await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));
@@ -123,8 +120,9 @@ Deno.serve(async (request)=>{
   const createdIds:string[]=[];
   try{
     for(const role of ["site","planner"] as const){
-      const email="sih-"+role+"-"+workspace.workspace_id+"@evaluator.invalid";
-      const secret=password();
+      // Both roles share the same readable short workspace alias while
+      // server-side authorization still uses the full UUID.
+      const {email,password:secret}=makeEvaluatorCredentials(workspace.workspace_id,role);
       const {data:created,error:createError}=await admin.auth.admin.createUser({
         email,password:secret,email_confirm:true,
         app_metadata:{source:"sih_evaluator",evaluator_role:role},
