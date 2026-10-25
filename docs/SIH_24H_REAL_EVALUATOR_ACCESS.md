@@ -1,104 +1,111 @@
-# SETU: private one-click, 48-hour, REAL evaluator access
+# SETU public 48-hour evaluator workspaces
 
-Status: **proposed / gated — do not present as production-live until the migration,
-Supabase Edge Function, frontend release, and independent security checks pass.**
+Status: **IMPLEMENTED IN DRAFT PR ONLY. NOT ACTIVE ON THE LIVE WEBSITE.**
+This feature uses original SETU Supervisor and Planner pages and existing Supabase
+workflows, NOT a simulated browser demo.
 
-## Evaluator experience (original SETU login page)
+## One-click experience
 
-1. SETU team privately sends the invitation link:
-   `https://setu-app.pages.dev/#invite=<single-use-random-secret>`.
-2. Evaluator opens the **original SETU login page**, clicks **SIH Evaluator Login**.
-   No signup, form-filling or password required to *generate* accounts.
-3. A real Supabase Edge Function atomically consumes that invite and generates **two
-   fresh email/password credential pairs**, shown on the login page: **Supervisor**
-   and **Planner**. The private link cannot be redeemed twice.
-4. Both credentials expire exactly **48 hours from redemption** at the PostgreSQL
-   authorization boundary. Reviewer can click **Login as Supervisor** or
-   **Login as Planner** directly, or copy/email/password into the unchanged sign-in form.
-5. The original authenticated SETU Supervisor and Planner screens are used.
-   Header also offers **Open Planner / Open Supervisor** for quick role switching
-   within the same browser tab.
-6. Evaluator can import clearly labelled **SIH EVALUATOR DEMO ONLY** CSV reports,
-   inspect actual matching/validation results, planner review and export.
-   Manual/voice submission remains release-gated until Migration 014.
-7. The **SIH Evaluator Login** button is visible without a private invitation,
-   but **does not issue accounts** without a valid high-entropy bearer link.
-   It explains how the evaluator can obtain the private link.
+1. Any visitor opens the original login page: https://setu-app.pages.dev/
+2. Presses **SIH Evaluator Login**. Cloudflare Turnstile normally verifies in
+   the background; an interactive challenge can appear for suspicious traffic.
+3. The server creates a new **evaluator_workspaces.id** with a hard **48-hour**
+   expiry and TWO actual Supabase Auth users linked to the same workspace:
+   - Supervisor role: site
+   - Planner role: planner
+4. The frontend displays both generated emails/passwords in separate cards,
+   with Copy and Login as buttons. Only the current browser tab stores these
+   temporary credentials in sessionStorage.
+5. As Supervisor, import a fictional CSV/XLSX field report and run available
+   workflows. As Planner, review those reports, validations and audit/export.
+   The SETU header can switch between the two actual authenticated accounts.
+6. If another visitor clicks, they get a **different workspace ID** and cannot
+   see the first visitor's reports or audit history, even if IDs are guessed.
+   Original Planner accounts also cannot see or modify evaluator reports.
 
-## Security
+### Isolation model
 
-- Private invitation is a **bearer credential**, single use, with 256-bit randomness.
-  Link is placed in the URL **fragment** to avoid CDN request logs; frontend removes it
-  promptly. No secret in source code or public PR.
-- An invitation can be redeemed within **14 days**, and grants **48 hours from first use**.
-  The token is stored as SHA-256 only; concurrent redemptions allow a single winner.
-- The Edge Function is public solely for redemption. It holds the service-role key **server-side**;
-  it will never return that key. It accepts requests only from official SETU Cloudflare origins.
-- New Auth users have random passwords, confirmed non-deliverable `.invalid` addresses,
-  and explicit `site`/`planner` role records. Credentials are held **only in sessionStorage**
-  in the active evaluator browser tab to support one-click role switching.
-- Expired evaluator roles resolve to NULL server-side and public RLS restricts schedule,
-  roles, aliases, field reports and audit.
-- Restrictive RLS hides all historical `field_updates`, downstream workflow rows and
-  audit from evaluators except reports submitted by the same invitation's accounts.
-- BEFORE triggers deny evaluator edits to other users' reports even when existing
-  `SECURITY DEFINER` RPCs bypass RLS. Audit/workflow writes are likewise scoped.
-  Global schedule and aliases cannot be changed by evaluator accounts.
-- Existing named accounts keep their original role and RLS permissions.
-- Scope limitations: Access is intentionally **real production API traffic** to a
-  private synthetic-only slice; there is no live P6 writeback and the matching
-  worker must be independently verified. An approved workflow decision is a DB write.
+The linking key is **workspace_id on evaluator_accounts**, not matching display
+email addresses. Each CSV import records submitted_by_user_id of the generated
+Supervisor. A restrictive SELECT policy on field_updates looks up that submitter
+in evaluator_accounts and returns rows only to an unexpired account from the
+same workspace. Related audit, clarifications, remap proposals and progress
+events are restricted by the same report access predicate.
 
-## Release gates (do in order)
+All existing planner RPCs that modify reports may bypass RLS (SECURITY DEFINER),
+so BEFORE triggers check the actor's workspace for writes, including
+non-evaluator -> evaluator attempts and cross-workspace attempts. Reference
+schedule activities and the global aliases dictionary remain shared read-only
+to evaluator accounts (not per-workspace data).
 
-1. Run CI: frontend TypeScript/Vitest/build and native PG17 migration/security tests.
-   Inspect security warnings and adversarial RPC tests.
-2. Verify a **restorable** production database backup, schema version and supported
-   restore procedure. Migration changes the global `current_user_role()` resolver and
-   introduces security triggers; do NOT apply blind/without backup.
-3. Review role/RLS coverage, especially new SQL SECURITY DEFINER functions and
-   all existing planner RPCs. Manually verify that existing supervisor and planner
-   logins and reports continue working.
-4. Apply `database/migrations/016_evaluator_48_hour_access.sql` using reviewed
-   migration process. Verify migration in the live database.
-5. Deploy `supabase/functions/redeem-evaluator-invite/index.ts` with
-   `verify_jwt=false` (invitation token is authorization) and the default server-only
-   `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` environment variables.
-   Never use service-role keys in browser env.
-6. Merge and deploy the frontend only when 4 and 5 are confirmed.
-7. Using the Supabase SQL editor **as the project owner**, mint one invitation:
+This does **not** provide separate databases; trusted service-role workers can
+process all reports in order to run the real matching/evaluation pipeline.
 
-   ```sql
-   SELECT public.issue_evaluator_invite();
-   ```
+## Abuse limits
 
-   Send the URL privately, not in GitHub, logs, screenshots or a public PPT.
-8. Validate as a fresh external evaluator: redeem once, Supervisor import a fictional
-   CSV, let existing worker process it, Planner review/validation and audit/export,
-   switch back, verify the same original UI. The worker cannot be assumed to have
-   processed anything unless a report shows updated results.
-9. Expiry test: use an isolated fresh invitation/account, advance expiration in
-   nonproduction PG17 tests and verify new reads/decisions are denied.
-10. Post-event revoke or delete temporary evaluator Auth users using admin controls.
-    Database expiry already revokes app-data access at 48 hours; Auth user deletion
-    cleans up persistent credentials and sessions.
+Public signup must NEVER directly expose auth.admin.createUser. The
+\`create-evaluator-workspace\` Edge Function is the only entrypoint.
 
-## Recovery
+- **Mandatory Cloudflare Turnstile verification** via Siteverify, with
+  hostname/action checks. This protects against automated repeated clicks.
+- PostgreSQL atomic creation limits: **2 groups per IP per hour, 5 per IP in
+  24 hours, and 40 groups total over a rolling 24 hours**.
+- IP digest stored using a secret pepper; raw IP is not persisted.
+- Reservation and both Auth users must succeed before credentials are returned.
+- A partial provisioning failure attempts to delete temporary users.
+- Server-side expiry denies role, report and schedule access even for a cached
+  JWT. Background Auth account cleanup is a separate maintenance action.
 
-- A consumed link cannot be retried after backend user provisioning fails; issue a
-  new link. Failed Edge Function provisioning attempts delete partial users.
-- No direct access to underlying production database is granted by the link.
-- Closing the browser tab discards temporary credential pair, so another link is
-  needed on a new device/tab.
-- Original SETU email/password login stays unchanged.
-- PR #21 / Migration 014 remains independent and **must not** be silently deployed
-  just to make evaluator manual/voice submission work.
+The global cap is deliberate: a bot cannot mint unlimited temporary accounts.
+This is a prototype-size deployment. The cap may reject legitimate extra
+visitors when already reached.
 
-## Technical dependencies
+## Required deployment configuration
 
-- Existing SETU Supabase Auth, RLS, JWT role guard and Import 013.
-- Supabase Edge Functions with server-side service role secrets and disabled automatic
-  JWT verification on **this one redemption endpoint only**.
-- PostgreSQL 17 for isolated native CI (no Docker).
+1. Create a Cloudflare Turnstile **Managed** widget for:
+   \`setu-app.pages.dev\` and the applicable preview hostnames.
+   Its action is \`setu_evaluator\`.
+2. Add **frontend Cloudflare Pages build variable**:
+   \`VITE_EVALUATOR_TURNSTILE_SITE_KEY\` = widget's **public sitekey**.
+3. Add **server-only Supabase Edge Function secrets**:
+   - \`EVALUATOR_TURNSTILE_SECRET\`: the private Turnstile secret.
+   - \`EVALUATOR_RATE_LIMIT_PEPPER\`: a unique 32+ character secret.
+   - \`SUPABASE_URL\` and \`SUPABASE_SERVICE_ROLE_KEY\` are supplied only in the
+     Edge Function runtime, **never** to the Vite frontend.
+4. Run native PG17 CI with the actual migration and user/role isolation tests;
+   check frontend tests and Deno type-check; review all privileged RPCs.
+5. Before any production SQL change, validate a **restorable database backup**.
+   Migration 016 changes shared role resolution, RLS policies and triggers; a
+   failed rollout could affect original SETU users.
+6. Apply \`database/migrations/016_evaluator_48_hour_access.sql\` through an
+   authorized, audited migration after security review.
+7. Deploy \`supabase/functions/create-evaluator-workspace/index.ts\` with
+   \`verify_jwt=false\` (public request authorized by Turnstile + DB quota).
+8. Merge/deploy frontend only after steps 1-7 are verified. On the original
+   login page test new group A and group B in separate browsers:
+   - each receives a fresh Supervisor/Planner credential pair;
+   - A's Supervisor import appears only to A's Planner;
+   - B's pair does not see A's records and vice versa;
+   - original Planner does not see test reports;
+   - after 48 hours expired accounts lose backend access;
+   - normal production Supervisor/Planner logins still work.
 
-**Do not merge or deploy based solely on a green frontend build.**
+## Limitations
+
+- Manual/voice supervisor submission is still gated on Migration 014; a public
+  demo account cannot bypass that feature gate. CSV/XLSX import is available.
+- Validations can produce BLOCK outcomes for intentionally impossible dates.
+- Two accounts share one workspace ID, but they are **two Supabase Auth sessions**;
+  logging in as the other account signs out/replaces the first session in the
+  same tab. Both original workspaces work in separate browsers.
+- The real AI worker's successful execution must be verified on a submitted
+  report, not inferred solely from account generation or TypeScript tests.
+- Treat generated passwords as secrets. The user can copy them but should not
+  publish them in the PPT or source code.
+- A green CI test against synthetic PostgreSQL fixture does not prove production
+  migration safety or that an external signup request was successfully handled.
+- Preview includes UI while the production DB/Edge endpoint and Turnstile keys
+  remain intentionally unconfigured. Thus clicking the button there currently
+  yields a setup error rather than credentials.
+
+**Do not release this publicly until all deployment prerequisites pass.**
