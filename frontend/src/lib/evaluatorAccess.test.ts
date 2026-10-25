@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   currentEvaluatorAccess, enterEvaluatorRole, forgetEvaluatorAccess,
-  otherEvaluatorRole, redeemEvaluatorInvite, saveEvaluatorAccess,
+  otherEvaluatorRole, createEvaluatorWorkspace, saveEvaluatorAccess,
 } from './evaluatorAccess';
 
 const mocks = vi.hoisted(() => ({
@@ -74,26 +74,26 @@ describe('Real temporary evaluator access', () => {
     expect(mocks.maybeSingle).toHaveBeenCalledOnce();
   });
 
-  it('rejects guessed/bad private links without network calls', async () => {
+  it('rejects empty security proof without network calls', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    await expect(redeemEvaluatorInvite('123')).rejects.toThrow('Invalid');
+    await expect(createEvaluatorWorkspace('')).rejects.toThrow('Security check required');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('redeems a proper one-time invite and keeps it only in the current tab', async () => {
+  it('requests a new real pair after bot verification and stores it in the current tab', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true, json: async () => makeAccess(),
     });
     vi.stubGlobal('fetch', fetchMock);
-    await redeemEvaluatorInvite('f'.repeat(64));
+    await createEvaluatorWorkspace('f'.repeat(64));
     expect(fetchMock).toHaveBeenCalledOnce();
     const url = fetchMock.mock.calls[0][0] as string;
     const options = fetchMock.mock.calls[0][1] as RequestInit;
-    expect(url).toContain('/functions/v1/redeem-evaluator-invite');
+    expect(url).toContain('/functions/v1/create-evaluator-workspace');
     expect(options.cache).toBe('no-store');
     expect(options.credentials).toBe('omit');
-    expect(options.body).toBe(JSON.stringify({ token: 'f'.repeat(64) }));
+    expect(options.body).toBe(JSON.stringify({ turnstileToken: 'f'.repeat(64) }));
     expect(currentEvaluatorAccess()?.planner.email).toBe('planner@evaluator.invalid');
   });
 });
