@@ -165,3 +165,26 @@
   .setu-login-v2__story, .setu-login-v2__access { padding-inline: 16px; }
   .setu-login-v2__demo-grid { grid-template-columns: 1fr; }
 }
+
+
+/* Real evaluator credential panel on the original login screen */
+.setu-login-v2__evaluator { margin-top: 28px; border-top: 1px solid var(--setu-login-border-soft); padding-top: 24px; }
+.setu-login-v2__evaluator-header { display: grid; gap: 6px; margin-bottom: 14px; }
+.setu-login-v2__evaluator-header h2 { font-size: 17px; font-weight: 650; }
+.setu-login-v2__evaluator-header p,
+.setu-login-v2__evaluator-note { font-size: 13px; color: var(--setu-login-muted); line-height: 1.55; }
+.setu-login-v2__evaluator-button,
+.setu-login-v2__evaluator-enter { width: 100%; min-height: 49px; border-radius: 10px; border: 1px solid var(--setu-login-blue); font-size: 15px; font-weight: 650; }
+.setu-login-v2__evaluator-button { background: #eaf3ff; color: #0758b8; padding: 12px; }
+.setu-login-v2__evaluator-enter { background: var(--setu-login-blue); color: #fff; padding: 10px; }
+.setu-login-v2__evaluator-button:hover { background: #dcecff; }
+.setu-login-v2__evaluator-enter:hover { background: var(--setu-login-blue-active); }
+.setu-login-v2__evaluator-button:disabled,.setu-login-v2__evaluator-enter:disabled { opacity: .6; }
+.setu-login-v2__evaluator-result { display: grid; gap: 14px; padding: 16px 0; min-width: 0; }
+.setu-login-v2__evaluator-expiry { font-size: 13px; color: var(--setu-login-ink); }
+.setu-login-v2__evaluator-account { display: grid; min-width: 0; gap: 8px; border: 1px solid var(--setu-login-border); border-radius: 12px; padding: 14px; background: #fbfcff; }
+.setu-login-v2__evaluator-account > strong { font-size: 16px; }
+.setu-login-v2__evaluator-account label { display: grid; min-width: 0; gap: 4px; font-size: 12px; font-weight: 600; }
+.setu-login-v2__evaluator-account input { min-width: 0; width: 100%; padding: 9px 10px; border: 1px solid var(--setu-login-border); border-radius: 7px; background: #fff; color: #161616; font-family: var(--setu-login-mono); font-size: 12px; }
+.setu-login-v2__evaluator-account > button:not(.setu-login-v2__evaluator-enter) { justify-self: start; border: 0; color: #0758b8; text-decoration: underline; background: transparent; font-size: 12px; padding: 3px; }
+.setu-login-v2__evaluator-note { overflow-wrap: anywhere; }
