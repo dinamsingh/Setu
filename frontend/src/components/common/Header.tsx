@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Layers, LogOut, UserCircle2 } from 'lucide-react';
 import { useAuth } from '../../lib/AuthContext';
+import { enterEvaluatorRole, forgetEvaluatorAccess, otherEvaluatorRole } from '../../lib/evaluatorAccess';
 
 interface HeaderProps {
   currentRole?: 'supervisor' | 'planner';
@@ -9,15 +10,35 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ currentRole }) => {
   const navigate = useNavigate();
-  const { user, role, signOut } = useAuth();
+  const { user, role, signOut, refreshRole } = useAuth();
+  const [switching, setSwitching] = useState(false);
+  const [switchError, setSwitchError] = useState('');
+  const evaluatorOtherRole = otherEvaluatorRole(user?.email);
 
   const handleSignOut = async () => {
     try {
       await signOut();
+      forgetEvaluatorAccess();
     } catch (err) {
       console.error('Sign out error:', err);
     } finally {
       navigate('/');
+    }
+  };
+
+  const handleEvaluatorSwitch = async () => {
+    if (!evaluatorOtherRole || switching) return;
+    setSwitchError('');
+    setSwitching(true);
+    try {
+      await enterEvaluatorRole(evaluatorOtherRole);
+      const resolved = await refreshRole();
+      if (resolved !== evaluatorOtherRole) throw new Error('The temporary evaluator role is unavailable or expired.');
+      navigate(evaluatorOtherRole === 'planner' ? '/planner/command-center' : '/supervisor/capture', { replace: true });
+    } catch (error) {
+      setSwitchError(error instanceof Error ? error.message : 'Could not switch evaluator role.');
+    } finally {
+      setSwitching(false);
     }
   };
 
@@ -74,6 +95,12 @@ export const Header: React.FC<HeaderProps> = ({ currentRole }) => {
               </div>
             </div>
 
+            {evaluatorOtherRole && (
+              <button type="button" onClick={handleEvaluatorSwitch} disabled={switching}
+                className="border border-cyan-400 bg-cyan-900 px-3 py-2 text-xs font-bold text-white hover:bg-cyan-800 disabled:opacity-50">
+                {switching ? 'Switching…' : evaluatorOtherRole === 'planner' ? 'Open Planner' : 'Open Supervisor'}
+              </button>
+            )}
             <button
               type="button"
               onClick={handleSignOut}
@@ -85,6 +112,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRole }) => {
             </button>
           </div>
         </div>
+        {switchError && <div className="pb-2 text-xs text-red-200" role="alert">{switchError}</div>}
       </div>
     </header>
   );
