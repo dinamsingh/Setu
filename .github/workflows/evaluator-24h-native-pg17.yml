@@ -24,7 +24,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno check supabase/functions/redeem-evaluator-invite/index.ts
+      - run: deno check --config supabase/functions/redeem-evaluator-invite/deno.json supabase/functions/redeem-evaluator-invite/index.ts
 
   evaluator-pg17:
     runs-on: ubuntu-24.04
