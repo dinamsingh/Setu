@@ -1,4 +1,4 @@
-# Invitation token is a high-entropy bearer credential verified by the Edge Function.
-# This endpoint cannot require an existing Supabase JWT; new accounts do not exist yet.
-[functions.redeem-evaluator-invite]
+# Public evaluator creation requires a verified Cloudflare Turnstile proof.
+# Signup endpoint runs before user has a Supabase JWT; service_role stays server-side.
+[functions.create-evaluator-workspace]
 verify_jwt = false
