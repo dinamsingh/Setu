@@ -3,18 +3,27 @@
 Status: **proposed / gated — do not present as production-live until the migration,
 Supabase Edge Function, frontend release, and independent security checks pass.**
 
-## Evaluator experience
+## Evaluator experience (original SETU login page)
 
-1. SETU team privately sends one high-entropy invitation URL: `https://setu-app.pages.dev/#invite=...`.
-2. Evaluator opens it and clicks **Start 24-Hour Evaluation** (no signup, email or password entry).
-3. Backend atomically consumes that invitation and provisions **two real Supabase Auth users**:
-   one `site` Supervisor and one `planner`. The site user signs in automatically.
-4. The original authenticated SETU Supervisor and Planner dashboards are used.
-   The SETU header offers **Open Planner / Open Supervisor** (real Supabase session switch).
-5. Access is automatically restricted by PostgreSQL authorization 48 hours after
-   invitation redemption, including for an existing cached JWT.
-6. Evaluator must label imported text **SIH EVALUATOR DEMO ONLY** and use fictional data.
-   The original manual/voice submission feature remains release-gated until Migration 014.
+1. SETU team privately sends the invitation link:
+   `https://setu-app.pages.dev/#invite=<single-use-random-secret>`.
+2. Evaluator opens the **original SETU login page**, clicks **SIH Evaluator Login**.
+   No signup, form-filling or password required to *generate* accounts.
+3. A real Supabase Edge Function atomically consumes that invite and generates **two
+   fresh email/password credential pairs**, shown on the login page: **Supervisor**
+   and **Planner**. The private link cannot be redeemed twice.
+4. Both credentials expire exactly **48 hours from redemption** at the PostgreSQL
+   authorization boundary. Reviewer can click **Login as Supervisor** or
+   **Login as Planner** directly, or copy/email/password into the unchanged sign-in form.
+5. The original authenticated SETU Supervisor and Planner screens are used.
+   Header also offers **Open Planner / Open Supervisor** for quick role switching
+   within the same browser tab.
+6. Evaluator can import clearly labelled **SIH EVALUATOR DEMO ONLY** CSV reports,
+   inspect actual matching/validation results, planner review and export.
+   Manual/voice submission remains release-gated until Migration 014.
+7. The **SIH Evaluator Login** button is visible without a private invitation,
+   but **does not issue accounts** without a valid high-entropy bearer link.
+   It explains how the evaluator can obtain the private link.
 
 ## Security
 
