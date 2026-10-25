@@ -9,7 +9,7 @@ export type EvaluatorAccess = {
   planner: EvaluatorAccount;
 };
 
-const KEY = 'setu-evaluator-24h-access';
+const KEY = 'setu-evaluator-48h-access';
 // This holds two temporary, random password grants only in the active browser tab.
 // Never put them in URLs, localStorage, analytics, HTML or GitHub.
 const isAccount = (v: unknown): v is EvaluatorAccount => {
@@ -52,7 +52,7 @@ export function otherEvaluatorRole(email: string | undefined): EvaluatorRole | n
 }
 export async function enterEvaluatorRole(target: EvaluatorRole): Promise<void> {
   const access = currentEvaluatorAccess();
-  if (!access) throw new Error('24-hour evaluator access has expired. Ask for another private invitation.');
+  if (!access) throw new Error('48-hour evaluator access has expired. Ask for another private invitation.');
   const account = access[target];
   const { data, error } = await supabase.auth.signInWithPassword(account);
   if (error || !data.user || !data.session) throw new Error('Could not sign in to the temporary ' + target + ' account.');
