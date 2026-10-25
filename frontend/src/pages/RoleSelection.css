@@ -188,3 +188,56 @@
 .setu-login-v2__evaluator-account input { min-width: 0; width: 100%; padding: 9px 10px; border: 1px solid var(--setu-login-border); border-radius: 7px; background: #fff; color: #161616; font-family: var(--setu-login-mono); font-size: 12px; }
 .setu-login-v2__evaluator-account > button:not(.setu-login-v2__evaluator-enter) { justify-self: start; border: 0; color: #0758b8; text-decoration: underline; background: transparent; font-size: 12px; padding: 3px; }
 .setu-login-v2__evaluator-note { overflow-wrap: anywhere; }
+
+
+/* Evaluator-first sign-in hierarchy: first actionable CTA stays near the top.
+ * Compact mobile brand panel prevents a full-height marketing panel pushing
+ * the real demo button below the first phone viewport. */
+.setu-login-v2__evaluator {
+  margin-top: 0;
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid #bddbff;
+  border-radius: 14px;
+  background: #f0f7ff;
+}
+.setu-login-v2__evaluator-header { margin-bottom: 12px; }
+.setu-login-v2__evaluator-button {
+  min-height: 52px;
+  color: #ffffff;
+  background: #005fc5;
+  border-color: #005fc5;
+}
+.setu-login-v2__evaluator-button:hover { background: #004b9c; }
+.setu-login-v2__form-heading { margin-bottom: 18px; }
+@media (max-width: 767px) {
+  .setu-login-v2__story {
+    min-height: 0;
+    padding: 12px 20px;
+    gap: 0;
+  }
+  .setu-login-v2__story-main,
+  .setu-login-v2__story-footer { display: none; }
+  .setu-login-v2__brand-mark { width: 34px; height: 34px; }
+  .setu-login-v2__brand-name { font-size: 24px; }
+  .setu-login-v2__access {
+    gap: 10px;
+    padding: 12px 20px 24px;
+  }
+  .setu-login-v2__access-header { display: none; }
+  .setu-login-v2__form-heading { gap: 4px; margin-bottom: 12px; }
+  .setu-login-v2__form-heading h1 { font-size: 28px; }
+  .setu-login-v2__form-heading p { font-size: 13px; }
+  .setu-login-v2__evaluator { padding: 14px; margin-bottom: 20px; }
+  .setu-login-v2__evaluator-header { margin-bottom: 10px; }
+  .setu-login-v2__evaluator-header h2 { font-size: 16px; }
+  .setu-login-v2__evaluator-header p { font-size: 12px; }
+  .setu-login-v2__evaluator-button { min-height: 52px; }
+  .setu-login-v2__form { gap: 16px; }
+  .setu-login-v2__field input { min-height: 48px; padding: 12px; }
+  .setu-login-v2__submit { min-height: 48px; }
+}
+@media (max-width: 374px) {
+  .setu-login-v2__story { padding-inline: 16px; }
+  .setu-login-v2__access { padding-inline: 16px; }
+}
