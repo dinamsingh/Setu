@@ -6,7 +6,7 @@ on:
     paths:
       - database/migrations/016_evaluator_48_hour_access.sql
       - tests/evaluator_pg17_*
-      - supabase/functions/redeem-evaluator-invite/index.ts
+      - supabase/functions/create-evaluator-workspace/index.ts
       - supabase/config.toml
       - .github/workflows/evaluator-24h-native-pg17.yml
   push:
@@ -24,7 +24,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno check --config supabase/functions/redeem-evaluator-invite/deno.json supabase/functions/redeem-evaluator-invite/index.ts
+      - run: deno check --config supabase/functions/create-evaluator-workspace/deno.json supabase/functions/create-evaluator-workspace/index.ts
 
   evaluator-pg17:
     runs-on: ubuntu-24.04
