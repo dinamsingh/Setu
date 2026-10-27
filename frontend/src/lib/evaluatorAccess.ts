@@ -10,8 +10,20 @@ export type EvaluatorAccess = {
 };
 
 const KEY = 'setu-evaluator-48h-access';
-// This holds two temporary, random password grants only in the active browser tab.
-// Never put them in URLs, localStorage, analytics, HTML or GitHub.
+// P0 fix: the pair lives for 48 hours, so tab-only sessionStorage was the
+// wrong lifetime. A logout + role switch in a new tab, or a closed and
+// reopened tab, emptied sessionStorage and the pair vanished from the page
+// even though the Supabase accounts were still valid for 48 hours.
+// These are disposable, isolated demo accounts (no real evaluator data), so
+// the pair is kept in this browser's localStorage until expiry or until the
+// evaluator explicitly ends the demo. Never put them in URLs, analytics,
+// HTML or GitHub. On a shared computer, use "End demo & forget credentials".
+export function storageForEvaluatorAccess(): Storage | null {
+  try {
+    if (typeof localStorage !== 'undefined') return localStorage;
+  } catch { /* private browser restrictions */ }
+  return null;
+}
 const isAccount = (v: unknown): v is EvaluatorAccount => {
   if (!v || typeof v !== 'object') return false;
   const x = v as Record<string, unknown>;
@@ -26,17 +38,38 @@ const valid = (v: unknown): v is EvaluatorAccess => {
     Date.now() < expiry && isAccount(x.site) && isAccount(x.planner);
 };
 export function forgetEvaluatorAccess(): void {
+  // Clear both stores: the current store and any legacy tab-only copy, so
+  // "End demo" really forgets the pair everywhere in this browser.
+  try { localStorage.removeItem(KEY); } catch { /* private browser restrictions */ }
   try { sessionStorage.removeItem(KEY); } catch { /* private browser restrictions */ }
 }
 export function saveEvaluatorAccess(value: unknown): EvaluatorAccess {
   if (!valid(value)) throw new Error('SETU returned invalid or expired evaluator access.');
-  try { sessionStorage.setItem(KEY, JSON.stringify(value)); }
-  catch { throw new Error('This browser does not allow session storage for temporary evaluator access.'); }
+  const store = storageForEvaluatorAccess();
+  if (!store) throw new Error('This browser does not allow storage for temporary evaluator access.');
+  try { store.setItem(KEY, JSON.stringify(value)); }
+  catch { throw new Error('This browser does not allow storage for temporary evaluator access.'); }
+  try { sessionStorage.removeItem(KEY); } catch { /* legacy copy cleanup */ }
   return value;
 }
 export function currentEvaluatorAccess(): EvaluatorAccess | null {
   try {
-    const raw = sessionStorage.getItem(KEY);
+    // Migrate a legacy tab-only pair once, so evaluators who generated
+    // credentials before this fix do not lose them on the next page load.
+    let raw: string | null = null;
+    try { raw = localStorage.getItem(KEY); } catch { /* private browser restrictions */ }
+    if (!raw) {
+      try { raw = sessionStorage.getItem(KEY); } catch { /* private browser restrictions */ }
+      if (raw) {
+        try {
+          const parsed: unknown = JSON.parse(raw);
+          if (valid(parsed)) {
+            try { localStorage.setItem(KEY, JSON.stringify(parsed)); } catch { /* keep tab copy */ }
+            try { sessionStorage.removeItem(KEY); } catch { /* legacy copy cleanup */ }
+          }
+        } catch { /* fall through to the invalid-pair handling below */ }
+      }
+    }
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!valid(parsed)) { forgetEvaluatorAccess(); return null; }

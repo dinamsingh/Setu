@@ -226,6 +226,13 @@ export const RoleSelection: React.FC = () => {
                       <strong>{new Date(evaluatorCredentials.expiresAt).toLocaleString()}</strong>
                       {' '}(48 hours from account creation).
                     </p>
+                    <p className="setu-login-v2__evaluator-note">
+                      The <code>@setu.invalid</code> address is only a login name, not a real
+                      email inbox — no email will arrive there. Both accounts share the
+                      same workspace code,{' '}
+                      <strong>{evaluatorCredentials.site.email.split('@')[0].replace('supervisor-', '')}</strong>
+                      , so the Planner sees the Supervisor&apos;s reports.
+                    </p>
                     {(['site', 'planner'] as const).map(role => (
                       <div className="setu-login-v2__evaluator-account" key={role}>
                         <strong>{role === 'site' ? 'Supervisor' : 'Planner'}</strong>
@@ -250,7 +257,8 @@ export const RoleSelection: React.FC = () => {
                     <p className="setu-login-v2__evaluator-note">
                       Your Supervisor and Planner accounts are linked. Sign out of one role,
                       then open the other role here, or use the dashboard's Open Planner / Open Supervisor button.
-                      Credentials stay in this browser tab until expiry or explicit removal.
+                      Credentials stay in this browser — including a new tab — until expiry or explicit removal.
+                      On a shared computer, end the demo when you finish.
                       Use fictional reports labelled SIH EVALUATOR DEMO ONLY.
                     </p>
                     <button type="button" className="setu-login-v2__evaluator-clear"
@@ -261,7 +269,7 @@ export const RoleSelection: React.FC = () => {
                         setShowEvaluator(false);
                         setCopied('');
                       }}>
-                      End demo &amp; forget credentials on this tab
+                      End demo &amp; forget credentials in this browser
                     </button>
                   </>
                 )}

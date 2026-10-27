@@ -18,7 +18,8 @@ export const Header: React.FC<HeaderProps> = ({ currentRole }) => {
   const handleSignOut = async () => {
     try {
       // Only end the Supabase session; retain the existing 48-hour evaluator
-      // pair in this browser tab so the user can open the other role.
+      // pair in this browser so the user can open the other role, including
+      // in a new tab.
       await signOut();
     } catch (err) {
       console.error('Sign out error:', err);

@@ -19,13 +19,16 @@ workflows, NOT a simulated browser demo.
    (both share the same short workspace alias); passwords look like
    `SETU-XXXX-XXXX-XXXX-XXXX`, with 80 bits of independently generated randomness.
    The reserved .invalid domain is a login identifier, not a real inbox.
-   Only the current browser tab stores these temporary credentials in sessionStorage.
+   The pair is stored in this browser's localStorage (migrated from a legacy
+   tab-only sessionStorage copy on first read), because a 48-hour pair must
+   survive a logout and a new tab. This is a deliberate trade-off for
+   disposable, isolated demo accounts: on a shared computer, use End demo.
 5. Signing out of Supervisor signs out just the active Supabase session: the
-   evaluator credential pair stays available in the **same tab** and appears
-   automatically on the login page. Or use **Open Planner / Open Supervisor**
+   evaluator credential pair stays available in **this browser, including a
+   new tab,** and appears automatically on the login page. Or use **Open Planner / Open Supervisor**
    in the protected header to switch without manually signing out. The login
    page has a separate confirmation-controlled **End demo & forget credentials**
-   action; browser-tab closure and expiry clear or invalidate access.
+   action; expiry invalidates access, and End demo clears it from the browser.
 6. As Supervisor, import a fictional CSV/XLSX field report and run available
    workflows. As Planner, review those reports, validations and audit/export.
    The SETU header can switch between the two actual authenticated accounts.

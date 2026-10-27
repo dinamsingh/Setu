@@ -41,20 +41,37 @@ afterEach(() => {
 });
 
 describe('Real temporary evaluator access', () => {
-  it('keeps issued credentials in sessionStorage and recognizes both personas', () => {
+  it('keeps issued credentials in this browser (not only the current tab) and recognizes both personas', () => {
     saveEvaluatorAccess(makeAccess());
     expect(otherEvaluatorRole('site@evaluator.invalid')).toBe('planner');
     expect(otherEvaluatorRole('planner@evaluator.invalid')).toBe('site');
     expect(currentEvaluatorAccess()?.site.password).toHaveLength(64);
-    expect(localStorage.length).toBe(0);
+    expect(localStorage.getItem('setu-evaluator-48h-access')).not.toBeNull();
+  });
+
+  it('migrates a legacy tab-only pair to browser storage instead of losing it', () => {
+    const access = makeAccess();
+    sessionStorage.setItem('setu-evaluator-48h-access', JSON.stringify(access));
+    expect(currentEvaluatorAccess()?.planner.email).toBe('planner@evaluator.invalid');
+    expect(localStorage.getItem('setu-evaluator-48h-access')).not.toBeNull();
+  });
+
+  it('forgetting clears the pair from both browser and legacy tab storage', () => {
+    saveEvaluatorAccess(makeAccess());
+    sessionStorage.setItem('setu-evaluator-48h-access', JSON.stringify(makeAccess()));
+    forgetEvaluatorAccess();
+    expect(currentEvaluatorAccess()).toBeNull();
+    expect(localStorage.getItem('setu-evaluator-48h-access')).toBeNull();
+    expect(sessionStorage.getItem('setu-evaluator-48h-access')).toBeNull();
   });
 
   it('rejects and clears expired access', () => {
     saveEvaluatorAccess(makeAccess());
-    const stored = JSON.parse(sessionStorage.getItem('setu-evaluator-48h-access') || '{}');
+    const stored = JSON.parse(localStorage.getItem('setu-evaluator-48h-access') || '{}');
     stored.expiresAt = new Date(Date.now() - 1000).toISOString();
-    sessionStorage.setItem('setu-evaluator-48h-access', JSON.stringify(stored));
+    localStorage.setItem('setu-evaluator-48h-access', JSON.stringify(stored));
     expect(currentEvaluatorAccess()).toBeNull();
+    expect(localStorage.getItem('setu-evaluator-48h-access')).toBeNull();
     expect(sessionStorage.getItem('setu-evaluator-48h-access')).toBeNull();
   });
 
@@ -81,7 +98,7 @@ describe('Real temporary evaluator access', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('requests a new real pair after bot verification and stores it in the current tab', async () => {
+  it('requests a new real pair after bot verification and stores it in this browser', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true, json: async () => makeAccess(),
     });
