@@ -67,9 +67,9 @@ describe('014 supervisor safe submission static migration contracts', () => {
     expect(lower).toContain('revoke execute on function public.protect_field_update_insert_boundary()');
   });
 
-  it('keeps deployment gate locked by default until verified in production', () => {
-    expect(SUPERVISOR_SUBMISSION_DEPLOYMENT.migration014Verified).toBe(false);
-    expect(SUPERVISOR_SUBMISSION_DEPLOYMENT.submissionEnabled).toBe(false);
-    expect(isSupervisorSubmissionEnabled()).toBe(false);
+  it('unlocks deployment gate only on the unlock branch, after live DB verification', () => {
+    expect(SUPERVISOR_SUBMISSION_DEPLOYMENT.migration014Verified).toBe(true);
+    expect(SUPERVISOR_SUBMISSION_DEPLOYMENT.submissionEnabled).toBe(true);
+    expect(isSupervisorSubmissionEnabled()).toBe(true);
   });
 });
