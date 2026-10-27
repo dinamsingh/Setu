@@ -221,49 +221,46 @@ export const RoleSelection: React.FC = () => {
                 {evaluatorBusy && <p role="status">Preparing real SETU accounts…</p>}
                 {evaluatorCredentials && (
                   <>
-                    <p className="setu-login-v2__evaluator-expiry">
-                      Two fresh, real Supabase accounts. Both expire on{' '}
-                      <strong>{new Date(evaluatorCredentials.expiresAt).toLocaleString()}</strong>
-                      {' '}(48 hours from account creation).
+                    <p className="setu-login-v2__evaluator-summary">
+                      <strong>Pair ready · 48 hours</strong>
+                      {' '}· Expires {new Date(evaluatorCredentials.expiresAt).toLocaleString()}
+                      {' '}· Workspace {evaluatorCredentials.site.email.split('@')[0].replace('supervisor-', '')}
                     </p>
-                    <p className="setu-login-v2__evaluator-note">
-                      The <code>@setu.invalid</code> address is only a login name, not a real
-                      email inbox — no email will arrive there. Both accounts share the
-                      same workspace code,{' '}
-                      <strong>{evaluatorCredentials.site.email.split('@')[0].replace('supervisor-', '')}</strong>
-                      , so the Planner sees the Supervisor&apos;s reports.
+                    <p className="setu-login-v2__evaluator-caption">
+                      <code>@setu.invalid</code> is a login name, not an inbox. Both roles share this workspace.
                     </p>
-                    {(['site', 'planner'] as const).map(role => (
-                      <div className="setu-login-v2__evaluator-account" key={role}>
-                        <strong>{role === 'site' ? 'Supervisor' : 'Planner'}</strong>
-                        <label>
-                          Email
-                          <input readOnly aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo email'} value={evaluatorCredentials[role].email} />
-                        </label>
-                        <button type="button" onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].email, role + ' email'); }}>Copy email</button>
-                        <label>
-                          Password
-                          <input readOnly type="text" autoComplete="off"
-                            aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo password'} value={evaluatorCredentials[role].password} />
-                        </label>
-                        <button type="button" onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].password, role + ' password'); }}>Copy password</button>
-                        <button type="button" className="setu-login-v2__evaluator-enter"
-                          disabled={evaluatorBusy} onClick={() => { void loginEvaluatorRole(role); }}>
-                          {role === 'site' ? 'Login as Supervisor' : 'Login as Planner'}
-                        </button>
-                      </div>
-                    ))}
-                    {copied && <p role="status">{copied}</p>}
-                    <p className="setu-login-v2__evaluator-note">
-                      Your Supervisor and Planner accounts are linked. Sign out of one role,
-                      then open the other role here, or use the dashboard's Open Planner / Open Supervisor button.
-                      Credentials stay in this browser — including a new tab — until expiry or explicit removal.
-                      On a shared computer, end the demo when you finish.
+                    <div className="setu-login-v2__evaluator-list">
+                      {(['site', 'planner'] as const).map(role => (
+                        <div className="setu-login-v2__evaluator-row" key={role}>
+                          <div className="setu-login-v2__evaluator-row-head">
+                            <strong>{role === 'site' ? 'Supervisor' : 'Planner'}</strong>
+                            <button type="button" className="setu-login-v2__evaluator-enter-compact"
+                              disabled={evaluatorBusy} onClick={() => { void loginEvaluatorRole(role); }}>
+                              {role === 'site' ? 'Login as Supervisor' : 'Login as Planner'}
+                            </button>
+                          </div>
+                          <div className="setu-login-v2__evaluator-field">
+                            <span>Email</span>
+                            <input readOnly aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo email'} value={evaluatorCredentials[role].email} />
+                            <button type="button" className="setu-login-v2__evaluator-copy" aria-label={'Copy ' + (role === 'site' ? 'Supervisor' : 'Planner') + ' email'} onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].email, role + ' email'); }}>Copy</button>
+                          </div>
+                          <div className="setu-login-v2__evaluator-field">
+                            <span>Password</span>
+                            <input readOnly type="text" autoComplete="off"
+                              aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo password'} value={evaluatorCredentials[role].password} />
+                            <button type="button" className="setu-login-v2__evaluator-copy" aria-label={'Copy ' + (role === 'site' ? 'Supervisor' : 'Planner') + ' password'} onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].password, role + ' password'); }}>Copy</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {copied && <p role="status" className="setu-login-v2__evaluator-caption">{copied}</p>}
+                    <p className="setu-login-v2__evaluator-caption">
+                      Sign out of one role to open the other, or use Open Planner / Open Supervisor in the header.
                       Use fictional reports labelled SIH EVALUATOR DEMO ONLY.
                     </p>
                     <button type="button" className="setu-login-v2__evaluator-clear"
                       onClick={() => {
-                        if (!window.confirm('End this browser-tab evaluation and forget both temporary credentials?')) return;
+                        if (!window.confirm('End this evaluation and forget both temporary credentials?')) return;
                         forgetEvaluatorAccess();
                         setEvaluatorCredentials(null);
                         setShowEvaluator(false);

@@ -100,6 +100,14 @@ describe('Open public SETU evaluator login with linked 48h account pair',()=>{
   expect(node.textContent).toContain('End demo');
  });
 
+ it('shows both roles as compact rows, not two large stacked cards',async()=>{
+  mocks.currentEvaluatorAccess.mockReturnValue(accounts);
+  await render();
+  expect(node.querySelectorAll('.setu-login-v2__evaluator-row').length).toBe(2);
+  expect(node.querySelectorAll('.setu-login-v2__evaluator-enter-compact').length).toBe(2);
+  expect(node.querySelectorAll('.setu-login-v2__evaluator-field').length).toBe(4);
+ });
+
  it('reuses same active pair on this tab instead of creating unlimited accounts per click',async()=>{
   mocks.currentEvaluatorAccess.mockReturnValue(accounts);
   await render();
