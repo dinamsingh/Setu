@@ -1,7 +1,8 @@
 -- Phase 4: Supervisor Safe Submission Boundary
 -- Authoritative server validation, duplicate prevention, and direct-insert boundary.
--- Staged deployment: RPC and receipt table deployed first; direct-insert restriction
--- activated following verified frontend rollout to prevent downtime.
+-- Apply server validation and direct-insert protection in one transaction.
+-- Requires isolated PostgreSQL integration tests, a verified rollback plan and
+-- supervised rollout before enabling the frontend release gate.
 begin;
 
 -- 1. Supervisor Submission Receipts Table (Idempotency and Audit)
@@ -240,14 +241,20 @@ revoke execute on function public.submit_supervisor_field_update(text, text, dat
 grant execute on function public.submit_supervisor_field_update(text, text, date, text, text, text, text, text, jsonb, jsonb)
     to authenticated;
 
+-- Table grants are the primary protection: RLS INSERT policies alone do not
+-- prevent a direct client write. Owner-executed RPCs (including the existing
+-- import_field_reports RPC) retain their insert capability.
+revoke insert on table public.field_updates from public, anon, authenticated;
+
 -- 3. Authoritative Database Protection Trigger
--- Fix 2: Blocks ANY direct client insert from authenticated/anon roles regardless of source_type.
--- Does not trust client-controlled source types (like 'text' or 'custom') or custom session flags.
--- Only security definer RPCs (running under definer role) or service_role can write to field_updates.
+-- Defense in depth: SECURITY INVOKER is essential here. SECURITY DEFINER
+-- would change current_user to the function owner, so the caller-role check
+-- below would not actually distinguish direct writes from owner-executed RPCs.
+-- Does not trust client-controlled source types or custom session flags.
 create or replace function public.protect_field_update_insert_boundary()
 returns trigger
 language plpgsql
-security definer
+security invoker
 set search_path = ''
 as $$
 begin
@@ -260,7 +267,7 @@ begin
     -- In a direct client call, pg_catalog.current_user is 'authenticated' or 'anon'.
     -- In a security definer RPC (submit_supervisor_field_update, import_field_reports),
     -- pg_catalog.current_user is the database owner (definer).
-    if pg_catalog.current_user in ('authenticated', 'anon', 'public') then
+    if current_user in ('authenticated', 'anon', 'public') then
         raise exception 'Direct client insert on field_updates is forbidden. Submissions must use the authoritative RPC submit_supervisor_field_update or import_field_reports.' using errcode = '42501';
     end if;
 
