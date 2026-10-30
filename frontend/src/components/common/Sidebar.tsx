@@ -6,6 +6,7 @@ import {
   Database,
   FileCheck2,
   Gauge,
+  Users,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -14,6 +15,7 @@ export const Sidebar: React.FC = () => {
     { to: '/planner/review', label: 'Review Queue', icon: ClipboardCheck },
     { to: '/planner/schedule-actuals', label: 'Schedule Actuals', icon: CalendarRange },
     { to: '/planner/audit-export', label: 'Audit & Export', icon: FileCheck2 },
+    { to: '/planner/supervisors', label: 'Supervisors', icon: Users },
   ];
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>

@@ -7,6 +7,7 @@ import { ScheduleOnboarding } from './pages/planner/ScheduleOnboarding';
 import { ReviewQueue } from './pages/planner/ReviewQueue';
 import { AuditExport } from './pages/planner/AuditExport';
 import { ScheduleActuals } from './pages/planner/ScheduleActuals';
+import { PlannerSupervisors } from './pages/planner/PlannerSupervisors';
 import { AuthProvider } from './lib/AuthContext';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
@@ -29,6 +30,7 @@ export const App: React.FC = () => {
           <Route path="/planner/review" element={<ReviewQueue />} />
           <Route path="/planner/schedule-actuals" element={<ScheduleActuals />} />
           <Route path="/planner/audit-export" element={<AuditExport />} />
+          <Route path="/planner/supervisors" element={<PlannerSupervisors />} />
         </Route>
 
         {/* Catch-all */}
