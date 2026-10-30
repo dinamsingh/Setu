@@ -1,0 +1,65 @@
+name: SIH evaluator 48-hour access security (native PG17)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - database/migrations/016_evaluator_48_hour_access.sql
+      - tests/evaluator_pg17_*
+      - supabase/functions/create-evaluator-workspace/**
+      - supabase/config.toml
+      - .github/workflows/evaluator-24h-native-pg17.yml
+  push:
+    branches: [feat/real-evaluator-24h-access]
+
+permissions:
+  contents: read
+
+jobs:
+  evaluator-edge-typecheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check --config supabase/functions/create-evaluator-workspace/deno.json supabase/functions/create-evaluator-workspace/index.ts
+      - run: deno test --config supabase/functions/create-evaluator-workspace/deno.json supabase/functions/create-evaluator-workspace/credentials.test.ts
+
+  evaluator-pg17:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native PostgreSQL 17 (no Docker)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          if ! apt-cache show postgresql-17 >/dev/null 2>&1; then
+            sudo apt-get install -y postgresql-common ca-certificates
+            sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+            sudo apt-get update -qq
+          fi
+          sudo apt-get install -y postgresql-17 postgresql-client-17
+          sudo pg_ctlcluster 16 main stop 2>/dev/null || true
+          if ! pg_lsclusters -h | awk '$1=="17" && $2=="main" {found=1} END {exit !found}'; then
+            sudo pg_createcluster 17 main --port 5433
+          fi
+          sudo pg_ctlcluster 17 main start
+          PORT="$(pg_lsclusters -h | awk '$1=="17" && $2=="main" && $4=="online" {print $3}')"
+          test -n "$PORT"
+          echo "PGPORT=$PORT" >> "$GITHUB_ENV"
+      - name: Apply real migration against synthetic disposable DB
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo -u postgres createdb -p "$PGPORT" evaluator_ci
+          sudo -u postgres psql -p "$PGPORT" -d evaluator_ci -v ON_ERROR_STOP=1 -f tests/evaluator_pg17_setup.sql
+          sudo -u postgres psql -p "$PGPORT" -d evaluator_ci -v ON_ERROR_STOP=1 -f database/migrations/016_evaluator_48_hour_access.sql
+          sudo -u postgres psql -p "$PGPORT" -d evaluator_ci -v ON_ERROR_STOP=1 -f tests/evaluator_pg17_verify.sql
+      - name: Stop native PG17
+        if: always()
+        shell: bash
+        run: sudo pg_ctlcluster 17 main stop 2>/dev/null || true

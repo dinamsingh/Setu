@@ -17,6 +17,7 @@ export const App: React.FC = () => {
         <Routes>
         {/* Screen 1: Role Selection */}
         <Route path="/" element={<RoleSelection />} />
+        <Route path="/evaluator" element={<Navigate to="/" replace />} />
 
         <Route element={<ProtectedRoute roles={['site', 'engineer']} />}>
           <Route path="/supervisor/capture" element={<FieldCapture />} />

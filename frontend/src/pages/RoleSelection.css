@@ -165,3 +165,121 @@
   .setu-login-v2__story, .setu-login-v2__access { padding-inline: 16px; }
   .setu-login-v2__demo-grid { grid-template-columns: 1fr; }
 }
+
+
+/* Real evaluator credential panel on the original login screen */
+.setu-login-v2__evaluator { margin-top: 28px; border-top: 1px solid var(--setu-login-border-soft); padding-top: 24px; }
+.setu-login-v2__evaluator-header { display: grid; gap: 6px; margin-bottom: 14px; }
+.setu-login-v2__evaluator-header h2 { font-size: 17px; font-weight: 650; }
+.setu-login-v2__evaluator-header p,
+.setu-login-v2__evaluator-note { font-size: 13px; color: var(--setu-login-muted); line-height: 1.55; }
+.setu-login-v2__evaluator-button,
+.setu-login-v2__evaluator-enter { width: 100%; min-height: 49px; border-radius: 10px; border: 1px solid var(--setu-login-blue); font-size: 15px; font-weight: 650; }
+.setu-login-v2__evaluator-button { background: #eaf3ff; color: #0758b8; padding: 12px; }
+.setu-login-v2__evaluator-enter { background: var(--setu-login-blue); color: #fff; padding: 10px; }
+.setu-login-v2__evaluator-button:hover { background: #dcecff; }
+.setu-login-v2__evaluator-enter:hover { background: var(--setu-login-blue-active); }
+.setu-login-v2__evaluator-button:disabled,.setu-login-v2__evaluator-enter:disabled { opacity: .6; }
+.setu-login-v2__evaluator-result { display: grid; gap: 14px; padding: 16px 0; min-width: 0; }
+.setu-login-v2__evaluator-expiry { font-size: 13px; color: var(--setu-login-ink); }
+.setu-login-v2__evaluator-account { display: grid; min-width: 0; gap: 8px; border: 1px solid var(--setu-login-border); border-radius: 12px; padding: 14px; background: #fbfcff; }
+.setu-login-v2__evaluator-account > strong { font-size: 16px; }
+.setu-login-v2__evaluator-account label { display: grid; min-width: 0; gap: 4px; font-size: 12px; font-weight: 600; }
+.setu-login-v2__evaluator-account input { min-width: 0; width: 100%; padding: 9px 10px; border: 1px solid var(--setu-login-border); border-radius: 7px; background: #fff; color: #161616; font-family: var(--setu-login-mono); font-size: 12px; }
+.setu-login-v2__evaluator-account > button:not(.setu-login-v2__evaluator-enter) { justify-self: start; border: 0; color: #0758b8; text-decoration: underline; background: transparent; font-size: 12px; padding: 3px; }
+.setu-login-v2__evaluator-note { overflow-wrap: anywhere; }
+
+
+/* Evaluator-first sign-in hierarchy: first actionable CTA stays near the top.
+ * Compact mobile brand panel prevents a full-height marketing panel pushing
+ * the real demo button below the first phone viewport. */
+.setu-login-v2__evaluator {
+  margin-top: 0;
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid #bddbff;
+  border-radius: 14px;
+  background: #f0f7ff;
+}
+.setu-login-v2__evaluator-header { margin-bottom: 12px; }
+.setu-login-v2__evaluator-button {
+  min-height: 52px;
+  color: #ffffff;
+  background: #005fc5;
+  border-color: #005fc5;
+}
+.setu-login-v2__evaluator-button:hover { background: #004b9c; }
+.setu-login-v2__form-heading { margin-bottom: 18px; }
+@media (max-width: 767px) {
+  .setu-login-v2__story {
+    min-height: 0;
+    padding: 12px 20px;
+    gap: 0;
+  }
+  .setu-login-v2__story-main,
+  .setu-login-v2__story-footer { display: none; }
+  .setu-login-v2__brand-mark { width: 34px; height: 34px; }
+  .setu-login-v2__brand-name { font-size: 24px; }
+  .setu-login-v2__access {
+    gap: 10px;
+    padding: 12px 20px 24px;
+  }
+  .setu-login-v2__access-header { display: none; }
+  .setu-login-v2__form-heading { gap: 4px; margin-bottom: 12px; }
+  .setu-login-v2__form-heading h1 { font-size: 28px; }
+  .setu-login-v2__form-heading p { font-size: 13px; }
+  .setu-login-v2__evaluator { padding: 14px; margin-bottom: 20px; }
+  .setu-login-v2__evaluator-header { margin-bottom: 10px; }
+  .setu-login-v2__evaluator-header h2 { font-size: 16px; }
+  .setu-login-v2__evaluator-header p { font-size: 12px; }
+  .setu-login-v2__evaluator-button { min-height: 52px; }
+  .setu-login-v2__form { gap: 16px; }
+  .setu-login-v2__field input { min-height: 48px; padding: 12px; }
+  .setu-login-v2__submit { min-height: 48px; }
+}
+@media (max-width: 374px) {
+  .setu-login-v2__story { padding-inline: 16px; }
+  .setu-login-v2__access { padding-inline: 16px; }
+}
+
+
+/* Explicit cleanup stays separate from normal Sign out (role switching). */
+.setu-login-v2__evaluator-clear {
+  justify-self: center;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--setu-login-border);
+  border-radius: 8px;
+  color: #475569;
+  background: #fff;
+  font-size: 12px;
+  text-decoration: underline;
+}
+.setu-login-v2__evaluator-clear:hover { border-color: #94a3b8; background: #f8fafc; }
+
+
+/* Compact generated-credentials layout (senior-design fix, 2026-10-28).
+ * Before: two large cards, each with a label, an input, a copy link, another
+ * label, another input, another copy link and a full-width login button, plus
+ * two long paragraphs — the generated pair pushed the real sign-in form far
+ * down the page. Now: one summary line, one caption, and one compact row per
+ * role (role + login on one line, email + copy on one line, password + copy
+ * on one line). No credential, button, copy action or expiry info is removed;
+ * only stacking, labels and copy are tightened, in the login screen's
+ * existing Apple-style tokens (systemBlue, hairlines, radius 8/12). */
+.setu-login-v2__evaluator { padding: 12px; }
+.setu-login-v2__evaluator-result { gap: 10px; padding: 12px 0 4px; }
+.setu-login-v2__evaluator-summary { font-size: 13px; color: var(--setu-login-ink); line-height: 1.5; overflow-wrap: anywhere; }
+.setu-login-v2__evaluator-caption { font-size: 12px; color: var(--setu-login-muted); line-height: 1.5; overflow-wrap: anywhere; }
+.setu-login-v2__evaluator-list { display: grid; gap: 8px; }
+.setu-login-v2__evaluator-row { display: grid; gap: 6px; min-width: 0; border: 1px solid var(--setu-login-border); border-radius: 12px; padding: 10px 12px; background: #fff; }
+.setu-login-v2__evaluator-row-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.setu-login-v2__evaluator-row-head > strong { font-size: 14px; }
+.setu-login-v2__evaluator-enter-compact { min-height: 32px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--setu-login-blue); background: var(--setu-login-blue); color: #fff; font-size: 13px; font-weight: 650; white-space: nowrap; }
+.setu-login-v2__evaluator-enter-compact:hover { background: var(--setu-login-blue-active); }
+.setu-login-v2__evaluator-enter-compact:disabled { opacity: .6; }
+.setu-login-v2__evaluator-field { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-width: 0; }
+.setu-login-v2__evaluator-field > span { font-size: 11px; font-weight: 600; color: var(--setu-login-muted); }
+.setu-login-v2__evaluator-field input { min-width: 0; width: 100%; padding: 6px 8px; border: 1px solid var(--setu-login-border); border-radius: 7px; background: #fbfcff; color: #161616; font-family: var(--setu-login-mono); font-size: 12px; }
+.setu-login-v2__evaluator-copy { border: 0; background: transparent; color: #0758b8; font-size: 12px; font-weight: 600; padding: 4px 2px; white-space: nowrap; }
+.setu-login-v2__evaluator-clear { justify-self: start; min-height: 32px; }

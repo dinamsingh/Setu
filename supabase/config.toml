@@ -1,0 +1,4 @@
+# Public evaluator creation requires a verified Cloudflare Turnstile proof.
+# Signup endpoint runs before user has a Supabase JWT; service_role stays server-side.
+[functions.create-evaluator-workspace]
+verify_jwt = false

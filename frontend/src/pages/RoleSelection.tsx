@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import './RoleSelection.css';
+import { currentEvaluatorAccess, enterEvaluatorRole, createEvaluatorWorkspace, forgetEvaluatorAccess, type EvaluatorAccess, type EvaluatorRole } from '../lib/evaluatorAccess';
+import { evaluatorProof } from '../lib/evaluatorChallenge';
 
 type WorkspaceRole = 'planner' | 'supervisor';
 type FieldErrors = { email?: string; password?: string };
@@ -24,6 +26,56 @@ export const RoleSelection: React.FC = () => {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [signInError, setSignInError] = useState<string | null>(null);
   const [selectedWorkspaceRole, setSelectedWorkspaceRole] = useState<WorkspaceRole | null>(null);
+  const [evaluatorCredentials, setEvaluatorCredentials] = useState<EvaluatorAccess | null>(() => currentEvaluatorAccess());
+  const [showEvaluator, setShowEvaluator] = useState(() => Boolean(currentEvaluatorAccess()));
+  const [evaluatorBusy, setEvaluatorBusy] = useState(false);
+  const [evaluatorError, setEvaluatorError] = useState('');
+  const [copied, setCopied] = useState('');
+
+  const startEvaluatorLogin = async () => {
+    if (evaluatorBusy) return;
+    setShowEvaluator(true);
+    setEvaluatorError('');
+    const current = currentEvaluatorAccess();
+    if (current) { setEvaluatorCredentials(current); return; }
+    setEvaluatorBusy(true);
+    try {
+      // A Turnstile check runs in the background; most evaluators need only
+      // this one click. The backend also enforces admission quotas.
+      const token = await evaluatorProof();
+      const pair = await createEvaluatorWorkspace(token);
+      setEvaluatorCredentials(pair);
+    } catch (error) {
+      setEvaluatorError(error instanceof Error ? error.message : 'Unable to create a demo workspace.');
+    } finally {
+      setEvaluatorBusy(false);
+    }
+  };
+
+  const loginEvaluatorRole = async (role: EvaluatorRole) => {
+    setEvaluatorError('');
+    setEvaluatorBusy(true);
+    try {
+      await enterEvaluatorRole(role);
+      const resolved = await refreshRole();
+      if (resolved !== role) throw new Error('The temporary account has expired or its role is unavailable.');
+      navigate(role === 'site' ? '/supervisor/capture' : '/planner/command-center', { replace: true });
+    } catch (error) {
+      setEvaluatorError(error instanceof Error ? error.message : 'Evaluator sign-in failed.');
+    } finally {
+      setEvaluatorBusy(false);
+    }
+  };
+
+  const copyEvaluatorValue = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(label + ' copied');
+    } catch {
+      setCopied('Copy unavailable. Select the credential text manually.');
+    }
+  };
+
 
   const clearFieldError = (field: keyof FieldErrors) => {
     setFieldErrors((current) => (current[field] ? { ...current, [field]: undefined } : current));
@@ -148,6 +200,84 @@ export const RoleSelection: React.FC = () => {
             <h1 id="setu-login-title">Welcome back.</h1>
             <p>Sign in with your assigned SETU account.</p>
           </header>
+
+          <section className="setu-login-v2__evaluator" aria-label="SIH evaluator access">
+            <div className="setu-login-v2__evaluator-header">
+              <h2>SIH Evaluation</h2>
+              <p>One click creates a linked, 48-hour Supervisor and Planner workspace on real SETU.</p>
+            </div>
+            <button
+              type="button"
+              className="setu-login-v2__evaluator-button"
+              disabled={busy || evaluatorBusy}
+              aria-expanded={showEvaluator}
+              onClick={() => { void startEvaluatorLogin(); }}
+            >
+              {evaluatorBusy ? 'Generating secure credentials…' : 'SIH Evaluator Login'}
+            </button>
+            {showEvaluator && (
+              <div className="setu-login-v2__evaluator-result" role="region" aria-label="Temporary evaluator credentials">
+                {evaluatorError && <p className="setu-login-v2__message setu-login-v2__message--error" role="alert">{evaluatorError}</p>}
+                {evaluatorBusy && <p role="status">Preparing real SETU accounts…</p>}
+                {evaluatorCredentials && (
+                  <>
+                    <p className="setu-login-v2__evaluator-summary">
+                      <strong>Pair ready · 48 hours</strong>
+                      {' '}· Expires {new Date(evaluatorCredentials.expiresAt).toLocaleString()}
+                      {' '}· Workspace {evaluatorCredentials.site.email.split('@')[0].replace('supervisor-', '')}
+                    </p>
+                    <p className="setu-login-v2__evaluator-caption">
+                      <code>@setu.invalid</code> is a login name, not an inbox. Both roles share this workspace.
+                    </p>
+                    <div className="setu-login-v2__evaluator-list">
+                      {(['site', 'planner'] as const).map(role => (
+                        <div className="setu-login-v2__evaluator-row" key={role}>
+                          <div className="setu-login-v2__evaluator-row-head">
+                            <strong>{role === 'site' ? 'Supervisor' : 'Planner'}</strong>
+                            <button type="button" className="setu-login-v2__evaluator-enter-compact"
+                              disabled={evaluatorBusy} onClick={() => { void loginEvaluatorRole(role); }}>
+                              {role === 'site' ? 'Login as Supervisor' : 'Login as Planner'}
+                            </button>
+                          </div>
+                          <div className="setu-login-v2__evaluator-field">
+                            <span>Email</span>
+                            <input readOnly aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo email'} value={evaluatorCredentials[role].email} />
+                            <button type="button" className="setu-login-v2__evaluator-copy" aria-label={'Copy ' + (role === 'site' ? 'Supervisor' : 'Planner') + ' email'} onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].email, role + ' email'); }}>Copy</button>
+                          </div>
+                          <div className="setu-login-v2__evaluator-field">
+                            <span>Password</span>
+                            <input readOnly type="text" autoComplete="off"
+                              aria-label={(role === 'site' ? 'Supervisor' : 'Planner') + ' demo password'} value={evaluatorCredentials[role].password} />
+                            <button type="button" className="setu-login-v2__evaluator-copy" aria-label={'Copy ' + (role === 'site' ? 'Supervisor' : 'Planner') + ' password'} onClick={() => { void copyEvaluatorValue(evaluatorCredentials[role].password, role + ' password'); }}>Copy</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {copied && <p role="status" className="setu-login-v2__evaluator-caption">{copied}</p>}
+                    <p className="setu-login-v2__evaluator-caption">
+                      Sign out of one role to open the other, or use Open Planner / Open Supervisor in the header.
+                      Use fictional reports labelled SIH EVALUATOR DEMO ONLY.
+                    </p>
+                    <button type="button" className="setu-login-v2__evaluator-clear"
+                      onClick={() => {
+                        if (!window.confirm('End this evaluation and forget both temporary credentials?')) return;
+                        forgetEvaluatorAccess();
+                        setEvaluatorCredentials(null);
+                        setShowEvaluator(false);
+                        setCopied('');
+                      }}>
+                      End demo &amp; forget credentials in this browser
+                    </button>
+                  </>
+                )}
+                {!evaluatorCredentials && !evaluatorBusy && (
+                  <p className="setu-login-v2__evaluator-note">
+                    Each visitor can generate a separate Supervisor/Planner pair after a short security verification.
+                  </p>
+                )}
+              </div>
+            )}
+          </section>
 
           <form className="setu-login-v2__form" noValidate onSubmit={submit} aria-busy={busy}>
             {hasMultipleFieldErrors && (
