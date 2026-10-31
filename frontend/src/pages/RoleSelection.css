@@ -252,3 +252,34 @@
 @media (prefers-reduced-motion: reduce) {
   .setu-login-v2__evaluator-modal, .setu-login-v2__evaluator-dialog { animation: none; }
 }
+
+/* Motion (2026-10-31): Apple-style, subtle only. One easing curve
+ * everywhere, short durations, no bouncing, spinning or sliding panels.
+ * Motion is used where it helps the eye: page load, focus, selection,
+ * press feedback and errors appearing. Everything else stays still. */
+@keyframes setu-login-v2__page-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes setu-login-v2__message-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.setu-login-v2__access { animation: setu-login-v2__page-in 500ms cubic-bezier(.28, 0, .22, 1) both; }
+.setu-login-v2__brand { animation: setu-login-v2__page-in 500ms cubic-bezier(.28, 0, .22, 1) both; }
+.setu-login-v2__form-heading { animation: setu-login-v2__page-in 500ms 60ms cubic-bezier(.28, 0, .22, 1) both; }
+.setu-login-v2__form { animation: setu-login-v2__page-in 500ms 120ms cubic-bezier(.28, 0, .22, 1) both; }
+.setu-login-v2__desktop-header { animation: setu-login-v2__page-in 400ms cubic-bezier(.28, 0, .22, 1) both; }
+.setu-login-v2__desktop-footer { animation: setu-login-v2__page-in 500ms 180ms cubic-bezier(.28, 0, .22, 1) both; }
+.setu-login-v2__role-grid button { transition: background 200ms cubic-bezier(.28, 0, .22, 1), color 200ms cubic-bezier(.28, 0, .22, 1), box-shadow 200ms cubic-bezier(.28, 0, .22, 1); }
+.setu-login-v2__field input, .setu-login-v2__password { transition: border-color 200ms cubic-bezier(.28, 0, .22, 1), box-shadow 200ms cubic-bezier(.28, 0, .22, 1), background 200ms cubic-bezier(.28, 0, .22, 1); }
+.setu-login-v2__reveal { transition: background 200ms cubic-bezier(.28, 0, .22, 1), color 200ms cubic-bezier(.28, 0, .22, 1); }
+.setu-login-v2__evaluator-button { transition: background 200ms cubic-bezier(.28, 0, .22, 1), color 200ms cubic-bezier(.28, 0, .22, 1); }
+.setu-login-v2__evaluator-close { transition: background 200ms cubic-bezier(.28, 0, .22, 1); }
+.setu-login-v2__submit:active { transform: scale(.98); }
+.setu-login-v2__message { animation: setu-login-v2__message-in 250ms cubic-bezier(.28, 0, .22, 1); }
+.setu-login-v2__field-error { animation: setu-login-v2__message-in 200ms cubic-bezier(.28, 0, .22, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .setu-login-v2__access, .setu-login-v2__brand, .setu-login-v2__form-heading,
+  .setu-login-v2__form, .setu-login-v2__desktop-header, .setu-login-v2__desktop-footer,
+  .setu-login-v2__message, .setu-login-v2__field-error,
+  .setu-login-v2__evaluator-modal, .setu-login-v2__evaluator-dialog { animation: none; }
+  .setu-login-v2__role-grid button, .setu-login-v2__field input, .setu-login-v2__password,
+  .setu-login-v2__reveal, .setu-login-v2__evaluator-button, .setu-login-v2__evaluator-close,
+  .setu-login-v2__submit { transition: none; }
+  .setu-login-v2__submit:active { transform: none; }
+}
