@@ -8,11 +8,6 @@ import { evaluatorProof } from '../lib/evaluatorChallenge';
 type WorkspaceRole = 'planner' | 'supervisor';
 type FieldErrors = { role?: string; email?: string; password?: string };
 
-const ROLE_LABEL: Record<WorkspaceRole, string> = {
-  planner: 'Planner',
-  supervisor: 'Site Engineer',
-};
-
 function assignedWorkspaceRole(role: string): WorkspaceRole | null {
   if (role === 'planner' || role === 'admin') return 'planner';
   if (role === 'site' || role === 'engineer') return 'supervisor';
@@ -36,7 +31,6 @@ export const RoleSelection: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [signInError, setSignInError] = useState<string | null>(null);
-  const [roleMismatch, setRoleMismatch] = useState<WorkspaceRole | null>(null);
   const [selectedRole, setSelectedRole] = useState<WorkspaceRole | null>(null);
   const [evaluatorCredentials, setEvaluatorCredentials] = useState<EvaluatorAccess | null>(() => currentEvaluatorAccess());
   const [showEvaluator, setShowEvaluator] = useState(() => Boolean(currentEvaluatorAccess()));
@@ -109,7 +103,6 @@ export const RoleSelection: React.FC = () => {
     const nextFieldErrors = validate();
     setFieldErrors(nextFieldErrors);
     setSignInError(null);
-    setRoleMismatch(null);
     if (Object.keys(nextFieldErrors).length > 0) return;
 
     setBusy(true);
@@ -144,13 +137,14 @@ export const RoleSelection: React.FC = () => {
       }
 
       if (assigned !== selectedRole) {
-        // The credentials are valid, but for a different workspace role.
-        // Deny this login rather than opening the other workspace, and
-        // offer a one-tap switch instead of making the user retype
-        // everything. The session is signed out either way.
+        // Security: deny this login without disclosing the assigned
+        // role. Naming it (or a switch button naming it) would let
+        // anyone probing the role buttons learn the account's role.
+        // The session is signed out, and the password is cleared like
+        // any other failed sign-in.
         try { await signOut(); } catch { /* sign-out is best effort here */ }
-        setRoleMismatch(assigned);
-        setSignInError(`This account belongs to ${ROLE_LABEL[assigned]}.`);
+        setPassword('');
+        setSignInError('This account does not have access with the selected role. Try another role, or contact your workspace administrator.');
         return;
       }
 
@@ -178,7 +172,6 @@ export const RoleSelection: React.FC = () => {
     setSelectedRole(role);
     setFieldErrors((current) => (current.role ? { ...current, role: undefined } : current));
     setSignInError(null);
-    setRoleMismatch(null);
   };
 
   const hasMultipleFieldErrors = Boolean(fieldErrors.email && fieldErrors.password);
@@ -323,17 +316,8 @@ export const RoleSelection: React.FC = () => {
             )}
             {(signInError || sessionIssue) && (
               <div className="setu-login-v2__message setu-login-v2__message--error" role="alert">
-                <strong>{roleMismatch ? 'Wrong role selected.' : signInError ? 'Sign-in couldn&apos;t be completed.' : 'Session needs attention.'}</strong>
+                <strong>{signInError ? 'Sign-in couldn&apos;t be completed.' : 'Session needs attention.'}</strong>
                 <p>{signInError ?? sessionIssue}</p>
-                {roleMismatch && (
-                  <button
-                    type="button"
-                    className="setu-login-v2__message-action"
-                    onClick={() => selectRole(roleMismatch)}
-                  >
-                    Switch to {ROLE_LABEL[roleMismatch]}
-                  </button>
-                )}
               </div>
             )}
 

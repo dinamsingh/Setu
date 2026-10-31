@@ -107,7 +107,6 @@
 .setu-login-v2__message strong { font-weight: 600; }
 .setu-login-v2__message--error { border-color: var(--setu-login-error); background: var(--setu-login-error-bg); color: var(--setu-login-error); }
 .setu-login-v2__message a { color: inherit; text-underline-offset: 4px; }
-.setu-login-v2__message-action { align-self: flex-start; padding: 4px 0; border: 0; background: transparent; color: var(--setu-login-blue); font-size: 16px; font-weight: 600; text-align: left; }
 .setu-login-v2__submit { min-height: 56px; width: 100%; justify-content: center; gap: 8px; padding: 16px 24px; border: 0; border-radius: 12px; background: var(--setu-login-blue); color: #fff; font-size: 17px; font-weight: 500; line-height: 1.4; transition: transform 150ms cubic-bezier(.28, 0, .22, 1), background 150ms cubic-bezier(.28, 0, .22, 1); }
 .setu-login-v2__submit:active { background: var(--setu-login-blue-active); transform: scale(.99); }
 .setu-login-v2__submit:disabled { background: var(--setu-login-blue-active); opacity: .65; }
