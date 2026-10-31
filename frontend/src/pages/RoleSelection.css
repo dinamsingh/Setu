@@ -203,3 +203,24 @@
 .setu-login-v2__evaluator-button { min-height: 44px; width: 100%; border: 0; border-radius: 8px; background: transparent; color: var(--setu-login-blue); font-size: 15px; font-weight: 600; }
 .setu-login-v2__evaluator-button:hover { background: rgba(0, 122, 255, 0.08); }
 .setu-login-v2__evaluator-result { padding: 12px 0 4px; }
+
+/* Desktop-only variant (approved 2026-10-31): phone and tablet keep the
+ * centred card exactly as implemented. From 1024px up, the page gains a
+ * thin header bar, the card widens to 460px with left-aligned content,
+ * the in-card brand and footer hide (their desktop equivalents are the
+ * header and the footer below the card), and no story panel returns. */
+.setu-login-v2__desktop-header,
+.setu-login-v2__desktop-footer { display: none; }
+
+@media (min-width: 1024px) {
+  .setu-login-v2 { padding: 0; }
+  .setu-login-v2__desktop-header { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 16px 28px; border-bottom: 1px solid var(--setu-login-border-soft); background: var(--setu-login-bg); }
+  .setu-login-v2__desktop-brand { font-family: var(--setu-login-display); font-size: 17px; font-weight: 800; letter-spacing: .15em; line-height: 1; }
+  .setu-login-v2__desktop-help { color: var(--setu-login-muted); font-size: 13px; }
+  .setu-login-v2__desktop-help span { color: var(--setu-login-blue); }
+  .setu-login-v2__access { max-width: 460px; margin-top: 36px; }
+  .setu-login-v2__brand { display: none; }
+  .setu-login-v2__form-heading { text-align: left; }
+  .setu-login-v2__footer { display: none; }
+  .setu-login-v2__desktop-footer { display: block; margin: 20px 0 28px; text-align: center; color: var(--setu-login-muted); font-size: 12px; }
+}

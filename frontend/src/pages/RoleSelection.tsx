@@ -178,6 +178,10 @@ export const RoleSelection: React.FC = () => {
 
   return (
     <main className="setu-login-v2">
+      <header className="setu-login-v2__desktop-header">
+        <span className="setu-login-v2__desktop-brand" aria-hidden="true">SETU</span>
+        <span className="setu-login-v2__desktop-help">Need help? <span>Contact administrator</span></span>
+      </header>
 
       <section className="setu-login-v2__access" aria-labelledby="setu-login-title">
 
@@ -351,6 +355,7 @@ export const RoleSelection: React.FC = () => {
         </div>
 
       </section>
+      <p className="setu-login-v2__desktop-footer">SETU · Workspace sign-in</p>
     </main>
   );
 };

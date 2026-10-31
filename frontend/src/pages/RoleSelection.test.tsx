@@ -209,4 +209,15 @@ describe('Login V2 role selection', () => {
     expect(container.querySelector('.setu-login-v2__story')).toBeNull();
   });
 
+  it('renders desktop-only header and footer elements alongside the phone card', async () => {
+    await render();
+
+    // These exist in the DOM and are shown only at desktop width via CSS;
+    // phone keeps the in-card brand and footer, which stay untouched.
+    expect(container.querySelector('.setu-login-v2__desktop-header')).toBeTruthy();
+    expect(container.querySelector('.setu-login-v2__desktop-brand')?.textContent).toBe('SETU');
+    expect(container.querySelector('.setu-login-v2__desktop-footer')?.textContent).toBe('SETU · Workspace sign-in');
+    expect(container.querySelector('.setu-login-v2__brand')?.textContent).toBe('SETU');
+  });
+
 });
