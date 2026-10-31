@@ -25,6 +25,7 @@ from database.supabase_client import (
     fetch_verified_domain_aliases,
 )
 from engine.alias_expander import DomainAliasExpander
+from engine.baseline_scoping import resolve_scoped_activities
 from engine.ensemble_matcher import EnsembleMatcher
 from engine.workflow_processing import process_report, process_proposal, processing_intent
 from engine.progress_processing import progress_extraction_available, process_progress_extraction_batch
@@ -42,13 +43,41 @@ def is_unmatched_row(row: Dict) -> bool:
     return conf_level is None or str(conf_level).strip().lower() in ("pending", "null", "")
 
 
+def get_scoped_matcher(
+    cache: Dict,
+    scoped_activities: List[Dict],
+    aliases: List[Dict],
+) -> EnsembleMatcher:
+    """Return the cached matcher for exactly this candidate set.
+
+    One matcher per distinct baseline set (its embeddings are precomputed
+    at construction), so a report can never be ranked against activities
+    outside its assigned baselines -- and a disallowed activity ranked
+    4th globally can never leak in through a post-filtered top-3.
+    """
+    key = tuple(sorted(str(a.get("activity_id")) for a in scoped_activities))
+    matcher = cache.get(key)
+    if matcher is None:
+        matcher = EnsembleMatcher(
+            activities=scoped_activities,
+            alias_expander=DomainAliasExpander(aliases=aliases),
+        )
+        cache[key] = matcher
+    return matcher
+
+
 def match_single_update(
     matcher: EnsembleMatcher,
     db_client: Any,
     rep: Dict,
     all_reports: Optional[List[Dict]] = None
 ) -> Dict:
-    """Compatibility entry point; all deployed-worker writes now use server CAS."""
+    """Compatibility entry point; all deployed-worker writes now use server CAS.
+
+    Callers must pass a matcher built from this report's scoped
+    activities (see ``resolve_scoped_activities``); this entry point
+    does not re-scope a global matcher.
+    """
     rounds = db_client.table("field_update_clarifications").select("*").execute().data
     proposals = db_client.table("field_update_remap_proposals").select("*").execute().data
     return process_report(matcher, db_client, rep, all_reports or [], rounds, proposals)
@@ -77,8 +106,11 @@ def run_worker(
         db_client = get_supabase_client(require_remote=True)
     print(f"Database Mode: {get_database_mode()}")
 
-    # Preload schedule activities and verified domain aliases, construct EnsembleMatcher ONCE at startup
-    print("Loading schedule activities and initializing EnsembleMatcher (one-time setup)...")
+    # Preload schedule activities and verified domain aliases. Matchers are
+    # built lazily, one per distinct assigned-baseline set (see
+    # get_scoped_matcher), never one global matcher: a global matcher
+    # would rank a report against every planner's baseline.
+    print("Loading schedule activities...")
     activities = fetch_schedule_activities(db_client)
     if not activities:
         raise ValueError(
@@ -92,11 +124,8 @@ def run_worker(
         len(active_aliases),
         tuple(sorted((str(a.get("id")), str(a.get("field_term")), str(a.get("standard_term"))) for a in active_aliases))
     )
-    matcher = EnsembleMatcher(
-        activities=activities,
-        alias_expander=DomainAliasExpander(aliases=active_aliases)
-    )
-    print("EnsembleMatcher successfully initialized and ready.\n")
+    matcher_cache: Dict = {}
+    print("Matcher cache ready (one matcher per assigned-baseline set).\n")
 
     progress_enabled = progress_extraction_available(db_client)
 
@@ -114,7 +143,9 @@ def run_worker(
                 tuple(sorted((str(a.get("id")), str(a.get("field_term")), str(a.get("standard_term"))) for a in current_aliases))
             )
             if current_fingerprint != active_fingerprint:
-                matcher.reload_aliases(current_aliases)
+                for cached in matcher_cache.values():
+                    cached.reload_aliases(current_aliases)
+                active_aliases = current_aliases
                 print(f"[WORKER] Hot-reloaded domain aliases ({len(current_aliases)} active verified aliases).")
                 active_fingerprint = current_fingerprint
 
@@ -126,8 +157,20 @@ def run_worker(
             for proposal in proposals:
                 if proposal["status"] != "pending_validation" or proposal["field_update_id"] not in by_id:
                     continue
+                scoped, scope_reason = resolve_scoped_activities(
+                    db_client, by_id[proposal["field_update_id"]], activities
+                )
+                if scoped is None:
+                    print(f"[PROPOSAL] {proposal['id']} | held ({scope_reason})")
+                    continue
+                target_id = proposal.get("target_activity_id")
+                if target_id is not None and target_id not in {a.get("activity_id") for a in scoped}:
+                    # A target outside the report's assigned baselines is
+                    # unavailable/stale -- it must not be validated globally.
+                    print(f"[PROPOSAL] {proposal['id']} | stale/discarded (target outside assigned baselines)")
+                    continue
                 try:
-                    applied = process_proposal(db_client, proposal, by_id[proposal["field_update_id"]], activities, all_updates, rounds)
+                    applied = process_proposal(db_client, proposal, by_id[proposal["field_update_id"]], scoped, all_updates, rounds)
                     print(f"[PROPOSAL] {proposal['id']} | {'validated' if applied else 'stale/discarded'}")
                 except Exception as exc:
                     print(f"[ERROR] Proposal {proposal['id']}: {exc}", file=sys.stderr)
@@ -137,6 +180,13 @@ def run_worker(
             if unmatched_rows:
                 print(f"[WORKER] Found {len(unmatched_rows)} unmatched report(s) to process.")
                 for rep in unmatched_rows:
+                    scoped, scope_reason = resolve_scoped_activities(db_client, rep, activities)
+                    if scoped is None:
+                        # Held pending for planner assignment. Never fall
+                        # back to the global activity list.
+                        print(f"[HELD] Report ID: {rep.get('update_id', 'UNKNOWN')} | {scope_reason}")
+                        continue
+                    matcher = get_scoped_matcher(matcher_cache, scoped, active_aliases)
                     try:
                         res = process_report(matcher, db_client, rep, all_updates, rounds, proposals)
                         print(

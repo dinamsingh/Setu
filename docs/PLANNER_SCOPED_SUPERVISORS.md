@@ -78,10 +78,21 @@ in this order, and are deliberately not done by the branch:
    1–3, pressing Create supervisor will show a setup error — that is the
    expected, safe failure, not a bug to work around by putting a key in
    the frontend.
-5. **Follow-up work, not in this branch:** the matching worker must filter
-   candidates by the report submitter's assigned baseline. The scoped
-   read policies in this migration are the UI access boundary; until the
-   worker is scoped, do not claim matching itself is fully scoped.
+5. **Matching is now scoped in this branch** (`engine/baseline_scoping.py`,
+   wired into both `engine/match_worker.py` and
+   `engine/run_supabase_matching.py`, tested in
+   `tests/test_scoped_matching.py`): before any matcher is built, the
+   worker resolves the report's candidate set from
+   `field_updates.submitted_by_user_id` + `planner_supervisor_assignments`
+   (+ `schedule_baselines` for the evaluator Sample Baseline), and builds
+   one cached matcher per distinct baseline set -- never a global matcher,
+   and never a post-filtered global top-3. A non-evaluator report with no
+   submitter or no assignment is held pending and logged, with no write
+   and no global fallback; a remap proposal whose target is outside the
+   report's assigned baselines is treated as stale. Pre-017 data (no
+   baselines, assignments, or `baseline_id` values) keeps legacy global
+   behaviour so existing fixtures do not suddenly hold pending. This
+   scoping is still branch-only until steps 1-4 above are done.
    Likewise, a real planner schedule-upload (import) flow is still
    preview-only on the Onboarding page; new scoped baselines are created
    by an admin import until that flow exists.
