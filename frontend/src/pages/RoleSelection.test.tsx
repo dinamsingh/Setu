@@ -7,11 +7,12 @@ import { RoleSelection } from './RoleSelection';
 
 const auth = vi.hoisted(() => ({
   signIn: vi.fn(),
+  signOut: vi.fn(),
   refreshRole: vi.fn(),
 }));
 
 vi.mock('../lib/AuthContext', () => ({
-  useAuth: () => ({ signIn: auth.signIn, refreshRole: auth.refreshRole, sessionIssue: null }),
+  useAuth: () => ({ signIn: auth.signIn, signOut: auth.signOut, refreshRole: auth.refreshRole, sessionIssue: null }),
 }));
 
 let root: Root;
@@ -26,6 +27,7 @@ beforeEach(() => {
   (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
   auth.signIn.mockResolvedValue({ error: null, userId: 'user-1' });
+  auth.signOut.mockResolvedValue({ error: null });
   auth.refreshRole.mockResolvedValue('planner');
   container = document.createElement('div');
   document.body.append(container);
@@ -53,6 +55,12 @@ async function changeInput(id: string, value: string) {
   });
 }
 
+async function selectRole(label: string) {
+  const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === label);
+  expect(button).toBeTruthy();
+  await act(async () => button?.click());
+}
+
 async function submit() {
   const form = container.querySelector('form');
   expect(form).toBeTruthy();
@@ -75,6 +83,7 @@ describe('Login V2 role selection', () => {
   it('shows invalid-credential failures without attempting role resolution', async () => {
     auth.signIn.mockResolvedValue({ error: new Error('Invalid login credentials'), userId: null });
     await render();
+    await selectRole('Planner');
     await changeInput('setu-email', 'person@setu.local');
     await changeInput('setu-password', 'incorrect-password');
     await submit();
@@ -87,6 +96,7 @@ describe('Login V2 role selection', () => {
   it('resolves a planner role and redirects to the planner command center', async () => {
     auth.refreshRole.mockResolvedValue('planner');
     await render();
+    await selectRole('Planner');
     await changeInput('setu-email', ' planner@setu.local ');
     await changeInput('setu-password', 'password123');
     await submit();
@@ -99,6 +109,7 @@ describe('Login V2 role selection', () => {
   it('resolves an engineer role and redirects to supervisor capture', async () => {
     auth.refreshRole.mockResolvedValue('engineer');
     await render();
+    await selectRole('Site Engineer');
     await changeInput('setu-email', 'site@setu.local');
     await changeInput('setu-password', 'password123');
     await submit();
@@ -109,11 +120,13 @@ describe('Login V2 role selection', () => {
   it('does not grant access when an authenticated account has no SETU role', async () => {
     auth.refreshRole.mockResolvedValue(null);
     await render();
+    await selectRole('Planner');
     await changeInput('setu-email', 'unassigned@setu.local');
     await changeInput('setu-password', 'password123');
     await submit();
 
     expect(container.textContent).toContain('Authenticated account has no SETU role assignment.');
+    expect(auth.signOut).toHaveBeenCalled();
     expect(container.querySelector('[data-testid="location"]')?.textContent).toBe('/');
   });
 
@@ -130,7 +143,43 @@ describe('Login V2 role selection', () => {
     expect(toggle?.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('selects a workspace role without injecting a demo password', async () => {
+  it('requires a role selection before calling Supabase Auth', async () => {
+    await render();
+    await changeInput('setu-email', 'person@setu.local');
+    await changeInput('setu-password', 'password123');
+    await submit();
+
+    expect(auth.signIn).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('Choose your role before signing in.');
+  });
+
+  it('denies login and signs out when the assigned role does not match the selected role', async () => {
+    auth.refreshRole.mockResolvedValue('site');
+    await render();
+    await selectRole('Planner');
+    await changeInput('setu-email', 'site@setu.local');
+    await changeInput('setu-password', 'password123');
+    await submit();
+
+    expect(auth.signOut).toHaveBeenCalled();
+    expect(container.textContent).toContain('This account is assigned as Site Engineer, not Planner.');
+    expect(container.querySelector<HTMLInputElement>('#setu-password')?.value).toBe('');
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe('/');
+  });
+
+  it('grants an admin account access when Planner is selected', async () => {
+    auth.refreshRole.mockResolvedValue('admin');
+    await render();
+    await selectRole('Planner');
+    await changeInput('setu-email', 'admin@setu.local');
+    await changeInput('setu-password', 'password123');
+    await submit();
+
+    expect(auth.signOut).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe('/planner/command-center');
+  });
+
+  it('selects a role before login without injecting a password', async () => {
     await render();
     const planner = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('Planner'));
     const password = container.querySelector<HTMLInputElement>('#setu-password');
@@ -139,7 +188,7 @@ describe('Login V2 role selection', () => {
 
     expect(planner?.getAttribute('aria-pressed')).toBe('true');
     expect(password?.value).toBe('');
-    expect(container.textContent).toContain('Role selection does not grant access.');
+    expect(container.textContent).not.toContain('Role selection does not grant access.');
     expect(container.textContent).not.toContain('password123');
   });
 });
