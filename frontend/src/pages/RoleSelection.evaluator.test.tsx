@@ -52,15 +52,17 @@ async function click(name:string){
 }
 describe('Open public SETU evaluator login with linked 48h account pair',()=>{
 
- it('places the evaluator CTA before email/password fields and the normal sign-in button',async()=>{
+ // Approved centred-card redesign (2026-10-31): the evaluator action is a
+ // quiet secondary action BELOW the primary sign-in, not a competing CTA
+ // above the form. Only one solid primary button may sit above the divider.
+ it('places the evaluator CTA after the normal sign-in button',async()=>{
   await render();
   const demo=[...node.querySelectorAll('button')].find(x=>x.textContent?.trim()==='SIH Evaluator Login');
   const email=node.querySelector('#setu-email');
-  const signIn=[...node.querySelectorAll('button')].find(x=>x.textContent?.includes('Sign in to SETU'));
+  const signIn=[...node.querySelectorAll('button')].find(x=>x.textContent?.trim()==='Sign in');
   expect(demo && email && signIn).toBeTruthy();
-  const firstPosition=demo!.compareDocumentPosition(email!);
-  expect(firstPosition & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(demo!.compareDocumentPosition(signIn!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(email!.compareDocumentPosition(signIn!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(signIn!.compareDocumentPosition(demo!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
  });
 
  it('creates real accounts for any visitor after server-verifiable Turnstile proof',async()=>{
@@ -115,4 +117,15 @@ describe('Open public SETU evaluator login with linked 48h account pair',()=>{
   expect(mocks.evaluatorProof).not.toHaveBeenCalled();
   expect(node.querySelector<HTMLInputElement>('input[aria-label="Planner demo email"]')?.value).toBe('demo-planner@evaluator.invalid');
  });
+ it('opens evaluator credentials as a popup that closes without forgetting them',async()=>{
+  await render();
+  await click('SIH Evaluator Login');
+  expect(node.querySelector('[role="dialog"]')).toBeTruthy();
+  expect(node.textContent).toContain('48 hours');
+  const close=node.querySelector<HTMLButtonElement>('button[aria-label="Close evaluator credentials"]');
+  expect(close).toBeTruthy();
+  await act(async()=>close!.click());
+  expect(node.querySelector('[role="dialog"]')).toBeNull();
+ });
+
 });
