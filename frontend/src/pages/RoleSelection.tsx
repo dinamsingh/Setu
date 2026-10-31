@@ -326,7 +326,7 @@ export const RoleSelection: React.FC = () => {
             )}
 
             <div className="setu-login-v2__field">
-              <span className="setu-login-v2__role-label" id="setu-role-label">Your role <span>(required)</span></span>
+              <span className="setu-login-v2__role-label" id="setu-role-label">Your role</span>
               <div className="setu-login-v2__role-grid" role="group" aria-labelledby="setu-role-label">
                 <button type="button" disabled={busy} aria-pressed={selectedRole === 'planner'} onClick={() => selectRole('planner')}>
                   <Icon><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M17 10l2 2 4-4" /><circle cx="9" cy="7" r="4" /></Icon>
@@ -341,7 +341,7 @@ export const RoleSelection: React.FC = () => {
             </div>
 
             <div className="setu-login-v2__field">
-              <label htmlFor="setu-email">Work email <span>(required)</span></label>
+              <label htmlFor="setu-email">Work email</label>
               <input
                 id="setu-email"
                 name="email"
@@ -358,7 +358,7 @@ export const RoleSelection: React.FC = () => {
             </div>
 
             <div className="setu-login-v2__field">
-              <label htmlFor="setu-password">Password <span>(required)</span></label>
+              <label htmlFor="setu-password">Password</label>
               <div className={`setu-login-v2__password ${fieldErrors.password ? 'setu-login-v2__password--invalid' : ''}`}>
                 <input
                   id="setu-password"
