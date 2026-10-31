@@ -117,4 +117,15 @@ describe('Open public SETU evaluator login with linked 48h account pair',()=>{
   expect(mocks.evaluatorProof).not.toHaveBeenCalled();
   expect(node.querySelector<HTMLInputElement>('input[aria-label="Planner demo email"]')?.value).toBe('demo-planner@evaluator.invalid');
  });
+ it('opens evaluator credentials as a popup that closes without forgetting them',async()=>{
+  await render();
+  await click('SIH Evaluator Login');
+  expect(node.querySelector('[role="dialog"]')).toBeTruthy();
+  expect(node.textContent).toContain('48 hours');
+  const close=node.querySelector<HTMLButtonElement>('button[aria-label="Close evaluator credentials"]');
+  expect(close).toBeTruthy();
+  await act(async()=>close!.click());
+  expect(node.querySelector('[role="dialog"]')).toBeNull();
+ });
+
 });

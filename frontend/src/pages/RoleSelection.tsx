@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import './RoleSelection.css';
@@ -37,6 +37,20 @@ export const RoleSelection: React.FC = () => {
   const [evaluatorBusy, setEvaluatorBusy] = useState(false);
   const [evaluatorError, setEvaluatorError] = useState('');
   const [copied, setCopied] = useState('');
+
+  // The evaluator credentials open as a popup, not an inline expansion,
+  // so the login card itself never grows or pushes content below the fold.
+  useEffect(() => {
+    if (!showEvaluator) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setShowEvaluator(false); };
+    document.addEventListener('keydown', onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showEvaluator]);
 
   const startEvaluatorLogin = async () => {
     if (evaluatorBusy) return;
@@ -288,6 +302,12 @@ export const RoleSelection: React.FC = () => {
               {evaluatorBusy ? 'Generating secure credentials…' : 'SIH Evaluator Login'}
             </button>
             {showEvaluator && (
+              <div className="setu-login-v2__evaluator-modal" role="presentation" onClick={() => setShowEvaluator(false)}>
+                <div className="setu-login-v2__evaluator-dialog" role="dialog" aria-modal="true" aria-label="Temporary evaluator credentials" onClick={(event) => event.stopPropagation()}>
+                  <div className="setu-login-v2__evaluator-dialog-head">
+                    <strong>SIH Evaluator Login</strong>
+                    <button type="button" className="setu-login-v2__evaluator-close" aria-label="Close evaluator credentials" onClick={() => setShowEvaluator(false)}>×</button>
+                  </div>
               <div className="setu-login-v2__evaluator-result" role="region" aria-label="Temporary evaluator credentials">
                 {evaluatorError && <p className="setu-login-v2__message setu-login-v2__message--error" role="alert">{evaluatorError}</p>}
                 {evaluatorBusy && <p role="status">Preparing real SETU accounts…</p>}
@@ -347,6 +367,8 @@ export const RoleSelection: React.FC = () => {
                     Each visitor can generate a separate Supervisor/Planner pair after a short security verification.
                   </p>
                 )}
+              </div>
+                </div>
               </div>
             )}
           </section>
