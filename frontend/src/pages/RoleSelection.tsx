@@ -231,13 +231,11 @@ export const RoleSelection: React.FC = () => {
         <div className="setu-login-v2__form-wrap">
           <header className="setu-login-v2__form-heading">
             <h1 id="setu-login-title">Welcome back.</h1>
-            <p>Sign in with your assigned SETU account.</p>
           </header>
 
           <section className="setu-login-v2__evaluator" aria-label="SIH evaluator access">
             <div className="setu-login-v2__evaluator-header">
               <h2>SIH Evaluation</h2>
-              <p>One click creates a linked, 48-hour Supervisor and Planner workspace on real SETU.</p>
             </div>
             <button
               type="button"
@@ -340,7 +338,6 @@ export const RoleSelection: React.FC = () => {
                 </button>
               </div>
               {fieldErrors.role && <p className="setu-login-v2__field-error" role="alert">{fieldErrors.role}</p>}
-              <p className="setu-login-v2__role-help">Choose the role assigned to your account. Access is granted only after your credentials and assigned role are verified.</p>
             </div>
 
             <div className="setu-login-v2__field">
@@ -399,10 +396,6 @@ export const RoleSelection: React.FC = () => {
           </form>
         </div>
 
-        <footer className="setu-login-v2__access-footer">
-          <Icon><path d="M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7l-9-4Z m-4 9 3 3 5-5" /></Icon>
-          <p>Account access follows your assigned role.</p>
-        </footer>
       </section>
     </main>
   );
