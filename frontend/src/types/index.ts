@@ -16,6 +16,7 @@ export interface ScheduleActivity {
   unit_of_measure?: string;
   planned_qty?: number;
   created_at?: string;
+  baseline_id?: string | null;
 }
 
 export interface DomainAlias {

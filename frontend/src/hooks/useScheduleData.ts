@@ -2,7 +2,16 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import type { ScheduleActivity } from '../types';
 
-export function useScheduleData() {
+/**
+ * Schedule activities, optionally scoped to one baseline (Migration 017).
+ * Passing no baseline keeps the previous behaviour (all activities the
+ * caller may read under RLS). Passing a baseline_id filters the query to
+ * that baseline only, so a supervisor sees only their assigned baseline
+ * and an evaluator sees only the Sample Baseline. The filter is a
+ * defence-in-depth UI scope: the database RLS policies are the real
+ * boundary, and they apply even if this filter is bypassed.
+ */
+export function useScheduleData(baselineId?: string | null) {
   const [activities, setActivities] = useState<ScheduleActivity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -11,10 +20,13 @@ export function useScheduleData() {
     async function fetchActivities() {
       try {
         setLoading(true);
-        const { data, error: sbError } = await supabase
+        const baseQuery = supabase
           .from('schedule_activities')
-          .select('id, activity_id, activity_name, wbs_code, wbs_name, discipline, planned_start_date, planned_finish_date, planned_progress_pct, unit_of_measure, planned_qty, created_at')
-          .order('activity_id', { ascending: true });
+          .select('id, activity_id, activity_name, wbs_code, wbs_name, discipline, planned_start_date, planned_finish_date, planned_progress_pct, unit_of_measure, planned_qty, created_at, baseline_id');
+        const scopedQuery = baselineId
+          ? baseQuery.eq('baseline_id', baselineId)
+          : baseQuery;
+        const { data, error: sbError } = await scopedQuery.order('activity_id', { ascending: true });
 
         if (sbError) throw sbError;
         setActivities(data || []);
@@ -27,7 +39,7 @@ export function useScheduleData() {
     }
 
     fetchActivities();
-  }, []);
+  }, [baselineId]);
 
   const activitiesMap = useMemo(() => {
     const map = new Map<string, ScheduleActivity>();

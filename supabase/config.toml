@@ -2,3 +2,8 @@
 # Signup endpoint runs before user has a Supabase JWT; service_role stays server-side.
 [functions.create-evaluator-workspace]
 verify_jwt = false
+
+# Planner-created supervisors require a verified planner JWT.
+# Service_role stays server-side in this function only, never in the frontend.
+[functions.create-planner-supervisor]
+verify_jwt = true

@@ -1,5 +1,5 @@
 import './PlannerV2.css';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   UploadCloud, 
   CheckCircle2, 
@@ -12,9 +12,39 @@ import Papa from 'papaparse';
 import { Header } from '../../components/common/Header';
 import { Sidebar } from '../../components/common/Sidebar';
 import { useScheduleData } from '../../hooks/useScheduleData';
+import { listMyBaselines, type ScheduleBaseline } from '../../lib/plannerSupervisors';
 
 export const ScheduleOnboarding: React.FC = () => {
-  const { activities, disciplines, loading, error } = useScheduleData();
+  // Scoped baselines (Migration 017). If the baseline list is unavailable
+  // (migration not yet live), fall back to the unfiltered index — which
+  // the note below still labels as the Sample Baseline — rather than
+  // breaking the page. Evaluators fall back to the Sample Baseline.
+  const [baselines, setBaselines] = useState<ScheduleBaseline[]>([]);
+  const [selectedBaselineId, setSelectedBaselineId] = useState<string | null>(null);
+  const [baselineListReady, setBaselineListReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    listMyBaselines()
+      .then((loaded) => {
+        if (cancelled) return;
+        setBaselines(loaded);
+        const sample = loaded.find((b) => b.is_sample);
+        setSelectedBaselineId(sample ? sample.id : loaded[0]?.id ?? null);
+        setBaselineListReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setBaselines([]);
+        setBaselineListReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const { activities, disciplines, loading, error } = useScheduleData(
+    baselineListReady ? selectedBaselineId : null,
+  );
+  const selectedBaseline = baselines.find((b) => b.id === selectedBaselineId);
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -124,6 +154,36 @@ export const ScheduleOnboarding: React.FC = () => {
             <div className="pt-1 text-[11px] text-blue-800 italic">
               Local CSV validation is preview-only. No file or baseline activity is written from this screen.
             </div>
+          </div>
+
+          {/* Scoped baseline note: the old 220 is the Sample Baseline only. */}
+          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 space-y-2">
+            <p className="font-bold">
+              Sample Baseline (demo only, not a live project): the {activities.length} activities
+              in this index are the synthetic sample baseline. A supervisor sees only the
+              baselines they are assigned to, and an evaluator sees only this sample.
+            </p>
+            {baselines.length > 0 && (
+              <label className="block">
+                <span className="font-semibold">Showing baseline: </span>
+                <select
+                  aria-label="Schedule baseline"
+                  value={selectedBaselineId ?? ''}
+                  onChange={(e) => setSelectedBaselineId(e.target.value || null)}
+                  className="mt-1 rounded-lg border border-amber-300 bg-white px-2 py-1.5 text-xs"
+                >
+                  {baselines.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                      {b.is_sample ? ' (demo only)' : ''}
+                    </option>
+                  ))}
+                </select>
+                {selectedBaseline?.is_sample && (
+                  <span className="ml-2">Demo data only — do not judge a live report against it as a real job.</span>
+                )}
+              </label>
+            )}
           </div>
 
           {/* Active Baseline Summary Cards */}
@@ -250,7 +310,7 @@ export const ScheduleOnboarding: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-bold text-setu-slate-800">
-                  Active Baseline Schedule Index ({activities.length} activities)
+                  {selectedBaseline ? selectedBaseline.name : 'Sample Baseline'} — Schedule Index ({activities.length} activities)
                 </h3>
                 <p className="text-xs text-setu-slate-500">
                   Live activities indexed in Supabase and available for hybrid semantic retrieval.

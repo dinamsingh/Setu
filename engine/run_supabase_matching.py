@@ -24,6 +24,7 @@ from database.supabase_client import (
     get_table_counts
 )
 from engine.alias_expander import DomainAliasExpander
+from engine.baseline_scoping import resolve_scoped_activities
 from engine.ensemble_matcher import EnsembleMatcher
 from engine.validators import validate_report_matching
 
@@ -103,12 +104,20 @@ def run_supabase_matching(
         print("Use --force-rematch-all to recompute scores for all records while preserving review status.")
         return
 
-    # 3. Initialize Existing EnsembleMatcher with verified database aliases
+    # 3. Verified database aliases (matchers are built per report below,
+    # one per assigned-baseline set -- never one global matcher).
     verified_aliases = fetch_verified_domain_aliases(db_client)
     print(f"Loaded {len(verified_aliases)} verified domain aliases from database.")
     alias_expander = DomainAliasExpander(aliases=verified_aliases)
-    print("Initializing EnsembleMatcher with database activities and verified aliases...")
-    matcher = EnsembleMatcher(activities=activities, alias_expander=alias_expander)
+    matcher_cache = {}
+
+    def scoped_matcher(scoped_activities):
+        key = tuple(sorted(str(a.get("activity_id")) for a in scoped_activities))
+        if key not in matcher_cache:
+            matcher_cache[key] = EnsembleMatcher(
+                activities=scoped_activities, alias_expander=alias_expander
+            )
+        return matcher_cache[key]
 
     # 4. Execute Matching & Write Back to Supabase
     print("\nExecuting hybrid matching and updating database records...")
@@ -116,8 +125,18 @@ def run_supabase_matching(
     high_count = 0
     med_count = 0
     low_count = 0
+    held_count = 0
 
     for rep in pending_updates:
+        # Scope first: a report matches only its assigned baselines (or,
+        # for evaluators, the Sample Baseline). Held reports are skipped
+        # entirely -- no global fallback, no write-back.
+        scoped, scope_reason = resolve_scoped_activities(db_client, rep, activities)
+        if scoped is None:
+            held_count += 1
+            print(f"[HELD] Report ID: {rep.get('update_id', 'UNKNOWN')} | {scope_reason}")
+            continue
+        matcher = scoped_matcher(scoped)
         # Pass each original field_text through the existing Phase 2 matching engine
         match_res = matcher.match_single_report(rep, top_k=3)
         tier = match_res["confidence_level"]
@@ -134,7 +153,7 @@ def run_supabase_matching(
             matched_act_id = None
 
         # Look up matched activity object
-        matched_act_obj = next((a for a in activities if a["activity_id"] == matched_act_id), None) if matched_act_id else None
+        matched_act_obj = next((a for a in scoped if a["activity_id"] == matched_act_id), None) if matched_act_id else None
 
         # Run independent validation engine
         val_res = validate_report_matching(
@@ -142,7 +161,7 @@ def run_supabase_matching(
             matched_activity=matched_act_obj,
             candidates=match_res["candidate_matches"],
             all_reports=all_updates,
-            all_activities=activities,
+            all_activities=scoped,
         )
 
         # Fields to write back into the same field_updates row
@@ -172,7 +191,7 @@ def run_supabase_matching(
         )
 
     # 5. Summary & Verification
-    total = len(pending_updates)
+    total = len(pending_updates) - held_count
     print("\n" + "=" * 70)
     print("SUPABASE MATCHING WRITE-BACK SUMMARY")
     print("=" * 70)
@@ -186,6 +205,7 @@ def run_supabase_matching(
         print("Medium Confidence      :  0  (  0.0%) -> Planner Review Queue")
         print("Low / Unmatched (<0.55) :  0  (  0.0%) -> Flagged for Review (Never Dropped)")
     print(f"Skipped (Already Reviewed): {skipped_count:2d}")
+    print(f"Held (No Assignment)    : {held_count:2d}")
     print("Dropped Records         : 0 (Zero records dropped)")
     print("=" * 70)
 
@@ -201,6 +221,7 @@ def run_supabase_matching(
         "medium_confidence": med_count,
         "low_confidence": low_count,
         "skipped": skipped_count,
+        "held": held_count,
         "table_counts": counts,
     }
 
