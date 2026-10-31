@@ -178,61 +178,102 @@ export const RoleSelection: React.FC = () => {
 
   return (
     <main className="setu-login-v2">
-      <aside className="setu-login-v2__story" aria-labelledby="setu-story-title">
-        <div className="setu-login-v2__brand">
-          <span className="setu-login-v2__brand-mark">
-            <Icon><path d="m12 3 9 5-9 5-9-5 9-5Z M3 12l9 5 9-5 M3 16l9 5 9-5" /></Icon>
-          </span>
-          <span className="setu-login-v2__brand-name">SETU</span>
-        </div>
-
-        <div className="setu-login-v2__story-main">
-          <p className="setu-login-v2__eyebrow">FIELD-TO-PLAN INTEGRATION</p>
-          <h2 className="setu-login-v2__story-title" id="setu-story-title">
-            <span>From the field.</span>
-            <span className="setu-login-v2__muted-title">Into the plan.</span>
-          </h2>
-          <p className="setu-login-v2__story-description">A shared workspace for site updates, planner review, and the work ahead.</p>
-          <svg className="setu-login-v2__bridge" viewBox="0 0 520 184" fill="none" aria-hidden="true">
-            <g stroke="currentColor" strokeWidth="1" opacity="0.35">
-              <path d="M16 140 124 78 238 140 130 180Z M280 68 388 6 504 68 396 132Z" />
-              <path d="M44 124 158 164M70 109 185 149M96 94 210 134M44 155 152 93M72 171 179 108M98 180 206 123" />
-              <path d="M306 53 422 117M334 37 450 101M361 22 477 86M308 84 416 22M336 100 444 38M364 116 472 54" />
-              <path d="M130 137 130 83M396 71 396 17" strokeDasharray="3 5" />
-            </g>
-            <path d="M130 122C217 122 211 58 300 58H396" stroke="currentColor" strokeWidth="2" />
-            <circle cx="130" cy="122" r="7" fill="currentColor" />
-            <circle cx="396" cy="58" r="7" fill="currentColor" />
-            <path d="m259 67 10 4-6 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <div className="setu-login-v2__workflow" aria-label="SETU workflow">
-            <div><span>01</span><strong>Capture</strong></div>
-            <div><span>02</span><strong>Review</strong></div>
-            <div><span>03</span><strong>Plan</strong></div>
-          </div>
-        </div>
-
-        <div className="setu-login-v2__story-footer">
-          <p className="setu-login-v2__eyebrow">SIH26122</p>
-          <p>Oil India Limited</p>
-        </div>
-      </aside>
 
       <section className="setu-login-v2__access" aria-labelledby="setu-login-title">
-        <div className="setu-login-v2__access-header">
-          <Icon className="setu-login-v2__header-icon"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3 M12 15v2" /></Icon>
-          <p className="setu-login-v2__eyebrow">YOUR WORKSPACE STARTS HERE</p>
-        </div>
 
         <div className="setu-login-v2__form-wrap">
+          <div className="setu-login-v2__brand" aria-hidden="true">SETU</div>
           <header className="setu-login-v2__form-heading">
-            <h1 id="setu-login-title">Welcome back.</h1>
+            <h1 id="setu-login-title">Sign in to SETU</h1>
+            <p>Use your workspace account to continue.</p>
           </header>
 
-          <section className="setu-login-v2__evaluator" aria-label="SIH evaluator access">
-            <div className="setu-login-v2__evaluator-header">
-              <h2>SIH Evaluation</h2>
+
+          <form className="setu-login-v2__form" noValidate onSubmit={submit} aria-busy={busy}>
+            {hasMultipleFieldErrors && (
+              <div className="setu-login-v2__message setu-login-v2__message--error" role="alert">
+                <strong>Check these fields to continue.</strong>
+                <a href="#setu-email" onClick={() => document.getElementById('setu-email')?.focus()}>{fieldErrors.email}</a>
+                <a href="#setu-password" onClick={() => document.getElementById('setu-password')?.focus()}>{fieldErrors.password}</a>
+              </div>
+            )}
+            {(signInError || sessionIssue) && (
+              <div className="setu-login-v2__message setu-login-v2__message--error" role="alert">
+                <strong>{signInError ? 'Sign-in couldn&apos;t be completed.' : 'Session needs attention.'}</strong>
+                <p>{signInError ?? sessionIssue}</p>
+              </div>
+            )}
+
+            <div className="setu-login-v2__field">
+              <div className="setu-login-v2__role-grid" role="group" aria-label="Your role">
+                <button type="button" disabled={busy} aria-pressed={selectedRole === 'planner'} onClick={() => selectRole('planner')}>
+                  Planner
+                </button>
+                <button type="button" disabled={busy} aria-pressed={selectedRole === 'supervisor'} onClick={() => selectRole('supervisor')}>
+                  Site Engineer
+                </button>
+              </div>
+              {fieldErrors.role && <p className="setu-login-v2__field-error" role="alert">{fieldErrors.role}</p>}
             </div>
+
+            <div className="setu-login-v2__field">
+              <label htmlFor="setu-email">Work email</label>
+              <input
+                id="setu-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="name@company.com"
+                value={email}
+                disabled={busy}
+                aria-invalid={Boolean(fieldErrors.email)}
+                aria-describedby={fieldErrors.email ? 'setu-email-error' : undefined}
+                onChange={(event) => { setEmail(event.target.value); clearFieldError('email'); setSignInError(null); }}
+              />
+              {fieldErrors.email && <p className="setu-login-v2__field-error" id="setu-email-error" role="alert">{fieldErrors.email}</p>}
+            </div>
+
+            <div className="setu-login-v2__field">
+              <label htmlFor="setu-password">Password</label>
+              <div className={`setu-login-v2__password ${fieldErrors.password ? 'setu-login-v2__password--invalid' : ''}`}>
+                <input
+                  id="setu-password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  value={password}
+                  disabled={busy}
+                  aria-invalid={Boolean(fieldErrors.password)}
+                  aria-describedby={fieldErrors.password ? 'setu-password-error' : undefined}
+                  onChange={(event) => { setPassword(event.target.value); clearFieldError('password'); setSignInError(null); }}
+                />
+                <button
+                  className="setu-login-v2__reveal"
+                  type="button"
+                  disabled={busy}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                  aria-controls="setu-password"
+                  onClick={() => setShowPassword((current) => !current)}
+                >
+                  {showPassword
+                    ? <Icon><path d="m3 3 18 18 M10.6 10.6a2 2 0 0 0 2.8 2.8 M9.7 5.3A11.8 11.8 0 0 1 12 5c6.5 0 10 7 10 7a18.4 18.4 0 0 1-3.2 4.1 M6.3 6.3A18.4 18.4 0 0 0 2 12s3.5 7 10 7a11.8 11.8 0 0 0 5.7-1.7" /></Icon>
+                    : <Icon><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></Icon>}
+                </button>
+              </div>
+              {fieldErrors.password && <p className="setu-login-v2__field-error" id="setu-password-error" role="alert">{fieldErrors.password}</p>}
+            </div>
+
+            <button className="setu-login-v2__submit" type="submit" disabled={busy}>
+              <span>{busy ? 'Signing in…' : 'Sign in'}</span>
+              {!busy && <Icon><path d="M5 12h14m-6-6 6 6-6 6" /></Icon>}
+            </button>
+          </form>
+
+          <div className="setu-login-v2__divider" aria-hidden="true">or</div>
+
+          <section className="setu-login-v2__evaluator" aria-label="SIH evaluator access">
             <button
               type="button"
               className="setu-login-v2__evaluator-button"
@@ -306,90 +347,7 @@ export const RoleSelection: React.FC = () => {
             )}
           </section>
 
-          <form className="setu-login-v2__form" noValidate onSubmit={submit} aria-busy={busy}>
-            {hasMultipleFieldErrors && (
-              <div className="setu-login-v2__message setu-login-v2__message--error" role="alert">
-                <strong>Check these fields to continue.</strong>
-                <a href="#setu-email" onClick={() => document.getElementById('setu-email')?.focus()}>{fieldErrors.email}</a>
-                <a href="#setu-password" onClick={() => document.getElementById('setu-password')?.focus()}>{fieldErrors.password}</a>
-              </div>
-            )}
-            {(signInError || sessionIssue) && (
-              <div className="setu-login-v2__message setu-login-v2__message--error" role="alert">
-                <strong>{signInError ? 'Sign-in couldn&apos;t be completed.' : 'Session needs attention.'}</strong>
-                <p>{signInError ?? sessionIssue}</p>
-              </div>
-            )}
-
-            <div className="setu-login-v2__field">
-              <span className="setu-login-v2__role-label" id="setu-role-label">Your role</span>
-              <div className="setu-login-v2__role-grid" role="group" aria-labelledby="setu-role-label">
-                <button type="button" disabled={busy} aria-pressed={selectedRole === 'planner'} onClick={() => selectRole('planner')}>
-                  <Icon><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M17 10l2 2 4-4" /><circle cx="9" cy="7" r="4" /></Icon>
-                  <span>Planner</span>
-                </button>
-                <button type="button" disabled={busy} aria-pressed={selectedRole === 'supervisor'} onClick={() => selectRole('supervisor')}>
-                  <Icon><path d="M5 17v-3a7 7 0 0 1 5-6.7 M14 7.3A7 7 0 0 1 19 14v3 M10 12V5h4v7 M3 17h18v4H3Z" /></Icon>
-                  <span>Site Engineer</span>
-                </button>
-              </div>
-              {fieldErrors.role && <p className="setu-login-v2__field-error" role="alert">{fieldErrors.role}</p>}
-            </div>
-
-            <div className="setu-login-v2__field">
-              <label htmlFor="setu-email">Work email</label>
-              <input
-                id="setu-email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="name@company.com"
-                value={email}
-                disabled={busy}
-                aria-invalid={Boolean(fieldErrors.email)}
-                aria-describedby={fieldErrors.email ? 'setu-email-error' : undefined}
-                onChange={(event) => { setEmail(event.target.value); clearFieldError('email'); setSignInError(null); }}
-              />
-              {fieldErrors.email && <p className="setu-login-v2__field-error" id="setu-email-error" role="alert">{fieldErrors.email}</p>}
-            </div>
-
-            <div className="setu-login-v2__field">
-              <label htmlFor="setu-password">Password</label>
-              <div className={`setu-login-v2__password ${fieldErrors.password ? 'setu-login-v2__password--invalid' : ''}`}>
-                <input
-                  id="setu-password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  value={password}
-                  disabled={busy}
-                  aria-invalid={Boolean(fieldErrors.password)}
-                  aria-describedby={fieldErrors.password ? 'setu-password-error' : undefined}
-                  onChange={(event) => { setPassword(event.target.value); clearFieldError('password'); setSignInError(null); }}
-                />
-                <button
-                  className="setu-login-v2__reveal"
-                  type="button"
-                  disabled={busy}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  aria-pressed={showPassword}
-                  aria-controls="setu-password"
-                  onClick={() => setShowPassword((current) => !current)}
-                >
-                  {showPassword
-                    ? <Icon><path d="m3 3 18 18 M10.6 10.6a2 2 0 0 0 2.8 2.8 M9.7 5.3A11.8 11.8 0 0 1 12 5c6.5 0 10 7 10 7a18.4 18.4 0 0 1-3.2 4.1 M6.3 6.3A18.4 18.4 0 0 0 2 12s3.5 7 10 7a11.8 11.8 0 0 0 5.7-1.7" /></Icon>
-                    : <Icon><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></Icon>}
-                </button>
-              </div>
-              {fieldErrors.password && <p className="setu-login-v2__field-error" id="setu-password-error" role="alert">{fieldErrors.password}</p>}
-            </div>
-
-            <button className="setu-login-v2__submit" type="submit" disabled={busy}>
-              <span>{busy ? 'Signing in…' : 'Sign in to SETU'}</span>
-              {!busy && <Icon><path d="M5 12h14m-6-6 6 6-6 6" /></Icon>}
-            </button>
-          </form>
+          <p className="setu-login-v2__footer">Need help? Contact your workspace administrator.</p>
         </div>
 
       </section>

@@ -7,10 +7,6 @@
   --setu-login-border-soft: #e8e8ed;
   --setu-login-blue: #007AFF;
   --setu-login-blue-active: #0066D6;
-  --setu-login-dark: #000000;
-  --setu-login-dark-text: #f5f5f7;
-  --setu-login-dark-muted: #a1a1a6;
-  --setu-login-dark-line: #363639;
   --setu-login-error: #b42318;
   --setu-login-error-bg: #fff4f2;
   --setu-login-font: "Inter", "SF Pro Text", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -21,12 +17,17 @@
 .setu-login-v2,
 .setu-login-v2 * { box-sizing: border-box; }
 
+/* Centred-card login (approved 2026-10-31): no left panel on any device.
+ * Phone: the card is the page. Tablet/desktop: the same card, centred on a
+ * light-grey page, so the order, wording and hierarchy never change. */
 .setu-login-v2 {
-  display: grid;
-  grid-template-columns: minmax(0, .94fr) minmax(0, 1.06fr);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   min-height: 100vh;
   min-height: 100svh;
   width: 100%;
+  padding: 32px 20px;
   background: var(--setu-login-bg);
   color: var(--setu-login-ink);
   font-family: var(--setu-login-font);
@@ -42,62 +43,22 @@
 .setu-login-v2 button:disabled { cursor: wait; }
 .setu-login-v2 :where(button, a, input):focus-visible { outline: 2px solid var(--setu-login-blue-active); outline-offset: 4px; }
 .setu-login-v2__icon { display: block; width: 20px; height: 20px; flex: none; stroke-width: 1.75; }
-.setu-login-v2__eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .14em; line-height: 1.5; }
 
-.setu-login-v2__story,
-.setu-login-v2__access {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 48px;
-  padding: 48px 64px 32px;
-}
-
-.setu-login-v2__story { background: var(--setu-login-dark); color: var(--setu-login-dark-text); }
-.setu-login-v2__brand,
-.setu-login-v2__access-header,
-.setu-login-v2__access-footer,
-.setu-login-v2__submit,
-.setu-login-v2__role-grid button { display: flex; align-items: center; }
-.setu-login-v2__brand { align-self: flex-start; gap: 12px; }
-.setu-login-v2__brand-mark { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid var(--setu-login-dark-line); border-radius: 8px; }
-.setu-login-v2__brand-mark .setu-login-v2__icon { width: 24px; height: 24px; }
-.setu-login-v2__brand-name { font-family: var(--setu-login-display); font-size: 28px; font-weight: 600; letter-spacing: .08em; line-height: 1; }
-.setu-login-v2__story-main { display: flex; width: 100%; flex-direction: column; gap: 32px; padding-block: 24px; }
-.setu-login-v2__story-main > .setu-login-v2__eyebrow,
-.setu-login-v2__story-footer { color: var(--setu-login-dark-muted); }
-.setu-login-v2__story-title,
-.setu-login-v2__form-heading h1 { font-family: var(--setu-login-display); font-weight: 600; letter-spacing: -.015em; }
-.setu-login-v2__story-title { font-size: clamp(40px, 4.5vw, 64px); line-height: 1.08; }
-.setu-login-v2__story-title span { display: block; }
-.setu-login-v2__muted-title { color: var(--setu-login-dark-muted); }
-.setu-login-v2__story-description { max-width: 34ch; color: var(--setu-login-dark-muted); line-height: 1.65; overflow-wrap: anywhere; }
-.setu-login-v2__bridge { display: block; width: 100%; height: auto; margin-block: 8px; color: var(--setu-login-dark-muted); }
-.setu-login-v2__workflow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; border-top: 1px solid var(--setu-login-dark-line); padding-top: 24px; }
-.setu-login-v2__workflow div { display: grid; gap: 8px; }
-.setu-login-v2__workflow span { color: var(--setu-login-dark-muted); font-family: var(--setu-login-mono); font-size: 12px; }
-.setu-login-v2__workflow strong { font-size: 16px; font-weight: 500; }
-.setu-login-v2__story-footer { display: grid; gap: 8px; font-size: 14px; }
-
-.setu-login-v2__access-header { gap: 8px; color: var(--setu-login-muted); }
-.setu-login-v2__header-icon { width: 16px; height: 16px; }
-.setu-login-v2__form-wrap { width: 100%; max-width: 400px; align-self: center; }
-.setu-login-v2__form-heading { display: grid; gap: 12px; margin-bottom: 24px; }
-.setu-login-v2__form-heading h1 { font-size: 40px; line-height: 1.15; }
-.setu-login-v2__form-heading p { color: var(--setu-login-muted); }
+.setu-login-v2__access { width: 100%; max-width: 400px; }
+.setu-login-v2__brand { margin-bottom: 24px; text-align: center; font-family: var(--setu-login-display); font-size: 20px; font-weight: 800; letter-spacing: .15em; line-height: 1; }
+.setu-login-v2__form-wrap { width: 100%; }
+.setu-login-v2__form-heading { display: grid; gap: 6px; margin-bottom: 24px; text-align: center; }
+.setu-login-v2__form-heading h1 { font-family: var(--setu-login-display); font-size: 28px; font-weight: 700; letter-spacing: -.015em; line-height: 1.2; }
+.setu-login-v2__form-heading p { color: var(--setu-login-muted); font-size: 15px; }
 .setu-login-v2__form { display: grid; gap: 20px; }
 .setu-login-v2__field { display: grid; gap: 8px; }
 .setu-login-v2__field label { color: var(--setu-login-ink); font-size: 16px; font-weight: 600; }
-.setu-login-v2__field label span { color: var(--setu-login-muted); font-size: 12px; font-weight: 400; }
-.setu-login-v2__role-label { color: var(--setu-login-ink); font-size: 16px; font-weight: 600; }
-.setu-login-v2__role-label span { color: var(--setu-login-muted); font-size: 12px; font-weight: 400; }
 .setu-login-v2__field input { display: block; min-width: 0; min-height: 56px; width: 100%; padding: 16px; border: 1px solid var(--setu-login-border); border-radius: 12px; background: var(--setu-login-bg); color: var(--setu-login-ink); line-height: 1.4; outline: none; }
 .setu-login-v2__field input::placeholder { color: var(--setu-login-muted); opacity: 1; }
 .setu-login-v2__field input:focus { border-color: var(--setu-login-blue); box-shadow: 0 0 0 4px rgba(0, 122, 255, .35); }
 .setu-login-v2__field input[aria-invalid="true"] { border-color: var(--setu-login-error); }
 .setu-login-v2__field input:disabled { background: var(--setu-login-surface); color: #424245; }
-.setu-login-v2__password { display: flex; gap: 0; border: 1px solid var(--setu-login-border); border-radius: 12px; background: var(--setu-login-bg); }
+.setu-login-v2__password { display: flex; border: 1px solid var(--setu-login-border); border-radius: 12px; background: var(--setu-login-bg); }
 .setu-login-v2__password:focus-within { border-color: var(--setu-login-blue); box-shadow: 0 0 0 4px rgba(0, 122, 255, .35); }
 .setu-login-v2__password--invalid { border-color: var(--setu-login-error); }
 .setu-login-v2__password input { border: 0; box-shadow: none !important; background: transparent; }
@@ -107,56 +68,34 @@
 .setu-login-v2__message strong { font-weight: 600; }
 .setu-login-v2__message--error { border-color: var(--setu-login-error); background: var(--setu-login-error-bg); color: var(--setu-login-error); }
 .setu-login-v2__message a { color: inherit; text-underline-offset: 4px; }
-.setu-login-v2__submit { min-height: 56px; width: 100%; justify-content: center; gap: 8px; padding: 16px 24px; border: 0; border-radius: 12px; background: var(--setu-login-blue); color: #fff; font-size: 17px; font-weight: 500; line-height: 1.4; transition: transform 150ms cubic-bezier(.28, 0, .22, 1), background 150ms cubic-bezier(.28, 0, .22, 1); }
+.setu-login-v2__submit { display: flex; min-height: 56px; width: 100%; align-items: center; justify-content: center; gap: 8px; padding: 16px 24px; border: 0; border-radius: 12px; background: var(--setu-login-blue); color: #fff; font-size: 17px; font-weight: 600; line-height: 1.4; transition: transform 150ms cubic-bezier(.28, 0, .22, 1), background 150ms cubic-bezier(.28, 0, .22, 1); }
 .setu-login-v2__submit:active { background: var(--setu-login-blue-active); transform: scale(.99); }
 .setu-login-v2__submit:disabled { background: var(--setu-login-blue-active); opacity: .65; }
-.setu-login-v2__role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.setu-login-v2__role-grid button { min-height: 56px; justify-content: center; gap: 12px; padding: 16px 12px; border: 1px solid var(--setu-login-border); border-radius: 12px; background: var(--setu-login-bg); color: #424245; font-size: 16px; font-weight: 500; line-height: 1.3; }
-.setu-login-v2__role-grid button[aria-pressed="true"] { border-color: var(--setu-login-blue); background: rgba(0, 122, 255, 0.08); color: var(--setu-login-ink); }
+
+/* Segmented role control: one control, not two cards. */
+.setu-login-v2__role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; padding: 3px; border-radius: 12px; background: var(--setu-login-surface); }
+.setu-login-v2__role-grid button { min-height: 48px; padding: 12px 8px; border: 0; border-radius: 9px; background: transparent; color: #3c3c43; font-size: 16px; font-weight: 500; line-height: 1.3; }
+.setu-login-v2__role-grid button[aria-pressed="true"] { background: var(--setu-login-bg); color: var(--setu-login-blue); font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
 .setu-login-v2__role-grid button:disabled { opacity: .6; }
+
+.setu-login-v2__divider { display: flex; align-items: center; gap: 12px; margin-top: 20px; color: var(--setu-login-muted); font-size: 13px; }
+.setu-login-v2__divider::before, .setu-login-v2__divider::after { content: ""; flex: 1; height: 1px; background: var(--setu-login-border-soft); }
+.setu-login-v2__footer { margin-top: 16px; text-align: center; color: var(--setu-login-muted); font-size: 12px; }
 
 @media (hover: hover) {
   .setu-login-v2__submit:not(:disabled):hover { background: var(--setu-login-blue-active); }
-  .setu-login-v2__role-grid button:not(:disabled):hover { border-color: #424245; background: var(--setu-login-surface); }
   .setu-login-v2__reveal:not(:disabled):hover { background: var(--setu-login-surface); color: var(--setu-login-ink); }
 }
 
-@media (min-width: 1440px) {
-  .setu-login-v2__story, .setu-login-v2__access { padding-inline: 80px; }
-  .setu-login-v2__story-main { max-width: 520px; align-self: center; }
-}
-
-@media (max-width: 1023px) {
-  .setu-login-v2 { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
-  .setu-login-v2__story, .setu-login-v2__access { padding: 32px 40px; }
-  .setu-login-v2__story-title { font-size: clamp(40px, 4.5vw, 48px); }
-  .setu-login-v2__story-main { gap: 24px; }
-}
-
-@media (max-width: 767px) {
-  .setu-login-v2 { display: block; }
-  .setu-login-v2__story { gap: 24px; padding: 24px; }
-  .setu-login-v2__story-main { gap: 16px; padding-block: 8px; }
-  .setu-login-v2__story-title { font-size: 40px; }
-  .setu-login-v2__story-title span { display: inline; }
-  .setu-login-v2__muted-title { display: block !important; }
-  .setu-login-v2__story-description {
-    inline-size: min(100%, calc(100vw - 48px));
-    max-inline-size: calc(100vw - 48px);
-    min-width: 0;
-    white-space: normal;
-  }
-  .setu-login-v2__bridge { max-width: min(360px, calc(100vw - 48px)); align-self: center; }
-  .setu-login-v2__workflow { padding-top: 16px; }
-  .setu-login-v2__story-footer { display: flex; flex-wrap: wrap; gap: 12px; }
-  .setu-login-v2__access { gap: 32px; padding: 32px 24px; }
-  .setu-login-v2__access-header { align-self: center; }
-  .setu-login-v2__form-heading h1 { font-size: 36px; }
+@media (min-width: 768px) {
+  .setu-login-v2 { padding: 48px 20px; background: var(--setu-login-surface); }
+  .setu-login-v2__access { max-width: 420px; padding: 32px; border: 1px solid var(--setu-login-border-soft); border-radius: 18px; background: var(--setu-login-bg); box-shadow: 0 10px 28px rgba(0, 0, 0, .08); }
+  .setu-login-v2__form-heading h1 { font-size: 30px; }
 }
 
 @media (max-width: 374px) {
-  .setu-login-v2__story, .setu-login-v2__access { padding-inline: 16px; }
-  .setu-login-v2__role-grid { grid-template-columns: 1fr; }
+  .setu-login-v2 { padding-inline: 16px; }
+  .setu-login-v2__role-grid button { font-size: 14px; }
 }
 
 
@@ -205,35 +144,12 @@
 .setu-login-v2__evaluator-button:hover { background: rgba(0, 122, 255, 0.08); }
 .setu-login-v2__form-heading { margin-bottom: 24px; }
 @media (max-width: 767px) {
-  .setu-login-v2__story {
-    min-height: 0;
-    padding: 12px 20px;
-    gap: 0;
-  }
-  .setu-login-v2__story-main,
-  .setu-login-v2__story-footer { display: none; }
-  .setu-login-v2__brand-mark { width: 34px; height: 34px; }
-  .setu-login-v2__brand-name { font-size: 24px; }
-  .setu-login-v2__access {
-    gap: 10px;
-    padding: 12px 20px 24px;
-  }
-  .setu-login-v2__access-header { display: none; }
   .setu-login-v2__form-heading { gap: 4px; margin-bottom: 12px; }
   .setu-login-v2__form-heading h1 { font-size: 28px; }
   .setu-login-v2__form-heading p { font-size: 13px; }
-  .setu-login-v2__evaluator { padding: 14px; margin-bottom: 20px; }
-  .setu-login-v2__evaluator-header { margin-bottom: 10px; }
-  .setu-login-v2__evaluator-header h2 { font-size: 16px; }
-  .setu-login-v2__evaluator-header p { font-size: 12px; }
-  .setu-login-v2__evaluator-button { min-height: 52px; }
   .setu-login-v2__form { gap: 20px; }
   .setu-login-v2__field input { min-height: 48px; padding: 12px; }
   .setu-login-v2__submit { min-height: 48px; }
-}
-@media (max-width: 374px) {
-  .setu-login-v2__story { padding-inline: 16px; }
-  .setu-login-v2__access { padding-inline: 16px; }
 }
 
 
@@ -277,3 +193,13 @@
 .setu-login-v2__evaluator-field input { min-width: 0; width: 100%; padding: 6px 8px; border: 1px solid var(--setu-login-border); border-radius: 7px; background: #fbfcff; color: #161616; font-family: var(--setu-login-mono); font-size: 12px; }
 .setu-login-v2__evaluator-copy { border: 0; background: transparent; color: #0758b8; font-size: 12px; font-weight: 600; padding: 4px 2px; white-space: nowrap; }
 .setu-login-v2__evaluator-clear { justify-self: start; min-height: 32px; }
+
+/* Centred-card redesign (approved 2026-10-31): the evaluator action is a
+ * quiet text action below the divider, not a card and not a second solid
+ * button. The credential panel itself is unchanged and renders below it
+ * only after the evaluator button is tapped. These rules come last so they
+ * win over the older card styles above. */
+.setu-login-v2__evaluator { margin: 12px 0 0; padding: 0; border: 0; background: transparent; }
+.setu-login-v2__evaluator-button { min-height: 44px; width: 100%; border: 0; border-radius: 8px; background: transparent; color: var(--setu-login-blue); font-size: 15px; font-weight: 600; }
+.setu-login-v2__evaluator-button:hover { background: rgba(0, 122, 255, 0.08); }
+.setu-login-v2__evaluator-result { padding: 12px 0 4px; }

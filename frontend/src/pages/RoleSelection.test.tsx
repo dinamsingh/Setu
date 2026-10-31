@@ -196,4 +196,17 @@ describe('Login V2 role selection', () => {
     expect(container.textContent).not.toContain('Role selection does not grant access.');
     expect(container.textContent).not.toContain('password123');
   });
+  it('renders the centred-card design with no left story panel', async () => {
+    await render();
+
+    expect(container.querySelector('h1')?.textContent).toBe('Sign in to SETU');
+    expect(container.textContent).toContain('Use your workspace account to continue.');
+    expect(container.textContent).toContain('SIH Evaluator Login');
+    expect(container.textContent).toContain('Need help? Contact your workspace administrator.');
+    expect(container.textContent).not.toContain('From the field.');
+    expect(container.textContent).not.toContain('Welcome back.');
+    expect(container.textContent).not.toContain('SIH Evaluation');
+    expect(container.querySelector('.setu-login-v2__story')).toBeNull();
+  });
+
 });
