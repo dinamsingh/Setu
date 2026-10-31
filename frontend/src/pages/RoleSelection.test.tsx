@@ -162,9 +162,19 @@ describe('Login V2 role selection', () => {
     await submit();
 
     expect(auth.signOut).toHaveBeenCalled();
-    expect(container.textContent).toContain('This account is assigned as Site Engineer, not Planner.');
-    expect(container.querySelector<HTMLInputElement>('#setu-password')?.value).toBe('');
+    expect(container.textContent).toContain('Wrong role selected.');
+    expect(container.textContent).toContain('This account belongs to Site Engineer.');
+    // The password is kept so the one-tap switch below does not force retyping.
+    expect(container.querySelector<HTMLInputElement>('#setu-password')?.value).toBe('password123');
     expect(container.querySelector('[data-testid="location"]')?.textContent).toBe('/');
+
+    const switchButton = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('Switch to Site Engineer'));
+    expect(switchButton).toBeTruthy();
+    await act(async () => switchButton?.click());
+
+    const siteButton = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.trim() === 'Site Engineer');
+    expect(siteButton?.getAttribute('aria-pressed')).toBe('true');
+    expect(container.textContent).not.toContain('Wrong role selected.');
   });
 
   it('grants an admin account access when Planner is selected', async () => {

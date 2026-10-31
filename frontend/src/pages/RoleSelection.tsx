@@ -36,6 +36,7 @@ export const RoleSelection: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [signInError, setSignInError] = useState<string | null>(null);
+  const [roleMismatch, setRoleMismatch] = useState<WorkspaceRole | null>(null);
   const [selectedRole, setSelectedRole] = useState<WorkspaceRole | null>(null);
   const [evaluatorCredentials, setEvaluatorCredentials] = useState<EvaluatorAccess | null>(() => currentEvaluatorAccess());
   const [showEvaluator, setShowEvaluator] = useState(() => Boolean(currentEvaluatorAccess()));
@@ -108,6 +109,7 @@ export const RoleSelection: React.FC = () => {
     const nextFieldErrors = validate();
     setFieldErrors(nextFieldErrors);
     setSignInError(null);
+    setRoleMismatch(null);
     if (Object.keys(nextFieldErrors).length > 0) return;
 
     setBusy(true);
@@ -143,12 +145,12 @@ export const RoleSelection: React.FC = () => {
 
       if (assigned !== selectedRole) {
         // The credentials are valid, but for a different workspace role.
-        // Deny this login rather than opening the other workspace.
+        // Deny this login rather than opening the other workspace, and
+        // offer a one-tap switch instead of making the user retype
+        // everything. The session is signed out either way.
         try { await signOut(); } catch { /* sign-out is best effort here */ }
-        setPassword('');
-        setSignInError(
-          `This account is assigned as ${ROLE_LABEL[assigned]}, not ${ROLE_LABEL[selectedRole as WorkspaceRole]}. Select ${ROLE_LABEL[assigned]} to sign in.`,
-        );
+        setRoleMismatch(assigned);
+        setSignInError(`This account belongs to ${ROLE_LABEL[assigned]}.`);
         return;
       }
 
@@ -176,6 +178,7 @@ export const RoleSelection: React.FC = () => {
     setSelectedRole(role);
     setFieldErrors((current) => (current.role ? { ...current, role: undefined } : current));
     setSignInError(null);
+    setRoleMismatch(null);
   };
 
   const hasMultipleFieldErrors = Boolean(fieldErrors.email && fieldErrors.password);
@@ -320,8 +323,17 @@ export const RoleSelection: React.FC = () => {
             )}
             {(signInError || sessionIssue) && (
               <div className="setu-login-v2__message setu-login-v2__message--error" role="alert">
-                <strong>{signInError ? 'Sign-in couldn&apos;t be completed.' : 'Session needs attention.'}</strong>
+                <strong>{roleMismatch ? 'Wrong role selected.' : signInError ? 'Sign-in couldn&apos;t be completed.' : 'Session needs attention.'}</strong>
                 <p>{signInError ?? sessionIssue}</p>
+                {roleMismatch && (
+                  <button
+                    type="button"
+                    className="setu-login-v2__message-action"
+                    onClick={() => selectRole(roleMismatch)}
+                  >
+                    Switch to {ROLE_LABEL[roleMismatch]}
+                  </button>
+                )}
               </div>
             )}
 
