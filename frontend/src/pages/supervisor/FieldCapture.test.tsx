@@ -342,7 +342,7 @@ it('prevents late speech results from mutating fieldText after report submission
   }));
 });
 
-it('displays simple default supervisor screen with compact details grid, Hide details toggle, and Update bhejo action', async () => {
+it('displays simple default supervisor screen with compact details grid, Hide details toggle, and Submit update action', async () => {
   await click('New field update');
   const textarea = container.querySelector('#field-report');
   expect(textarea).not.toBeNull();
@@ -352,7 +352,7 @@ it('displays simple default supervisor screen with compact details grid, Hide de
   expect(container.querySelector('[aria-label="Site location"]')).not.toBeNull();
   expect(container.querySelector('[aria-label="Reported date"]')).not.toBeNull();
   expect(container.querySelector('[role="region"][aria-label="Date and time suggestions from narrative"]')).toBeNull();
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'));
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'));
   expect(sendButton).toBeDefined();
   const changeDetailsBtn = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Hide details'))!;
   expect(changeDetailsBtn).toBeDefined();
@@ -364,12 +364,12 @@ it('displays simple default supervisor screen with compact details grid, Hide de
   expect(container.querySelector('#report-details-panel')?.className).toContain('hidden');
 });
 
-it('submits a simple valid completed update with Update bhejo and shows sent confirmation', async () => {
+it('submits a simple valid completed update with Submit update and shows sent confirmation', async () => {
   state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-001' });
   await click('New field update');
   await edit('#field-report', 'Piping spool erection finished at Manifold A today');
   await edit('[aria-label="Site location"]', 'Manifold Area A');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   expect(state.submit).toHaveBeenCalledTimes(1);
   expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
@@ -385,7 +385,7 @@ it('cleanly submits compound narrative without extra interruption ("Aaj inspecti
   state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-002' });
   await click('New field update');
   await edit('#field-report', 'Aaj inspection complete hua, kal welding shuru hogi');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   expect(container.querySelector('[role="dialog"]')).toBeNull();
   expect(state.submit).toHaveBeenCalledTimes(1);
@@ -403,7 +403,7 @@ it('never classifies negated Hindi narrative as completed ("Inspection complete 
   state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-003' });
   await click('New field update');
   await edit('#field-report', 'Inspection complete nahi hua');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   expect(state.submit).toHaveBeenCalledTimes(1);
   expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
@@ -419,14 +419,14 @@ it('interrupts with one plain-language question when material ambiguity exists (
   state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-004' });
   await click('New field update');
   await edit('#field-report', 'Kal welding at Manifold Area');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   const dialog = container.querySelector('[role="dialog"]');
   expect(dialog).not.toBeNull();
-  expect(dialog?.textContent).toContain('Kripya spashth karein');
-  expect(dialog?.textContent).toContain('Ye kaam kal hua tha ya aage plan hai?');
+  expect(dialog?.textContent).toContain('Clarification required');
+  expect(dialog?.textContent).toContain('Was this work completed yesterday, or is it planned for tomorrow?');
   expect(state.submit).not.toHaveBeenCalled();
-  const pastBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Kal hua tha'))!;
+  const pastBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Completed yesterday'))!;
   expect(pastBtn).toBeDefined();
   await act(async () => { pastBtn.click(); });
   expect(state.submit).not.toHaveBeenCalled();
@@ -436,21 +436,21 @@ it('interrupts with one plain-language question when material ambiguity exists (
   expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
     fieldText: 'Kal welding at Manifold Area',
     clarification: expect.objectContaining({
-      question: 'Ye kaam kal hua tha ya aage plan hai?',
-      answer: expect.stringContaining('Kal hua tha'),
+      question: 'Was this work completed yesterday, or is it planned for tomorrow?',
+      answer: expect.stringContaining('Completed yesterday'),
     }),
   }));
 });
 
-it('prompts targeted clarification for conflicting activity status ("Welding complete hui hai ya kal shuru hogi?") and allows editing', async () => {
+it('prompts targeted clarification for conflicting activity status ("Is the welding complete, or is it scheduled to start tomorrow?") and allows editing', async () => {
   await click('New field update');
   await edit('#field-report', 'Feeder line welding complete ho gayi lekin kal shuru hogi testing');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   const dialog = container.querySelector('[role="dialog"]');
   expect(dialog).not.toBeNull();
-  expect(dialog?.textContent).toContain('Welding complete hui hai ya kal shuru hogi?');
-  const editBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Update badlein'))!;
+  expect(dialog?.textContent).toContain('Is the welding complete, or is it scheduled to start tomorrow?');
+  const editBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Edit update'))!;
   await act(async () => { editBtn.click(); });
   expect(container.querySelector('[role="dialog"]')).toBeNull();
   expect((container.querySelector('#field-report') as HTMLTextAreaElement)?.value).toContain('Feeder line welding complete');
@@ -461,12 +461,12 @@ it('prompts targeted clarification when narrative claims work completed yesterda
   state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-005' });
   await click('New field update');
   await edit('#field-report', 'Kal kaam complete hua tha');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   const dialog = container.querySelector('[role="dialog"]');
   expect(dialog).not.toBeNull();
-  expect(dialog?.textContent).toContain('Ye kaam aaj hua tha ya kal?');
-  const yestBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Kal hua tha'))!;
+  expect(dialog?.textContent).toContain('Was this work completed today or yesterday?');
+  const yestBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Completed yesterday'))!;
   await act(async () => { yestBtn.click(); });
   expect(state.submit).not.toHaveBeenCalled();
   expect(container.querySelector('.setu-supervisor-v2__review')).not.toBeNull();
@@ -475,7 +475,7 @@ it('prompts targeted clarification when narrative claims work completed yesterda
   const submittedCall = state.submit.mock.calls[0][0];
   expect(submittedCall.fieldText).toBe('Kal kaam complete hua tha');
   expect(submittedCall.reportedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-  expect(submittedCall.clarification.answer).toContain('Kal hua tha');
+  expect(submittedCall.clarification.answer).toContain('Completed yesterday');
   expect(submittedCall.idempotencyKey).toBeDefined();
 });
 
@@ -484,7 +484,7 @@ it('preserves manual reported-date override and respects user change without sil
   await click('New field update');
   await edit('input[type="date"]', '2026-05-15');
   await edit('#field-report', 'Testing finished successfully at Manifold A');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   expect(state.submit).toHaveBeenCalledWith(expect.objectContaining({
     reportedDate: '2026-05-15',
@@ -492,18 +492,18 @@ it('preserves manual reported-date override and respects user change without sil
   }));
 });
 
-it('preserves unsent draft on submission failure, shows Update nahi bheji gayi and provides Retry', async () => {
+it('preserves unsent draft on submission failure, shows Update not submitted and provides Retry', async () => {
   state.submit.mockResolvedValueOnce({ success: false, error: 'Database network timeout' });
   await click('New field update');
   await edit('#field-report', 'Critical pump alignment completed at Station 3');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   const errorAlert = container.querySelector('[role="alert"]');
   expect(errorAlert).not.toBeNull();
-  expect(errorAlert?.textContent).toContain('Update nahi bheji gayi');
+  expect(errorAlert?.textContent).toContain('Update not submitted');
   expect(errorAlert?.textContent).toContain('Database network timeout');
   expect((container.querySelector('#field-report') as HTMLTextAreaElement)?.value).toBe('Critical pump alignment completed at Station 3');
-  const retryBtn = [...errorAlert!.querySelectorAll('button')].find(b => b.textContent?.includes('Dobara koshish karein'));
+  const retryBtn = [...errorAlert!.querySelectorAll('button')].find(b => b.textContent?.includes('Try again'));
   expect(retryBtn).toBeDefined();
   state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-RETRY-001' });
   await act(async () => { retryBtn!.click(); });
@@ -513,7 +513,7 @@ it('preserves unsent draft on submission failure, shows Update nahi bheji gayi a
 
 it('prevents submission when narrative is empty or too short without calling submit', async () => {
   await click('New field update');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   expect(sendButton.disabled).toBe(true);
   await edit('#field-report', 'ok');
   await act(async () => {
@@ -523,15 +523,15 @@ it('prevents submission when narrative is empty or too short without calling sub
   expect(container.querySelector('[role="alert"]')?.textContent).toContain('Narrative is too short');
 });
 
-it('displays subtle loading feedback "SETU aapki update check kar raha hai…" while submission is in-flight', async () => {
+it('displays loading feedback "Submitting your update…" while submission is in-flight', async () => {
   let finish: (res: any) => void = () => {};
   state.submit.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
   await click('New field update');
   await edit('#field-report', 'Pressure test passed with zero drop');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   const statusEl = container.querySelector('[role="status"]');
-  expect(statusEl?.textContent).toContain('SETU aapki update check kar raha hai…');
+  expect(statusEl?.textContent).toContain('Submitting your update…');
   expect(sendButton.disabled).toBe(true);
   await act(async () => { finish({ success: true, updateId: 'UPD-2026-FIN' }); });
   expect(container.textContent).toContain('Update sent');
@@ -541,11 +541,11 @@ it('resolves clarification with Today and passes today reported date directly to
   state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-2026-TODAY' });
   await click('New field update');
   await edit('#field-report', 'Kal kaam complete hua tha');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   const dialog = container.querySelector('[role="dialog"]');
   expect(dialog).not.toBeNull();
-  const todayBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Aaj hua tha'))!;
+  const todayBtn = [...dialog!.querySelectorAll('button')].find(b => b.textContent?.includes('Completed today'))!;
   expect(todayBtn).toBeDefined();
   await act(async () => { todayBtn.click(); });
   expect(state.submit).not.toHaveBeenCalled();
@@ -555,13 +555,13 @@ it('resolves clarification with Today and passes today reported date directly to
   const callArgs = state.submit.mock.calls[0][0];
   expect(callArgs.fieldText).toBe('Kal kaam complete hua tha');
   expect(callArgs.reportedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-  expect(callArgs.clarification.answer).toContain('Aaj hua tha');
+  expect(callArgs.clarification.answer).toContain('Completed today');
 });
 
 it('invalidates previous clarification when narrative text or mic input is edited', async () => {
   await click('New field update');
   await edit('#field-report', 'Kal kaam complete hua tha');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   expect(container.querySelector('[role="dialog"]')).not.toBeNull();
 
@@ -575,7 +575,7 @@ it('passes stable idempotency key on failure retry preventing duplicate reports'
   state.submit.mockResolvedValueOnce({ success: false, error: 'Network socket closed' });
   await click('New field update');
   await edit('#field-report', 'Pipeline testing completed with 10 bar pressure');
-  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Update bhejo'))!;
+  const sendButton = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Submit update'))!;
   await act(async () => { sendButton.click(); });
   expect(state.submit).toHaveBeenCalledTimes(1);
   const firstKey = state.submit.mock.calls[0][0].idempotencyKey;
@@ -583,7 +583,7 @@ it('passes stable idempotency key on failure retry preventing duplicate reports'
 
   // Retry submission
   state.submit.mockResolvedValueOnce({ success: true, updateId: 'UPD-RETRY-STABLE' });
-  const retryBtn = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Dobara koshish karein'))!;
+  const retryBtn = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Try again'))!;
   await act(async () => { retryBtn.click(); });
   expect(state.submit).toHaveBeenCalledTimes(2);
   const secondKey = state.submit.mock.calls[1][0].idempotencyKey;

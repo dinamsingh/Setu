@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Layers, LogOut, UserCircle2 } from 'lucide-react';
 import { useAuth } from '../../lib/AuthContext';
 import { enterEvaluatorRole, otherEvaluatorRole } from '../../lib/evaluatorAccess';
+import { DevelopmentNotice } from './DevelopmentNotice';
 
 interface HeaderProps {
   currentRole?: 'supervisor' | 'planner';
@@ -57,6 +58,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRole }) => {
     : 'Site Supervisor';
 
   return (
+    <>
     <header className="sticky top-0 z-40 border-b border-setu-slate-700 bg-setu-navy text-white shadow-sm">
       <div className="mx-auto max-w-[90rem] px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
@@ -117,5 +119,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRole }) => {
         {switchError && <div className="pb-2 text-xs text-red-200" role="alert">{switchError}</div>}
       </div>
     </header>
+    <DevelopmentNotice />
+    </>
   );
 };

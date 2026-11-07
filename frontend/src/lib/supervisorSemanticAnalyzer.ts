@@ -137,10 +137,10 @@ export function analyzeSupervisorNarrative(
   if (weldingConflict) {
     materialAmbiguity = {
       id: 'conflict-welding',
-      question: 'Welding complete hui hai ya kal shuru hogi?',
+      question: 'Is the welding complete, or is it scheduled to start tomorrow?',
       options: [
-        { label: 'Complete hui hai (Completed)', resolution: 'completed' },
-        { label: 'Kal shuru hogi (Future plan)', resolution: 'future_plan' },
+        { label: 'Completed', resolution: 'completed' },
+        { label: 'Scheduled to start tomorrow', resolution: 'future_plan' },
       ],
       rawContext: trimmedText,
       reason: 'conflicting_status',
@@ -158,10 +158,10 @@ export function analyzeSupervisorNarrative(
       if (!hasPastMarker && !hasFutureMarker) {
         materialAmbiguity = {
           id: 'ambiguous-kal',
-          question: 'Ye kaam kal hua tha ya aage plan hai?',
+          question: 'Was this work completed yesterday, or is it planned for tomorrow?',
           options: [
-            { label: 'Kal hua tha (Completed)', resolution: 'past_completed' },
-            { label: 'Kal hoga (Future plan)', resolution: 'future_plan' },
+            { label: 'Completed yesterday', resolution: 'past_completed' },
+            { label: 'Planned for tomorrow', resolution: 'future_plan' },
           ],
           rawContext: ambiguousKalSuggestion.matchedText,
           reason: 'relative_day_unanchored',
@@ -180,10 +180,10 @@ export function analyzeSupervisorNarrative(
     if (explicitYesterdayPast && reportedDate === baseKolkata.yyyyMmDd) {
       materialAmbiguity = {
         id: 'date-divergence',
-        question: 'Ye kaam aaj hua tha ya kal?',
+        question: 'Was this work completed today or yesterday?',
         options: [
-          { label: 'Aaj hua tha (Today)', resolution: 'today' },
-          { label: 'Kal hua tha (Yesterday)', resolution: 'yesterday' },
+          { label: 'Completed today', resolution: 'today' },
+          { label: 'Completed yesterday', resolution: 'yesterday' },
         ],
         rawContext: trimmedText,
         reason: 'reported_date_divergence',

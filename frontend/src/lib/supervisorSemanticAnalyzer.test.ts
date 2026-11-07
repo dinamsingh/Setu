@@ -67,7 +67,7 @@ describe('supervisorSemanticAnalyzer', () => {
 
     expect(result.isValid).toBe(true);
     expect(result.materialAmbiguity).not.toBeNull();
-    expect(result.materialAmbiguity?.question).toBe('Ye kaam kal hua tha ya aage plan hai?');
+    expect(result.materialAmbiguity?.question).toBe('Was this work completed yesterday, or is it planned for tomorrow?');
     expect(result.materialAmbiguity?.options).toHaveLength(2);
   });
 
@@ -80,7 +80,7 @@ describe('supervisorSemanticAnalyzer', () => {
 
     expect(result.isValid).toBe(true);
     expect(result.materialAmbiguity).not.toBeNull();
-    expect(result.materialAmbiguity?.question).toContain('complete hui hai ya kal shuru');
+    expect(result.materialAmbiguity?.question).toContain('Is the welding complete, or is it scheduled to start tomorrow?');
   });
 
   it('detects divergence when narrative explicitly reports past work completed yesterday but reported date is today', () => {
@@ -92,9 +92,9 @@ describe('supervisorSemanticAnalyzer', () => {
 
     expect(result.isValid).toBe(true);
     expect(result.materialAmbiguity).not.toBeNull();
-    expect(result.materialAmbiguity?.question).toBe('Ye kaam aaj hua tha ya kal?');
-    expect(result.materialAmbiguity?.options[0].label).toContain('Aaj hua tha');
-    expect(result.materialAmbiguity?.options[1].label).toContain('Kal hua tha');
+    expect(result.materialAmbiguity?.question).toBe('Was this work completed today or yesterday?');
+    expect(result.materialAmbiguity?.options[0].label).toContain('Completed today');
+    expect(result.materialAmbiguity?.options[1].label).toContain('Completed yesterday');
   });
 
   it('preserves the original narrative verbatim in summary', () => {

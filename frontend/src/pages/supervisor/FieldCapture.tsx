@@ -20,6 +20,7 @@ import { addressedRequests } from '../../lib/workflow';
 import { NeedsClarification } from '../../components/supervisor/NeedsClarification';
 import { ReportImportWizard } from '../../components/supervisor/ReportImportWizard';
 import { ReportAttachmentMenu } from '../../components/supervisor/ReportAttachmentMenu';
+import { DevelopmentNotice } from '../../components/common/DevelopmentNotice';
 import { ownSiteUpdates, siteLogDate, siteLogStatus, type SiteLogTone } from '../../lib/siteLog';
 import type { FieldUpdate } from '../../types';
 import './SupervisorV2.css';
@@ -228,7 +229,7 @@ export const FieldCapture: React.FC = () => {
     isSubmittingRef.current = false;
 
     if (!result.success) {
-      setSubmitError(result.error || 'Update nahi bheji gayi. Kripya dobara koshish karein.');
+      setSubmitError(result.error || 'Unable to submit your update. Please try again.');
       return;
     }
 
@@ -324,7 +325,7 @@ export const FieldCapture: React.FC = () => {
         </div>
       </div>
     </header>
-
+    <DevelopmentNotice />
     <main className={`setu-supervisor-v2__main mx-auto w-full px-4 pb-32 pt-7 sm:px-8 sm:pt-10 ${screen === 'import' ? 'max-w-6xl' : 'max-w-4xl'}`}>
       {screen === 'import' && <ReportImportWizard onCancel={() => setScreen('compose')}
         submitter={user ? { id: user.id, role } : undefined} onLockChange={setImportLocked} onCompleted={() => void refetch(true)} />}
@@ -511,7 +512,7 @@ export const FieldCapture: React.FC = () => {
                 <AlertCircle size={20} className="mt-0.5 text-amber-700 shrink-0" aria-hidden="true" />
                 <div className="flex-1">
                   <h3 id="clarification-title" className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                    Kripya spashth karein (Please clarify)
+                    Clarification required
                   </h3>
                   <p className="mt-1.5 text-base font-bold text-slate-900">
                     {pendingClarification.question}
@@ -532,7 +533,7 @@ export const FieldCapture: React.FC = () => {
                       onClick={() => setPendingClarification(null)}
                       className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
-                      Update badlein (Edit update)
+                      Edit update
                     </button>
                   </div>
                 </div>
@@ -547,7 +548,7 @@ export const FieldCapture: React.FC = () => {
               className="flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-900 shadow-sm"
             >
               <RefreshCw size={17} className="animate-spin text-blue-700 shrink-0" aria-hidden="true" />
-              <span>SETU aapki update check kar raha hai…</span>
+              <span>Submitting your update…</span>
             </div>
           )}
 
@@ -561,7 +562,7 @@ export const FieldCapture: React.FC = () => {
                 <div className="flex items-start gap-2.5">
                   <AlertCircle size={18} className="mt-0.5 text-rose-600 shrink-0" aria-hidden="true" />
                   <div>
-                    <p className="font-bold text-rose-950">Update nahi bheji gayi</p>
+                    <p className="font-bold text-rose-950">Update not submitted</p>
                     <p className="mt-0.5 text-xs text-rose-800">{submitError}</p>
                   </div>
                 </div>
@@ -570,7 +571,7 @@ export const FieldCapture: React.FC = () => {
                   onClick={handleSend}
                   className="shrink-0 rounded-xl bg-rose-700 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                 >
-                  Dobara koshish karein (Retry)
+                  Try again
                 </button>
               </div>
             </div>
@@ -586,7 +587,7 @@ export const FieldCapture: React.FC = () => {
             className={`hidden w-full items-center justify-center gap-2 rounded-xl bg-[#007AFF] px-6 py-4 text-base font-semibold text-white transition-colors hover:bg-[#0066D6] disabled:cursor-not-allowed disabled:opacity-50 sm:flex ${focus}`}
           >
             <Send size={18}/>
-            {isSubmitting ? 'SETU aapki update check kar raha hai…' : 'Update bhejo'}
+            {isSubmitting ? 'Submitting your update…' : 'Submit update'}
             {!isSubmitting && <ArrowRight size={18}/>}
           </button>
         </form>
@@ -599,7 +600,7 @@ export const FieldCapture: React.FC = () => {
             className={`flex w-full items-center justify-center gap-2 rounded-xl bg-[#007AFF] px-5 py-4 font-semibold text-white disabled:opacity-50 ${focus}`}
           >
             <Send size={18}/>
-            {isSubmitting ? 'SETU aapki update check kar raha hai…' : 'Update bhejo'}
+            {isSubmitting ? 'Submitting your update…' : 'Submit update'}
             {!isSubmitting && <ArrowRight size={18}/>}
           </button>
         </div>
@@ -617,7 +618,7 @@ export const FieldCapture: React.FC = () => {
           <div className="setu-supervisor-v2__review-reporter"><UserRound size={20}/><span><small>Reporting as</small><strong>{reportedBy}</strong><small>{user?.email || 'Signed-in SETU account'}</small></span></div>
           <p className="setu-supervisor-v2__attachment-note">Photo and PDF upload is not available. Spreadsheet imports are reviewed separately.</p>
           {resolvedAmbiguity && <p className="setu-supervisor-v2__notice">Date updated based on your clarification — please check it before sending.</p>}
-          {isSubmitting && <p role="status" className="setu-supervisor-v2__notice">SETU aapki update check kar raha hai…</p>}
+          {isSubmitting && <p role="status" className="setu-supervisor-v2__notice">Submitting your update…</p>}
           {submitError && <div role="alert" className="setu-supervisor-v2__review-error">{submitError}</div>}
           <div className="setu-supervisor-v2__review-footer"><button type="button" disabled={isSubmitting} className="setu-supervisor-v2__quiet" onClick={() => { setSubmitError(null); setScreen('compose'); }}>Edit update</button><button type="button" disabled={isSubmitting} className="setu-supervisor-v2__primary" onClick={() => void handleSend()}>Send for plan linking <ArrowRight size={18}/></button></div>
         </div>
