@@ -196,7 +196,7 @@ describe('Login V2 role selection', () => {
     expect(container.textContent).not.toContain('Role selection does not grant access.');
     expect(container.textContent).not.toContain('password123');
   });
-  it('renders the centred-card design with no left story panel', async () => {
+  it('preserves the sign-in content and controls', async () => {
     await render();
 
     expect(container.querySelector('h1')?.textContent).toBe('Sign in to SETU');

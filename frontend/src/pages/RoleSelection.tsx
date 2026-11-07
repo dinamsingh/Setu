@@ -198,7 +198,30 @@ export const RoleSelection: React.FC = () => {
       </header>
 
       <section className="setu-login-v2__access" aria-labelledby="setu-login-title">
-
+        <aside className="setu-login-v2__desktop-intro" aria-label="About SETU">
+          <div>
+            <p className="setu-login-v2__eyebrow">FIELD INTELLIGENCE, CONNECTED</p>
+            <h2>Every update.<br /><em>A clearer plan.</em></h2>
+            <p className="setu-login-v2__intro-copy">Bring field reports and schedules together. Keep every decision in view.</p>
+          </div>
+          <svg className="setu-login-v2__blueprint" viewBox="0 0 400 180" fill="none" aria-hidden="true">
+            <path d="M0 30H400M0 70H400M0 110H400M0 150H400M40 0V180M120 0V180M200 0V180M280 0V180M360 0V180" stroke="currentColor" opacity=".09" />
+            <path d="M40 50H145V90H240V130H360" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 5" opacity=".45" />
+            <rect x="40" y="38" width="105" height="24" rx="6" fill="currentColor" opacity=".16" />
+            <rect x="145" y="78" width="95" height="24" rx="6" fill="currentColor" opacity=".3" />
+            <rect x="240" y="118" width="120" height="24" rx="6" fill="currentColor" opacity=".8" />
+            <circle cx="40" cy="50" r="4" fill="currentColor" />
+            <circle cx="145" cy="90" r="4" fill="currentColor" />
+            <path d="m290 130 5 5 10-10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M200 12V164" stroke="currentColor" strokeWidth="1.5" opacity=".3" />
+            <circle cx="200" cy="12" r="3" fill="currentColor" opacity=".5" />
+          </svg>
+          <div className="setu-login-v2__workflow" aria-label="SETU workflow">
+            <span>Field reports</span><span aria-hidden="true">→</span>
+            <span>Schedule linking</span><span aria-hidden="true">→</span>
+            <span>Planner review</span>
+          </div>
+        </aside>
         <div className="setu-login-v2__form-wrap">
           <div className="setu-login-v2__brand" aria-hidden="true">SETU</div>
           <header className="setu-login-v2__form-heading">
