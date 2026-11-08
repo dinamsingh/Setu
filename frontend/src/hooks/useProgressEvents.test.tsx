@@ -83,16 +83,16 @@ it('keeps refreshing after matching completes and stops when current events appe
   expect(container.textContent).toContain('Awaiting structured progress extraction');
   expect(order).not.toHaveBeenCalled();
   stored = { ...stored, confidence_level: 'High' };
-  await act(async () => vi.advanceTimersByTimeAsync(5000));
+  await act(async () => vi.advanceTimersByTimeAsync(30000));
   expect(refresh).toHaveBeenCalledWith(true);
   expect(container.textContent).toContain('Awaiting structured progress extraction');
-  await act(async () => vi.advanceTimersByTimeAsync(5000));
+  await act(async () => vi.advanceTimersByTimeAsync(30000));
   expect(refresh).toHaveBeenCalledTimes(2);
   order.mockResolvedValue({ data: [{ id: 'later-event', field_update_id: report.id, evidence_revision: 1,
     event_index: 0, event_type: 'START', event_date: '2026-10-03', evidence_text: 'started today',
     extraction_reason: 'Explicit start', extraction_version: 'phase1_rules_v1' }], error: null });
   stored = { ...stored, progress_extraction_revision: 1 };
-  await act(async () => vi.advanceTimersByTimeAsync(5000));
+  await act(async () => vi.advanceTimersByTimeAsync(30000));
   expect(container.textContent).toContain('START');
   expect(container.textContent).not.toContain('Awaiting structured progress extraction');
   expect(eq).toHaveBeenCalledWith('evidence_revision', 1);
@@ -107,7 +107,7 @@ it('does not start extra polling for completed extraction and cleans up when unm
   await act(async () => vi.advanceTimersByTimeAsync(20000));
   expect(refresh).not.toHaveBeenCalled();
   await act(async () => root.render(<Probe update={{ ...current, evidence_revision: 2 }} refresh={refresh} />));
-  await act(async () => vi.advanceTimersByTimeAsync(5000));
+  await act(async () => vi.advanceTimersByTimeAsync(30000));
   expect(refresh).toHaveBeenCalledTimes(1);
   await act(async () => root.render(null));
   await act(async () => vi.advanceTimersByTimeAsync(20000));
@@ -118,7 +118,7 @@ it('bounds pending refresh to one in-flight request and cancels on identity chan
   let resolve!: () => void;
   const refresh = vi.fn(() => new Promise<void>(r => { resolve = r; }));
   await act(async () => root.render(<Probe update={{ ...current, progress_extraction_revision: 0 }} refresh={refresh} />));
-  await act(async () => vi.advanceTimersByTimeAsync(5000));
+  await act(async () => vi.advanceTimersByTimeAsync(30000));
   await act(async () => vi.advanceTimersByTimeAsync(30000));
   expect(refresh).toHaveBeenCalledTimes(1);
   identity.user = null;

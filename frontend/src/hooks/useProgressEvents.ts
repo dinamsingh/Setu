@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { isDocumentVisible, POLL_INTERVAL_MS } from '../lib/polling';
 import { useAuth } from '../lib/AuthContext';
 import type { FieldUpdate } from '../types';
 import type { ProgressEvent } from '../types/progressEvents';
@@ -17,10 +18,10 @@ export function useProgressEvents(update?: FieldUpdate | null, refreshParent?: (
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
-      try { await refreshParent!(true); }
-      finally { if (!stopped) timer = setTimeout(() => { void poll().catch(() => {}); }, 5000); }
+      try { if (isDocumentVisible()) await refreshParent!(true); }
+      finally { if (!stopped) timer = setTimeout(() => { void poll().catch(() => {}); }, POLL_INTERVAL_MS); }
     }
-    timer = setTimeout(() => { void poll().catch(() => {}); }, 5000);
+    timer = setTimeout(() => { void poll().catch(() => {}); }, POLL_INTERVAL_MS);
     return () => { stopped = true; clearTimeout(timer); };
   }, [id, revision, completed, userId, refreshParent]);
   const [attempt, setAttempt] = useState(0);
@@ -34,7 +35,7 @@ export function useProgressEvents(update?: FieldUpdate | null, refreshParent?: (
     if (!id || !user || !completed) return;
     async function fetchEvents() {
       try {
-        const { data, error } = await supabase.from('progress_events').select('*')
+        const { data, error } = await supabase.from('progress_events').select('id, field_update_id, evidence_revision, event_index, event_type, event_date, progress_percent, evidence_text, extraction_reason, extraction_version, created_at')
           .eq('field_update_id', id).eq('evidence_revision', revision)
           .order('event_index', { ascending: true });
         if (error) throw error;
