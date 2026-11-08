@@ -4,6 +4,7 @@ import type { FieldUpdate } from '../types';
 import { useAuth } from '../lib/AuthContext';
 import { computeKpis, parseCandidates } from '../lib/utils';
 import { createFieldUpdateId } from '../lib/fieldUpdateId';
+import { isDocumentVisible, POLL_INTERVAL_MS } from '../lib/polling';
 import { isSupervisorSubmissionEnabled } from '../lib/supervisorSubmissionDeployment';
 import { getKolkataReferenceDate } from '../lib/temporalParser';
 
@@ -16,9 +17,12 @@ export function useFieldUpdates() {
   const fetchUpdates = useCallback(async (isPolling = false) => {
     try {
       if (!isPolling) setLoading(true);
+      // Explicit columns only: select('*') would also fetch any large
+      // column added later. Every column below is read by the UI or by
+      // workflow/progress logic, so none may be dropped silently.
       const { data, error: sbError } = await supabase
         .from('field_updates')
-        .select('*')
+        .select('id, update_id, source_type, field_text, site_location, reported_by, reported_date, status, confidence_level, confidence_score, matched_activity_id, expanded_text, matched_layer, candidate_matches, validation_status, validation_results, validation_overridden, override_reason, override_by, override_at, submitted_by_user_id, evidence_revision, progress_extraction_revision, progress_extraction_retry_revision, progress_extraction_attempts, progress_extraction_last_error, progress_extraction_next_attempt_at, workflow_revision, validation_evidence_revision, override_evidence_revision, override_activity_id, planner_remarks, created_at, updated_at')
         .order('update_id', { ascending: true });
 
       if (sbError) throw sbError;
@@ -44,7 +48,9 @@ export function useFieldUpdates() {
     fetchUpdates();
   }, [fetchUpdates]);
 
-  // Poll every 4 seconds while any row is awaiting matching
+  // Poll every 30 seconds while any row is awaiting matching, and never
+  // while the tab is hidden. The old 4-second poll ran day and night
+  // (live: ~42 REST requests/min) and burned the free-tier egress.
   const hasUnmatched = useMemo(() => {
     return updates.some(
       (u) => !u.confidence_level || u.confidence_level.toLowerCase() === 'pending'
@@ -55,8 +61,9 @@ export function useFieldUpdates() {
     if (!hasUnmatched) return;
 
     const intervalId = setInterval(() => {
+      if (!isDocumentVisible()) return;
       fetchUpdates(true);
-    }, 4000);
+    }, POLL_INTERVAL_MS);
 
     return () => clearInterval(intervalId);
   }, [hasUnmatched, fetchUpdates]);

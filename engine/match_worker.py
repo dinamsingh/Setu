@@ -84,7 +84,7 @@ def match_single_update(
 
 
 def run_worker(
-    interval: float = 5.0,
+    interval: float = 30.0,
     once: bool = False,
     verbose: bool = False,
     client: Optional[Any] = None
@@ -92,6 +92,11 @@ def run_worker(
     """
     Runs the polling matching worker loop.
     Precomputes and caches EnsembleMatcher ONCE at startup.
+
+    Default interval is 30 seconds: the old 5-second loop ran day and
+    night (live Supabase: ~42 REST requests/min from all pollers
+    combined) and burned the free-tier egress. Use --once for a single
+    pass, or --interval for an explicit override.
     """
     print("=" * 70)
     print("SETU - Live Field Updates Matching Worker")
@@ -224,8 +229,8 @@ def main():
     parser.add_argument(
         "--interval",
         type=float,
-        default=5.0,
-        help="Polling interval in seconds (default: 5.0)"
+        default=30.0,
+        help="Polling interval in seconds (default: 30.0)"
     )
     parser.add_argument(
         "--once",

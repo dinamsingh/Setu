@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { isDocumentVisible, POLL_INTERVAL_MS } from '../lib/polling';
 import { useAuth } from '../lib/AuthContext';
 import type { Clarification, RemapProposal, WorkflowResult } from '../types/workflow';
 
@@ -17,10 +18,12 @@ export function useWorkflow(onRefresh?: () => Promise<void>) {
     const token = ++generation.current;
     if (!user) return;
     try {
-      let query = supabase.from('field_update_clarifications').select('*').order('created_at', { ascending: false });
+      // Explicit columns only, capped at the 200 most recent rows: these
+      // tables are append-only, so an unbounded select('*') grows forever.
+      let query = supabase.from('field_update_clarifications').select('id, field_update_id, mode, recipient_user_id, question, communication_method, response, supplied_by, requested_by_user_id, responded_by_user_id, resolved_by_user_id, cancelled_by_user_id, status, triage_impact, triage_note, evidence_revision, workflow_revision, resolved_evidence_revision, created_at, responded_at, resolved_at, cancelled_at').order('created_at', { ascending: false }).limit(200);
       if (!planner) query = query.eq('recipient_user_id', user.id);
       const [c, p] = await Promise.all([query, planner
-        ? supabase.from('field_update_remap_proposals').select('*').order('created_at', { ascending: false })
+        ? supabase.from('field_update_remap_proposals').select('id, field_update_id, target_activity_id, proposed_by_user_id, evidence_revision, workflow_revision, status, validation_status, validation_results, validation_generation, validated_generation, validation_evidence_revision, validation_overridden, override_reason, override_by_user_id, override_at, override_evidence_revision, override_validation_generation, created_at, validated_at, finalized_at, cancelled_at, cancelled_by_user_id, cancellation_reason').order('created_at', { ascending: false }).limit(200)
         : Promise.resolve({ data: [], error: null })]);
       if (c.error || p.error) throw c.error || p.error;
       if (token === generation.current) {
@@ -36,14 +39,18 @@ export function useWorkflow(onRefresh?: () => Promise<void>) {
     void Promise.resolve().then(refresh);
     const requests = generation;
     // One bounded poll for workflow changes; no overlapping interval requests.
+    // 30 seconds, and never while the tab is hidden: the old 5-second poll
+    // ran day and night and burned the free-tier egress.
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
-      await refresh();
-      if (!stopped) await refreshParent.current?.();
-      if (!stopped) timer = setTimeout(poll, 5000);
+      if (isDocumentVisible()) {
+        await refresh();
+        if (!stopped) await refreshParent.current?.();
+      }
+      if (!stopped) timer = setTimeout(poll, POLL_INTERVAL_MS);
     }
-    timer = setTimeout(poll, 5000);
+    timer = setTimeout(poll, POLL_INTERVAL_MS);
     return () => { stopped = true; ++requests.current; clearTimeout(timer); };
   }, [refresh]);
   const act = async (name: string, params: Record<string, unknown>): Promise<WorkflowResult> => {
